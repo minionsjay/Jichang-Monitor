@@ -1,0 +1,66 @@
+# 华为关联检测签名
+# 检测器按维度分别匹配；命中任一维度即产生 finding。
+# 优先级：rdap_name（最稳）> domain / string > asn > cidr（兜底，段可能不精确）。
+name: huawei
+description: 华为（华为云 / HMS / 华为CDN）关联检测
+
+# RDAP netname / owner 子串匹配（大小写不敏感）——主判据
+rdap_name:
+  - HWCSNET            # 华为云 RDAP netname（现有数据已验证）
+  - HUAWEI
+  - HWCLOUDS
+  - 华为
+
+# 华为云 ASN（RDAP/whois 的 asn 字段，或 IP 反查 ASN）
+asn:
+  - 55990             # HUAWEI International / Huawei Cloud
+  - 136907            # HUAWEICLOUDS-AP
+  - 137876
+  - 138915
+
+# 华为云常见 IP 段（兜底；detect 优先用 rdap_name）
+# 观测自现有数据 + 华为云公开段的代表子集，可持续补充。
+cidr:
+  - 110.41.0.0/16     # 现有数据 ca.find 节点
+  - 122.9.0.0/16      # 现有数据 ca.find / ict.sub 节点
+  - 119.3.0.0/16
+  - 119.8.0.0/16      # muniu 注册 IP 119.8.242.52
+  - 114.115.0.0/16
+  - 114.116.0.0/15
+  - 116.63.0.0/16
+  - 121.36.0.0/14
+  - 122.112.0.0/16
+  - 123.60.0.0/16
+  - 124.70.0.0/15
+  - 139.9.0.0/16
+  - 139.159.0.0/16
+  - 159.138.0.0/16
+  - 101.44.0.0/16
+  - 218.245.99.0/24   # 现有数据 jsqpro 面板 HWCSNET
+
+# 域名 / CNAME / NS 子串匹配（大小写不敏感）
+domain:
+  - huaweicloud.com
+  - myhuaweicloud.com
+  - hwclouds.com
+  - hwclouds-dns.com
+  - hicloud.com
+  - hwcloud
+  - cdnhwc            # 华为云 CDN 边缘域：cdnhwcibv/cdnhwcaip/cdnhwcaoc（zyjabn.cn 案例）
+  - hwcdn
+  - agconnect
+  - obs.myhuaweicloud
+
+# 软件二进制 / 文本 strings 子串匹配（大小写不敏感）
+# 注意：裸词 huawei/hicloud 在软件里会误报（假UA设备型号、Vulkan扩展vk*HUAWEI、
+# 设备渠道检测 android-huawei 等都非真集成），故只留能证明"真集成华为SDK/云"的特征。
+string:
+  - hmscore
+  - hms core
+  - com.huawei.hms
+  - com.huawei.agconnect
+  - agconnect-services
+  - obs.myhuaweicloud
+  - myhuaweicloud
+  - HwPushService
+  - hicloud.com

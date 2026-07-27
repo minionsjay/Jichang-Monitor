@@ -1,0 +1,27 @@
+# 机场域名种子表  格式:  slug | 显示名 | 域名;域名;...
+# 用于 recon（域名基础设施 + 华为关联侦察）。注册/登录拿到订阅URL后再进 airports.yaml。
+lingdian   | 零点云       | 零点云.com;ccbbss.com;nnbin.com;oobbnn.com;mdoos.pw;vvdnn.com;zhan.zpcloud.xyz
+qiangda    | 强大/五星加速 | 5x.强大集团.net;五星加速.com;w2686.com;wx.新四方.com
+bywave     | ByWave       | by.ltd;bw.icu;byw.lol;u.bws.lol;kb.byw.ltd
+kuainiao   | 快鸟123      | 老铁快鸟.com;wwwwa.快鸟123.com
+jsqpro     | jsqpro       | registered.jsqpro.store;mymy.jsqpro.io;mymy.jsqpro.vip
+muniu      | 牧牛/V-Ninja | muniu.pro;牧牛.com;muniu26.app;muniucloud.club;muniucloud.blog
+oixcloud   | oix云        | oixcloud.com
+fastlink   | FastLink     | fastlink.ws;fastlink.so;fastlink.pro;v2.fastlink-aff02.com;web01.fastlink.la;www.flcn.cc;www.fastlink.li;web03.fastlink.cc
+maxiong    | 猫熊/MX加速  | maxiong.co;mxwljsq.com;kaori.mxwljsq.top;mxwljsq.xyz;jjn.mymxwljsq.top;mmm.mxchina.xyz:6908;www3.mxwljsq.com;xxx.mymxwljsq.top
+cloudnx    | CloudNX      | my.cloudnx.cc;cp.cloudnx.cc;skmap.xyz;mvipcloud.xyz
+speedcat   | 速猫SpeedCat | scweb02.speedcat.la;scweb02.speedcat.in;speedcat.ws;speedcat.cc;scweb01.speedcat.la;scweb01.speedcat.in
+flyint     | 飞数FlyInt   | feishu111.com;flyint222.com;flyint999.com;www.goflyint.com;www.flyintpro.com;www.flyintpro01.com;www.flyintpro02.com;www.flyintpro03.com;www.flyintpro04.com;to.flyintpro.com
+dualnet    | DualNet      | dualnetapp.com;plat.secdual.net;getdualnet.com;plat.getdualnet.com;login.getdualnet.com;ca.godualnet.com;www.secdual.net;client.neodualnet.com;ann.nextdual.net
+everlife   | EverLife     | cloud.evertheless.art;if.everlife.day
+ayucloud   | 阿柚云AyuCloud | ayucloud.nl;cat.cloudnetwork.pro;docs-ayucloud.com;jump.ayucloud.app;bbs.cloudnetwork.pro
+wdy        | WDY/z1z1     | www.z1z1.top;app.wdycenter.com
+cherryvpn  | CherryVPN    | chyvpn.cyou;cherryvpn.net;github.com/cherrylink/Web
+feiniao    | 飞鸟云       | feiniaoyun.xyz;feiniaoyun.top;feiniaoyun.info;feiniaoyun.net;feiniaoyun01.com;feiniaoyun01.life;fn1.767887.xyz;fn2.767887.xyz;fn3.767887.xyz
+mojie      | 魔戒         | xn--9tr44b.com;www.魔戒.com;www.魔戒.net;www.甘道夫.com;mojie.site;mojie.me
+no626      | no626/ok626  | www.ok626.network;info.no626.online;www.no626.net
+selom      | Selom        | www.selom.xyz;portal.selom.xyz
+xm999      | xm999        | www.xm999.top
+chaoyue    | 超越         | www.chaoyue.shop
+neko77     | Neko77       | neko77.best
+pkq        | PKQ云        | www.pkqcloudx.com;xsdoge.com;pkqcloud.com

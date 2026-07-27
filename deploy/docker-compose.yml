@@ -1,0 +1,19 @@
+# V-Ninja 类机场常驻取节点。一个客户端锁定型机场 = 一个 service（隔离）。
+services:
+  vninja-muniu:
+    build:
+      context: ..                      # 构建上下文=monitor/（打包监控代码）
+      dockerfile: deploy/Dockerfile
+    environment:
+      AIRPORT: muniu-ninja
+      PROFILE_UID: Roa863gqRJqo         # 该订阅 uid
+      WATCH_INTERVAL: 300
+    volumes:
+      # ① 已登录的客户端数据目录（桌面登录后拷来）
+      - ./client-data:/root/.local/share/io.github.clash-verge-ninja.clash-verge-ninja
+      # ② 快照输出回主项目 data/
+      - ../data:/app/data
+    # 只取节点不需真路由 → 默认不开 TUN。若要 TUN 解锁流媒体测试再取消下面注释：
+    # cap_add: [NET_ADMIN]
+    # devices: ["/dev/net/tun"]
+    restart: unless-stopped
