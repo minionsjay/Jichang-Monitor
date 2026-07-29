@@ -872,7 +872,7 @@ def cmd_export(args):
         if not snaps:
             continue
         s = store.load(snaps[-1])
-        for n in s["nodes"]:
+        for n in s.get("nodes", []):
             ips = n["raw"].get("_resolved_ips") or []
             rd = n["raw"].get("_rdap") or {}
             owners, nets, ctys, hw = [], [], [], ""
@@ -1078,7 +1078,7 @@ def cmd_recon(args):
                     "rdap_netname", "rdap_owner", "country", "huawei"])
         for slug, display, domains in seeds:
             res = recon_airport(slug, display, domains, detector)
-            hw_hosts = {fi.context.split(" [")[0] for fi in res["findings"]}
+            hw_hosts = {fi.context.split(" [")[0] for fi in res.get("findings", [])}
             print(f"\n=== {slug} ({display}) — {len(domains)}域名, "
                   f"{len(res['findings'])}华为命中 ===")
             for r in res["rows"]:
@@ -1089,7 +1089,7 @@ def cmd_recon(args):
                       f"{','.join(r['real'][:2]) or '-':32} {rd[0]}{flag}")
                 w.writerow([slug, r["host"], r["status"], "|".join(r["ips"]),
                             "|".join(r["cnames"]), rd[0], rd[1], rd[2], hw])
-            all_findings += res["findings"]
+            all_findings += res.get("findings", [])
     print(f"\n===== 华为关联汇总：{len(all_findings)} 条 =====")
     for fi in all_findings:
         print("  " + fi.line())
