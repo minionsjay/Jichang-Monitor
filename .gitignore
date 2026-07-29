@@ -18,3 +18,11 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Client installations and installers (large binaries)
+jichang-ruanjian/
+anzhuangbao/
+
+# Bat scripts with local paths
+run_admin.bat
+auto_run.bat

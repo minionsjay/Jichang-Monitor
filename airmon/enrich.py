@@ -7,16 +7,21 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 
-def resolve(host: str) -> list[str]:
-    """域名 → IP 列表；本身是 IP 则原样返回；解析不到返回 []。"""
+def resolve(host: str, timeout: float = 5.0) -> list[str]:
+    """域名 → IP 列表；本身是 IP 则原样返回；解析不到返回 []。
+    
+    socket.getaddrinfo 无原生超时，用 ThreadPoolExecutor+future timeout 防止卡死。"""
     if not host:
         return []
     if _is_ip(host):
         return [host]
+    import concurrent.futures
     try:
-        infos = socket.getaddrinfo(host, None)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
+            fut = ex.submit(socket.getaddrinfo, host, None)
+            infos = fut.result(timeout=timeout)
         return sorted({i[4][0] for i in infos})
-    except socket.gaierror:
+    except (socket.gaierror, concurrent.futures.TimeoutError, Exception):
         return []
 
 
@@ -41,7 +46,7 @@ def rdap(ip: str) -> tuple[str, str, str, str]:
         try:
             req = urllib.request.Request(f"https://rdap.org/ip/{ip}",
                                          headers={"User-Agent": "airmon-rdap"})
-            with urllib.request.urlopen(req, timeout=10) as r:
+            with urllib.request.urlopen(req, timeout=8) as r:
                 d = json.load(r)
             break
         except Exception:
@@ -74,7 +79,7 @@ def rdap(ip: str) -> tuple[str, str, str, str]:
         req = urllib.request.Request(
             f"http://ip-api.com/json/{ip}?fields=status,country,countryCode,regionName,city,isp,org,as,query&lang=zh-CN",
             headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=10) as r:
+        with urllib.request.urlopen(req, timeout=8) as r:
             d2 = json.load(r)
         if d2.get("status") == "success":
             isp = d2.get("isp", "")
@@ -83,36 +88,68 @@ def rdap(ip: str) -> tuple[str, str, str, str]:
             asn = d2.get("as", "")
             result = (isp, org, country, asn)
             _RDAP_CACHE[ip] = result
+            _save_disk_cache(ip, result)
             return result
     except Exception as e:
         return ("n/a", f"n/a({e})", "", "")
-    
+
     return ("n/a", "n/a(failed)", "", "")
-    netname = d.get("name") or d.get("handle") or ""
-    country = d.get("country") or ""
-    owner = ""
-    for e in d.get("entities", []) or []:
-        roles = e.get("roles", [])
-        if any(x in roles for x in ("registrant", "administrative", "owner")):
-            for item in (e.get("vcardArray", [None, []])[1] or []):
-                if item and item[0] == "fn":
-                    owner = item[3]
-                    break
-        if owner:
-            break
-    asn = ""
-    for remark in d.get("remarks", []) or []:
-        for t in remark.get("description", []) or []:
-            if "AS" in str(t):
-                asn = asn or str(t)
-    result = (netname, owner or netname, country, asn)
-    _RDAP_CACHE[ip] = result       # 只缓存成功
-    return result
 
 
-def rdap_many(ips, workers: int = 4) -> dict[str, tuple[str, str, str, str]]:
+# ---- 持久化 RDAP 缓存（跨次 pull 复用）----
+_DISK_CACHE: dict[str, tuple] = {}
+_DISK_PATH: str | None = None
+
+
+def _disk_cache_path() -> str:
+    import os
+    d = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", ".cache")
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, "rdap_cache.json")
+
+
+def _load_disk_cache() -> None:
+    global _DISK_CACHE, _DISK_PATH
+    if _DISK_PATH is None:
+        _DISK_PATH = _disk_cache_path()
+    try:
+        with open(_DISK_PATH, encoding="utf-8") as f:
+            raw = json.load(f)
+        _DISK_CACHE = {k: tuple(v) for k, v in raw.items()}
+    except Exception:
+        _DISK_CACHE = {}
+
+
+def _save_disk_cache(ip: str, result: tuple) -> None:
+    global _DISK_PATH
+    if _DISK_PATH is None:
+        _DISK_PATH = _disk_cache_path()
+    _DISK_CACHE[ip] = result
+    try:
+        with open(_DISK_PATH, "w", encoding="utf-8") as f:
+            json.dump({k: list(v) for k, v in _DISK_CACHE.items()}, f, ensure_ascii=False)
+    except Exception:
+        pass
+
+
+def rdap_many(ips, workers: int = 12) -> dict[str, tuple[str, str, str, str]]:
     ips = sorted(set(ips))
     if not ips:
         return {}
-    with ThreadPoolExecutor(max_workers=workers) as ex:
-        return dict(zip(ips, ex.map(rdap, ips)))
+    # 加载持久缓存
+    if not _DISK_CACHE:
+        _load_disk_cache()
+    # 合并内存缓存
+    for ip, result in _DISK_CACHE.items():
+        if ip not in _RDAP_CACHE:
+            _RDAP_CACHE[ip] = result
+    # 只查未缓存的
+    todo = [ip for ip in ips if ip not in _RDAP_CACHE]
+    if todo:
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            results = dict(zip(todo, ex.map(rdap, todo)))
+        # 持久化新结果
+        for ip, result in results.items():
+            if result[0] != "n/a":
+                _save_disk_cache(ip, result)
+    return {ip: _RDAP_CACHE.get(ip, ("n/a", "n/a", "", "")) for ip in ips}

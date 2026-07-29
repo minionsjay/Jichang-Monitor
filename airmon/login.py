@@ -37,7 +37,83 @@ def _norm(base: str) -> str:
 
 def v2board_login(panel: str, email: str, password: str,
                   timeout: int = 25) -> tuple[str, str]:
-    """返回 (subscribe_url, auth_data)。失败抛 LoginError。"""
+    """返回 (subscribe_url, auth_data)。失败抛 LoginError。
+
+    支持标准v2board (/api/v1/passport/auth/login) 和 Xboard分支
+    (/api/v1/identity/auth/login)，Xboard需 Bearer token。
+    """
+    base = _norm(panel)
+    s = requests.Session()
+    s.headers.update({"User-Agent": _UA_BROWSER, "Content-Type": "application/json"})
+
+    # 尝试两种登录路径：标准v2board → Xboard
+    for login_path, token_field in [
+        ("/api/v1/passport/auth/login", "auth_data"),  # 标准v2board
+        ("/api/v1/identity/auth/login", "token"),      # Xboard分支
+    ]:
+        try:
+            r = s.post(f"{base}{login_path}",
+                       json={"email": email, "password": password},
+                       timeout=timeout, verify=False)
+        except requests.RequestException as e:
+            raise LoginError(f"登录请求失败: {e}")
+
+        if r.status_code == 403 or "cf-mitigated" in {k.lower() for k in r.headers}:
+            raise LoginError("被 Cloudflare/反爬拦截(可能需验证码)")
+        # 检查是否是JSON（content-type可能标text/html但body是JSON）
+        ct = r.headers.get("content-type", "")
+        body = r.text[:512]
+        if "json" not in ct and not body.lstrip().startswith("{"):
+            continue  # 不是JSON，试下一个路径
+        try:
+            data = r.json()
+        except ValueError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        d = data.get("data")
+        d = d if isinstance(d, dict) else {}
+        auth = d.get(token_field) or d.get("auth_data") or d.get("token")
+        if not auth:
+            msg = data.get("message") or data.get("errors") or r.text[:120]
+            raise LoginError(f"登录被拒: {msg}")
+        # 成功拿到auth
+        sub, _ = _v2board_get_subscribe(base, auth, s, timeout)
+        return sub, auth
+
+    raise LoginError("非 v2board/Xboard 响应(两种登录路径都失败)")
+
+
+def _v2board_get_subscribe(base: str, auth: str, session: requests.Session,
+                           timeout: int = 25) -> tuple[str, str]:
+    """取订阅链接。支持标准v2board和Xboard(Bearer token)。"""
+    # 标准v2board: Authorization: <auth_data>
+    # Xboard: Authorization: Bearer <token>
+    for header_fmt, sub_path in [
+        (f"{auth}", "/api/v1/user/getSubscribe"),           # 标准v2board
+        (f"Bearer {auth}", "/api/v1/user/subscribe"),        # Xboard
+    ]:
+        try:
+            r2 = session.get(f"{base}{sub_path}",
+                             headers={"Authorization": header_fmt},
+                             timeout=timeout, verify=False)
+            j2 = r2.json()
+            dd = j2.get("data") if isinstance(j2, dict) else None
+            sub = dd.get("subscribe_url") if isinstance(dd, dict) else None
+            if sub:
+                return sub, auth
+        except (requests.RequestException, ValueError):
+            continue
+    raise LoginError(f"登录成功但未拿到 subscribe_url")
+
+
+def v2board_server_fetch(panel: str, email: str, password: str,
+                         timeout: int = 25) -> tuple[list[dict], str]:
+    """登录后调 /api/v1/user/server/fetch 直接拿节点列表（绕过订阅URL的客户端检测）。
+
+    返回 (servers, auth_data)。servers 是 v2board 原始节点数组。
+    订阅URL可能对非官方客户端返回占位节点(1.1.1.1)，但 server/fetch API
+    只要登录就能拿到真实节点。"""
     base = _norm(panel)
     s = requests.Session()
     s.headers.update({"User-Agent": _UA_BROWSER, "Content-Type": "application/json"})
@@ -55,9 +131,7 @@ def v2board_login(panel: str, email: str, password: str,
     except ValueError:
         raise LoginError(f"非 v2board 响应(HTTP {r.status_code}): {r.text[:120]}")
 
-    if not isinstance(data, dict):
-        raise LoginError(f"非 v2board 响应(登录返回非对象): {str(data)[:120]}")
-    d = data.get("data")
+    d = data.get("data") if isinstance(data, dict) else {}
     d = d if isinstance(d, dict) else {}
     auth = d.get("auth_data") or d.get("token")
     if not auth:
@@ -65,17 +139,15 @@ def v2board_login(panel: str, email: str, password: str,
         raise LoginError(f"登录被拒: {msg}")
 
     try:
-        r2 = s.get(f"{base}/api/v1/user/getSubscribe",
+        r2 = s.get(f"{base}/api/v1/user/server/fetch",
                    headers={"Authorization": auth}, timeout=timeout, verify=False)
         j2 = r2.json()
-        dd = j2.get("data") if isinstance(j2, dict) else None
-        sub = dd.get("subscribe_url") if isinstance(dd, dict) else None
+        servers = j2.get("data") if isinstance(j2, dict) else None
     except (requests.RequestException, ValueError) as e:
-        raise LoginError(f"取订阅失败: {e}")
-    if not sub:
-        raise LoginError(f"登录成功但未拿到 subscribe_url；getSubscribe 返回: "
-                         f"{str(j2)[:150] if 'j2' in dir() else '?'}")
-    return sub, auth
+        raise LoginError(f"取节点失败: {e}")
+    if not servers:
+        raise LoginError(f"登录成功但 server/fetch 返回空: {str(j2)[:150]}")
+    return servers, auth
 
 
 def sspanel_login(panel: str, email: str, password: str,
@@ -83,30 +155,44 @@ def sspanel_login(panel: str, email: str, password: str,
     """SSPanel-uim：cookie 会话登录 → 从 /user 页抠订阅链接 /link/<token>。
 
     字段是 passwd（非 password）；成功 JSON {"ret":1}。
+    标准路径 /auth/login，部分面板用 /user/login（Malio 主题等）。
     """
     base = _norm(panel)
     s = requests.Session()
     s.headers.update({"User-Agent": _UA_BROWSER,
                       "X-Requested-With": "XMLHttpRequest"})
-    try:
-        r = s.post(f"{base}/auth/login",
-                   data={"email": email, "passwd": password,
-                         "code": "", "remember_me": "week"},
-                   timeout=timeout, verify=False)
-    except requests.RequestException as e:
-        raise LoginError(f"登录请求失败: {e}")
 
-    try:
-        j = r.json()
-    except ValueError:
-        raise LoginError(f"非 SSPanel 响应(HTTP {r.status_code}): {r.text[:120]}")
-    if not isinstance(j, dict):
-        raise LoginError(f"非 SSPanel 响应(返回非对象 {type(j).__name__}): {str(j)[:100]}")
-    if j.get("ret") != 1:
-        msg = j.get("msg") or j.get("message") or "登录被拒"
-        if any(k in str(msg) for k in ("验证码", "captcha", "code")):
-            raise LoginError(f"需验证码: {msg}")
-        raise LoginError(f"登录被拒: {msg}")
+    # 先试标准路径 /auth/login，失败试 /user/login
+    for login_path in ("/auth/login", "/user/login"):
+        try:
+            r = s.post(f"{base}{login_path}",
+                       data={"email": email, "passwd": password,
+                             "code": "", "remember_me": "week"},
+                       timeout=timeout, verify=False)
+        except requests.RequestException as e:
+            raise LoginError(f"登录请求失败: {e}")
+
+        # 检查是否是JSON（有些面板content-type标text/html但body是JSON）
+        ct = r.headers.get("content-type", "")
+        body = r.text[:512]
+        if "json" not in ct and not body.lstrip().startswith("{"):
+            continue  # 不是JSON，试下一个路径
+
+        try:
+            j = r.json()
+        except ValueError:
+            continue
+
+        if not isinstance(j, dict):
+            continue
+        if j.get("ret") != 1:
+            msg = j.get("msg") or j.get("message") or "登录被拒"
+            if any(k in str(msg) for k in ("验证码", "captcha", "code")):
+                raise LoginError(f"需验证码: {msg}")
+            raise LoginError(f"登录被拒: {msg}")
+        break  # 登录成功
+    else:
+        raise LoginError(f"非 SSPanel 响应: /auth/login 和 /user/login 都返回非JSON")
 
     # 订阅链接在用户中心页 HTML 里
     try:
@@ -120,11 +206,81 @@ def sspanel_login(panel: str, email: str, password: str,
     return sub, None
 
 
+def whmcs_login(panel: str, email: str, password: str,
+                timeout: int = 25) -> tuple[str, None]:
+    """WHMCS 面板登录：GET /login 抓 CSRF token → POST /login → 从产品详情页抠订阅链接。
+
+    WHMCS 用 Lagom 等主题，表单字段是 username/password/token(CSRF)。
+    订阅链接在 clientarea.php?action=productdetails&id=xxx 页面里。
+    """
+    base = _norm(panel)
+    s = requests.Session()
+    s.headers.update({"User-Agent": _UA_BROWSER})
+
+    # 1. GET /login 抓 CSRF token
+    try:
+        r = s.get(f"{base}/login", timeout=timeout, verify=False)
+    except requests.RequestException as e:
+        raise LoginError(f"获取登录页失败: {e}")
+    m = re.search(r'name=["\']token["\']\s+value=["\']([^"\']+)', r.text)
+    if not m:
+        raise LoginError("登录页未找到 CSRF token（可能不是 WHMCS）")
+    csrf = m.group(1)
+
+    # 2. POST /login
+    try:
+        r2 = s.post(f"{base}/login", data={
+            "token": csrf,
+            "username": email,
+            "password": password,
+            "rememberme": "on",
+        }, timeout=timeout, verify=False, allow_redirects=False)
+    except requests.RequestException as e:
+        raise LoginError(f"登录请求失败: {e}")
+    if r2.status_code not in (301, 302):
+        raise LoginError(f"登录失败: HTTP {r2.status_code}（非302跳转）")
+    if "WHMCS" not in str(s.cookies.keys()) and "login_auth" not in str(s.cookies.keys()):
+        raise LoginError("登录后未获取到 WHMCS cookie")
+
+    # 3. 从 clientarea.php 找产品列表
+    try:
+        r3 = s.get(f"{base}/clientarea.php", timeout=timeout, verify=False)
+    except requests.RequestException as e:
+        raise LoginError(f"取客户区失败: {e}")
+    products = re.findall(r'clientarea\.php\?action=productdetails&id=(\d+)', r3.text)
+    if not products:
+        raise LoginError("登录成功但未找到产品（可能无订阅或已过期）")
+
+    # 4. 逐个产品页找订阅链接
+    for pid in products[:5]:
+        try:
+            r4 = s.get(f"{base}/clientarea.php?action=productdetails&id={pid}",
+                       timeout=timeout, verify=False)
+        except Exception:
+            continue
+        # 搜订阅URL（多种格式）
+        for pattern in [
+            r'(https?://[a-z0-9.-]+/subscribe/[A-Za-z0-9/]+)',
+            r'(https?://[a-z0-9.-]+/link/[A-Za-z0-9]+)',
+            r'(https?://[a-z0-9.-]+/api/v1/client/subscribe\?token=[A-Za-z0-9]+)',
+        ]:
+            m2 = re.search(pattern, r4.text, re.I)
+            if m2:
+                return m2.group(1), None
+        # 也搜页面里的任意外部订阅链接
+        all_urls = re.findall(r'https?://[a-z0-9.-]+\.[a-z]{2,}[^\s"\'<>]*', r4.text, re.I)
+        for u in all_urls:
+            if any(kw in u.lower() for kw in ["subscribe", "/sub?", "clashsub"]):
+                return u, None
+
+    raise LoginError("登录成功但未在产品页找到订阅链接")
+
+
 def smart_login(panel: str, email: str, password: str,
                 ptype: str = "auto") -> tuple[str, str, str]:
     """按面板类型登录。返回 (subscribe_url, auth, 识别到的类型)。
 
-    ptype: v2board / sspanel / auto（先试 v2board，失败再试 sspanel）。
+    ptype: v2board / sspanel / whmcs / auto（逐个试）。
     """
     if ptype == "v2board":
         sub, auth = v2board_login(panel, email, password)
@@ -132,7 +288,10 @@ def smart_login(panel: str, email: str, password: str,
     if ptype == "sspanel":
         sub, auth = sspanel_login(panel, email, password)
         return sub, auth, "sspanel"
-    # auto
+    if ptype == "whmcs":
+        sub, auth = whmcs_login(panel, email, password)
+        return sub, auth, "whmcs"
+    # auto: v2board → sspanel → whmcs
     errors = []
     try:
         sub, auth = v2board_login(panel, email, password)
@@ -144,33 +303,52 @@ def smart_login(panel: str, email: str, password: str,
         return sub, auth, "sspanel"
     except LoginError as e:
         errors.append(f"sspanel:{e}")
+    try:
+        sub, auth = whmcs_login(panel, email, password)
+        return sub, auth, "whmcs"
+    except LoginError as e:
+        errors.append(f"whmcs:{e}")
     raise LoginError(" | ".join(errors))
 
 
 def probe_panel(host: str, timeout: int = 8) -> tuple[str, str] | None:
     """探测单个域名是不是可登录的面板。返回 (base_url, type) 或 None。"""
     base = _norm(host)
+    # 先试 v2board
     try:
         r = requests.post(f"{base}/api/v1/passport/auth/login",
                           json={"email": "", "password": ""},
                           headers={"User-Agent": _UA_BROWSER},
                           timeout=timeout, verify=False, allow_redirects=False)
-        if "json" in r.headers.get("content-type", ""):
-            j = r.json()
-            if isinstance(j, dict) and any(k in j for k in ("message", "errors", "data")):
-                return base, "v2board"
+        # content-type 可能是 application/json 也可能误标为 text/html，
+        # 所以除了看 header 还尝试直接 parse body。
+        ct = r.headers.get("content-type", "")
+        body_text = r.text[:512]
+        if "json" in ct or body_text.lstrip().startswith("{"):
+            try:
+                j = r.json()
+                if isinstance(j, dict) and any(k in j for k in ("message", "errors", "data")):
+                    return base, "v2board"
+            except ValueError:
+                pass
     except Exception:
         pass
+    # 再试 SSPanel
     try:
         r = requests.post(f"{base}/auth/login",
                           data={"email": "", "passwd": "", "code": ""},
                           headers={"User-Agent": _UA_BROWSER,
                                    "X-Requested-With": "XMLHttpRequest"},
                           timeout=timeout, verify=False, allow_redirects=False)
-        if "json" in r.headers.get("content-type", ""):
-            j = r.json()
-            if isinstance(j, dict) and "ret" in j:
-                return base, "sspanel"
+        ct = r.headers.get("content-type", "")
+        body_text = r.text[:512]
+        if "json" in ct or body_text.lstrip().startswith("{"):
+            try:
+                j = r.json()
+                if isinstance(j, dict) and "ret" in j:
+                    return base, "sspanel"
+            except ValueError:
+                pass
     except Exception:
         pass
     return None

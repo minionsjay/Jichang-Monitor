@@ -1,125 +1,164 @@
-# 机场注册表 —— 后续新增机场只在此追加条目
-# type: direct  = 直连订阅型（有可直抓的订阅 URL）
-# type: client  = 客户端锁定型（订阅接口签名，靠常驻官方客户端落盘）
-
 airports:
-  - name: muniu
-    display: 牧牛 / V-Ninja
-    type: client
-    enabled: true
-    homepage: https://xn--11xxa.com
-    panel: https://muniu.app/user
-    domains: [muniu.pro, muniu.go26.one, 牧牛.com]
-    subscription:
-      # 客户端锁定：直抓一律 403，由常驻客户端落盘明文 profile
-      url: https://45.137.181.128/777/ninja/R1xD07bkFwa7ys94
-      drop_dir: null        # 常驻客户端的 profiles 目录，部署阶段3时填
-      user_agent: Clash V-Ninja
-    client:
-      package: V-Ninja
-      # 安装包样本（阶段2 静态拆包扫华为字符串用）
-      sample: ../0701-muniu/V-Ninja-2.3.1-1.x86_64.rpm
-      unpacked: ../0701-muniu/standalone
-    notes: 落地被 GeoDNS 藏死；华为线索=面板注册 IP 119.8.242.52（华为云）
+- client:
+    core_process: clash-ninja-service
+    data_dir: C:\Users\YOUR_USER\AppData\Roaming\io.github.clash-verge-ninja.clash-verge-ninja
+    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\V-Ninja
+    package: clash-ninja
+    sample: ../0701-muniu/V-Ninja-2.3.1-1.x86_64.rpm
+    unpacked: ../0701-muniu/standalone
+  display: 牧牛 / V-Ninja
+  domains:
+  - muniu.pro
+  - muniu.go26.one
+  - 牧牛.com
+  enabled: true
+  homepage: https://xn--11xxa.com
+  name: muniu
+  notes: 'V-Ninja = Clash Verge Rev 换皮(Tauri) + 原版 mihomo 内核。
 
-  - name: muniu-ninja
-    display: 牧牛 V-Ninja 隐藏池
-    type: client
-    enabled: true
-    subscription:
-      url: https://45.137.181.128/777/ninja/R1xD07bkFwa7ys94   # 直抓403，靠客户端落盘
-      drop_dir: null        # 常驻客户端 profiles 目录，部署阶段3时填
-    notes: ninja私有协议+GeoDNS藏落地；用 watch/ingest-profile 摄入，勿与 muniu(老订阅池)混
+    config 以明文 Clash YAML 落盘到 data_dir。
 
-  - name: bywave
-    display: ByWave
-    type: direct
-    enabled: true
-    domains: [kb.byw.ltd]
-    subscription:
-      url: null             # TODO 补真实订阅 URL
-      user_agent: clash.meta
-    notes: data.csv 中唯一完全可用、最新注册(2026-01)，疑当前主力
+    节点可直接读 YAML，不需要 scan-memory。
 
-  - name: lingdian
-    display: 零点云
-    type: direct
-    enabled: false          # 已被墙
-    domains: [zhan.zpcloud.xyz]
-    subscription: {url: null, user_agent: clash.meta}
-    notes: 已被墙
+    华为线索=面板注册 IP 119.8.242.52（华为云 AS136907）。
 
-  - name: jsqpro
-    display: jsqpro (v2board 面板)
-    type: direct
-    enabled: false          # 已被墙
-    domains: [registered.jsqpro.store]
-    panel: https://registered.jsqpro.store
-    subscription: {url: null, user_agent: clash.meta}
-    notes: 华为线索=面板托管在华为云 218.245.99.148(HWCSNET)；已被墙
+    Windows安装包: E:\Work\Ninja_2.3.1_x86-setup.exe
 
-  - name: qiangda
-    display: 强大集团
-    type: direct
-    enabled: false
-    domains: ["5x.强大集团.net"]
-    subscription: {url: null, user_agent: clash.meta}
-    notes: 电信四川落地；与快鸟123 共用节点 IP 114.80.8.206
+    '
+  panel: https://muniu.app/user
+  subscription:
+    drop_dir: null
+    url: https://45.137.181.128/777/ninja/R1xD07bkFwa7ys94
+    user_agent: Clash V-Ninja
+  type: client
+- display: 牧牛 V-Ninja 隐藏池
+  enabled: true
+  name: muniu-ninja
+  notes: ninja私有协议+GeoDNS藏落地；用 watch/ingest-profile 摄入，勿与 muniu(老订阅池)混
+  subscription:
+    drop_dir: null
+    url: https://45.137.181.128/777/ninja/R1xD07bkFwa7ys94
+  type: client
+- display: ByWave
+  domains:
+  - kb.byw.ltd
+  enabled: true
+  name: bywave
+  notes: data.csv 中唯一完全可用、最新注册(2026-01)，疑当前主力
+  subscription:
+    url: null
+    user_agent: clash.meta
+  type: direct
+- client:
+    core_process: 0dcloudCore
+    data_dir: C:\Users\YOUR_USER\AppData\Roaming\0dcloud\0dcloud
+    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\0dcloud
+    package: 0dcloud
+  display: 零点云
+  domains:
+  - 0dy4.com
+  - 零点云.com
+  - ccbbss.com
+  - nnbin.com
+  - oobbnn.com
+  - mdoos.pw
+  - vvdnn.com
+  enabled: true
+  name: lingdian
+  notes: SSPanel(0dy4.com)+FlClash变种客户端0dcloud；订阅服务器43.135.28.238返回504/占位；需scan-memory(管理员)提取节点
+  panel: https://www.0dy4.com
+  subscription:
+    url: null
+    user_agent: clash.meta
+  type: client
+- display: jsqpro (v2board 面板)
+  domains:
+  - registered.jsqpro.store
+  enabled: false
+  name: jsqpro
+  notes: 华为线索=面板托管在华为云 218.245.99.148(HWCSNET)；已被墙
+  panel: https://registered.jsqpro.store
+  subscription:
+    url: null
+    user_agent: clash.meta
+  type: direct
+- display: 强大集团
+  domains:
+  - 5x.强大集团.net
+  enabled: false
+  name: qiangda
+  notes: 电信四川落地；与快鸟123 共用节点 IP 114.80.8.206
+  subscription:
+    url: null
+    user_agent: clash.meta
+  type: direct
+- display: 快鸟123
+  domains:
+  - wwwwa.快鸟123.com
+  enabled: false
+  name: kuainiao
+  notes: 已被墙
+  subscription:
+    url: null
+    user_agent: clash.meta
+  type: direct
+- client:
+    core_process: wandacloudCore
+    data_dir: C:\Users\YOUR_USER\AppData\Roaming\wandacloud\wandacloud
+    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\wandacloud
+    package: wandacloud
+  display: 万达云
+  domains:
+  - wandayun.com
+  - wdy66.cn
+  - wdyserver.com
+  - wdycenter.com
+  enabled: true
+  homepage: https://wandayun.com
+  name: wandacloud
+  notes: '基于 FlClash2026 的修改版，配置文件加密。
 
-  - name: kuainiao
-    display: 快鸟123
-    type: direct
-    enabled: false          # 已被墙
-    domains: ["wwwwa.快鸟123.com"]
-    subscription: {url: null, user_agent: clash.meta}
-    notes: 已被墙
+    代理服务器: fl0506.wdy66.cn → 120.233.118.86 (中国移动广州)，90个端口(9101-9211)。
 
-  # ---- Windows 客户端型（配置加密的 FlClash 变种）----
+    中转: 116.205.40.114 (华为云北京)、120.240.42.49/50 (移动广州)。
 
-  - name: wandacloud
-    display: 万达云
-    type: client           # 客户端锁定型：订阅服务器对非官方客户端返回占位节点
-    enabled: true
-    homepage: https://wandayun.com
-    panel: https://521wdy.xiongmao139.cn
-    domains: [wandayun.com, wdy66.cn, wdyserver.com, wdycenter.com]
-    subscription:
-      # 订阅服务器检测 UA 后返回占位节点(1.1.1.1)，只对官方客户端返回真实节点
-      url: https://sub0530.wdyserver.com/cgi-bin/get/api/domain/ip/access?token=fee741b20197c503941a4f29c907e36c
-      user_agent: ClashMeta/1.18.0
-    client:
-      package: wandacloud
-      install_dir: "E:\梯子工具\wandacloud"
-      # AppData 数据目录（加密的 config.yaml / database.sqlite / shared_preferences.json）
-      data_dir: "C:\Users\minions\AppData\Roaming\wandacloud\wandacloud"
-      # 核心进程名（用于内存扫描和网络监控）
-      core_process: wandacloudCore
-    notes: |
-      基于 FlClash2026 的修改版，配置文件加密。
-      代理服务器: fl0506.wdy66.cn → 120.233.118.86 (中国移动广州)，90个端口(9101-9211)。
-      中转: 116.205.40.114 (华为云北京)、120.240.42.49/50 (移动广州)。
-      API: v2board 风格 /api/v1/，auth_data 作为 Authorization header。
-      采集方式: scan-win-client + scan-memory(管理员) + monitor-net。
+    API: v2board 风格 /api/v1/，auth_data 作为 Authorization header。
 
-  - name: speedcat
-    display: SpeedCat
-    type: client           # 客户端锁定型：订阅服务器有阿里云 WAF 验证码
-    enabled: true
-    homepage: https://speedcat.la
-    panel: https://scesa.apiv2.a047.com
-    domains: [speedcat.la, a047.com, ak005.com, llguanglisf.com]
-    subscription:
-      # 订阅 URL 被阿里云 WAF 拦截(滑动验证码)，无法直抓
-      url: https://scesa.web.ak005.com/api/v1/client/subscribe?token=WE4pMJx1amZEhLjN
-      user_agent: clash.meta
-    client:
-      package: SpeedCat
-      install_dir: "E:\梯子工具\SpeedCat"
-      data_dir: "C:\Users\minions\AppData\Roaming\SpeedCat\SpeedCat"
-      core_process: SpeedCatCore
-    notes: |
-      基于 FlClash2026 的修改版，配置文件加密。
-      代理服务器: allapp5p-mdeyq1olf6.llguanglisf.com → 18.141.233.200 (AWS新加坡)，
-      74个端口(10201-10300)；3.115.10.176 (AWS东京)；103.236.77.15 (电信北京)。
-      Clash API secret: advantage (external-controller 在 patch 中设为空)。
-      采集方式: scan-win-client + scan-memory(管理员) + monitor-net。
+    采集方式: scan-win-client + scan-memory(管理员) + monitor-net。
+
+    '
+  panel: https://521wdy.xiongmao139.cn
+  subscription:
+    url: https://sub0530.wdyserver.com/cgi-bin/get/api/domain/ip/access?token=YOUR_TOKEN
+    user_agent: ClashMeta/1.18.0
+  type: client
+- client:
+    core_process: SpeedCatCore
+    data_dir: C:\Users\YOUR_USER\AppData\Roaming\SpeedCat\SpeedCat
+    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\SpeedCat
+    package: SpeedCat
+  display: SpeedCat
+  domains:
+  - speedcat.la
+  - a047.com
+  - ak005.com
+  - llguanglisf.com
+  enabled: true
+  homepage: https://speedcat.la
+  name: speedcat
+  notes: '基于 FlClash2026 的修改版，配置文件加密。
+
+    代理服务器: allapp5p-mdeyq1olf6.llguanglisf.com → 18.141.233.200 (AWS新加坡)，
+
+    74个端口(10201-10300)；3.115.10.176 (AWS东京)；103.236.77.15 (电信北京)。
+
+    Clash API secret: advantage (external-controller 在 patch 中设为空)。
+
+    采集方式: scan-win-client + scan-memory(管理员) + monitor-net。
+
+    '
+  panel: https://scesa.apiv2.a047.com
+  subscription:
+    url: https://scesa.web.ak005.com/api/v1/client/subscribe?token=YOUR_TOKEN
+    user_agent: clash.meta
+  type: client

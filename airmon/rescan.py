@@ -24,8 +24,11 @@ def rescan_airport(slug: str, detector: Detector, gentle: float = 0.3) -> Snapsh
     if not snaps:
         return None
     prev = store.load(snaps[-1])
+    nodes_data = prev.get("nodes", [])
+    if not nodes_data:
+        return None  # 0节点快照，不需要rescan
     nodes = [Node(**{k: n[k] for k in ("name", "protocol", "server", "port", "raw")})
-             for n in prev["nodes"]]
+             for n in nodes_data]
 
     # 汇总需要（重新）RDAP 的 IP
     todo = set()
@@ -72,8 +75,11 @@ def unresolved_stats(slug: str) -> tuple[int, int, int]:
     if not snaps:
         return (0, 0, 0)
     s = store.load(snaps[-1])
+    nodes = s.get("nodes", [])
+    if not nodes:
+        return (0, 0, 0)
     have = unclassified = 0
-    for n in s["nodes"]:
+    for n in nodes:
         ips = n["raw"].get("_resolved_ips") or []
         if ips:
             have += 1

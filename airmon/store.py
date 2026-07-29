@@ -27,6 +27,8 @@ def save(snap: Snapshot) -> str:
 
 
 def list_snapshots(airport: str) -> list[str]:
+    if not airport:
+        return []
     d = os.path.join(DATA_DIR, airport)
     return sorted(glob.glob(os.path.join(d, "*.json")))
 

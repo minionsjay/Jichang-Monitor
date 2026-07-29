@@ -43,10 +43,34 @@ def to_host(raw: str) -> tuple[str, str]:
 
 
 def _dig(host: str, rtype: str) -> list[str]:
+    """DNS 查询。优先用 dig（Linux），回退到 Python socket（Windows）。"""
+    # 优先 dig（Linux 上有）
     try:
         out = subprocess.run(["dig", "+short", "+time=3", "+tries=1", rtype, host],
                              capture_output=True, text=True, timeout=8)
-        return [l.strip() for l in out.stdout.splitlines() if l.strip()]
+        if out.returncode == 0 and out.stdout.strip():
+            return [l.strip() for l in out.stdout.splitlines() if l.strip()]
+    except (FileNotFoundError, Exception):
+        pass
+    # 回退：Python socket.getaddrinfo（Windows 上没有 dig）
+    if rtype == "A":
+        import socket as _sock
+        try:
+            infos = _sock.getaddrinfo(host, None)
+            return sorted({i[4][0] for i in infos if i[4][0].count(".") == 3})
+        except Exception:
+            return []
+    # CNAME 查询在 Windows 上用 nslookup
+    try:
+        out = subprocess.run(["nslookup", "-type=" + rtype, host],
+                             capture_output=True, text=True, timeout=8)
+        cnames = []
+        for line in out.stdout.splitlines():
+            if "canonical name" in line.lower() or "alias" in line.lower():
+                parts = line.split("=") if "=" in line else line.split(":")
+                if len(parts) > 1:
+                    cnames.append(parts[-1].strip().rstrip("."))
+        return cnames
     except Exception:
         return []
 

@@ -48,6 +48,8 @@ def load_credentials(path: str | None = None) -> dict:
             "cookie": acct.get("cookie"),      # JS节点页机场：浏览器登录态
             "base": acct.get("base"),          # 该机场后台域名（cookie 类用）
             "max_id": acct.get("max_id", 300),
+            # 客户端配置（也可在 airports.yaml 的 client 字段里配）
+            "client": acct.get("client"),     # {package, install_dir, core_process, data_dir}
         }
     return out
 
