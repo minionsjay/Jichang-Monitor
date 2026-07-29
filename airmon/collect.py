@@ -18,13 +18,61 @@ from .models import Snapshot, Node, Finding
 from .parse import parse_subscription, parse_clash_yaml
 
 
+_PLACEHOLDER_IPS = {"1.1.1.1", "7.7.7.7", "0.0.0.0", "127.0.0.1", "8.8.8.8", "8.8.4.4"}
+_PLACEHOLDER_PORTS = {1, 0}
+
+
+def _filter_placeholders(nodes: list[Node]) -> list[Node]:
+    """过滤占位节点：订阅服务器对非官方客户端返回的假节点。
+    特征：server是1.1.1.1/7.7.7.7等，或port=1/0。"""
+    real = []
+    for n in nodes:
+        srv = (n.server or "").strip()
+        port = n.port or 0
+        if srv in _PLACEHOLDER_IPS:
+            continue
+        if port in _PLACEHOLDER_PORTS:
+            continue
+        # 名字含"占位"/"placeholder"也滤
+        name = (n.name or "").lower()
+        if "占位" in name or "placeholder" in name:
+            continue
+        real.append(n)
+    return real
+
+
 def _enrich_and_detect(airport: str, nodes: list[Node], detector: Detector):
     """给每个节点解析 server→IP，批量 RDAP，再跑华为检测。"""
+    import concurrent.futures
+    # 过滤占位节点
+    nodes[:] = _filter_placeholders(nodes)
     all_ips = set()
+    
+    # 并发解析域名→IP，单域名超时5s
+    # 如果节点已有预填的 _resolved_ips（如 v2board server/fetch 的 listen_ip），跳过DNS
+    hosts = [(i, n.server) for i, n in enumerate(nodes)
+             if not n.raw.get("_resolved_ips")]
+    with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
+        future_to_idx = {ex.submit(resolve, h): i for i, h in hosts}
+        for fut in concurrent.futures.as_completed(future_to_idx, timeout=30):
+            idx = future_to_idx[fut]
+            try:
+                ips = fut.result(timeout=5)
+            except Exception:
+                ips = []
+            nodes[idx].raw["_resolved_ips"] = ips
+            all_ips.update(ips)
+
+    # 收集所有IP（包括预填的）
     for n in nodes:
-        ips = resolve(n.server)
-        n.raw["_resolved_ips"] = ips
+        ips = n.raw.get("_resolved_ips") or []
         all_ips.update(ips)
+    
+    # 未完成的节点也标记空
+    for n in nodes:
+        if "_resolved_ips" not in n.raw:
+            n.raw["_resolved_ips"] = []
+    
     rdap_map = rdap_many(all_ips)
     # 把 RDAP 结果也塞回节点，方便快照留档
     for n in nodes:
@@ -118,6 +166,58 @@ def collect_from_url(slug: str, sub_url: str, detector: Detector,
                     nodes=nodes, meta=meta)
     snap.findings = _enrich_and_detect(slug, nodes, detector)
     return snap
+
+
+def collect_server_fetch(slug: str, panel: str, email: str, password: str,
+                         detector: Detector) -> Snapshot:
+    """v2board server/fetch 采集器：登录→直接拿节点列表→转Node→富化→华为检测。
+
+    绕过订阅URL的客户端指纹检测（如 wdy/wandacloud 返回占位1.1.1.1）。
+    只要有账号能登录就能拿真节点。"""
+    from .login import v2board_server_fetch
+    servers, auth = v2board_server_fetch(panel, email, password)
+    nodes = _v2board_servers_to_nodes(servers)
+    snap = Snapshot(airport=slug, ts=store.now_iso(),
+                    source=f"{panel}/api/v1/user/server/fetch",
+                    nodes=nodes, meta={"panel_type": "v2board-server-fetch"})
+    snap.findings = _enrich_and_detect(slug, nodes, detector)
+    return snap
+
+
+def _v2board_servers_to_nodes(servers: list[dict]) -> list[Node]:
+    """把 v2board /api/v1/user/server/fetch 返回的 server 数组转成 Node 列表。"""
+    nodes = []
+    for sv in servers:
+        name = sv.get("name", "").strip()
+        host = sv.get("host", "").strip()
+        port = sv.get("port") or sv.get("server_port") or 0
+        proto = sv.get("type", "") or sv.get("protocol", "")
+        if not host or not port:
+            continue
+        # v2board 的 type 字段如 v2node/xxx，protocol 字段才是真正的协议
+        proto = sv.get("protocol", "") or proto
+        # 映射到标准协议名
+        proto_map = {"v2node": "anytls", "vmess": "vmess", "vless": "vless",
+                     "trojan": "trojan", "shadowsocks": "ss", "ss": "ss"}
+        proto = proto_map.get(proto, proto)
+        # listen_ip 是服务器真实IP，直接预填到 _resolved_ips 避免DNS解析
+        listen_ip = sv.get("listen_ip", "")
+        resolved = []
+        if listen_ip and listen_ip != "0.0.0.0":
+            resolved = [listen_ip]
+        raw = {
+            "host": host,
+            "tls": sv.get("tls"),
+            "tls_settings": sv.get("tls_settings"),
+            "network": sv.get("network"),
+            "network_settings": sv.get("network_settings"),
+            "tags": sv.get("tags"),
+            "is_online": sv.get("is_online"),
+            "_resolved_ips": resolved,  # 预填落地IP
+        }
+        nodes.append(Node(name=name, protocol=proto or "unknown", server=host,
+                          port=int(port) if port else 0, raw=raw))
+    return nodes
 
 
 def collect_login(slug: str, panel: str, email: str, password: str,

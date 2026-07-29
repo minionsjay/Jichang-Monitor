@@ -1,42 +1,49 @@
 # 华为关联检测签名
 # 检测器按维度分别匹配；命中任一维度即产生 finding。
 # 优先级：rdap_name（最稳）> domain / string > asn > cidr（兜底，段可能不精确）。
-name: huawei
-description: 华为（华为云 / HMS / 华为CDN）关联检测
+#
+# 调研结论：华为云大量IP段在非华为ASN下运营（电信AS23724、联通AS4808等），
+# 但RDAP netname/owner/isp字段都含"Huawei"。因此 rdap_name 是主判据，
+# ASN只能作为辅助（命中即高分但不依赖）。
 
-# RDAP netname / owner 子串匹配（大小写不敏感）——主判据
+name: huawei
+description: 华为（华为云 / HMS / 华为CDN / 华为国际）关联检测
+
+# RDAP netname / owner / isp 子串匹配（大小写不敏感）——主判据，最稳
+# ip-api.com 返回的 isp 字段也匹配这些关键词
 rdap_name:
   - HWCSNET            # 华为云 RDAP netname（现有数据已验证）
-  - HUAWEI
-  - HWCLOUDS
-  - 华为
+  - HUAWEI             # 通用：Huawei Cloud / Huawei International / Huawei Public Cloud
+  - HWCLOUDS           # HUAWEICLOUDS 系列
+  - 华为               # 中文
 
-# 华为云 ASN（RDAP/whois 的 asn 字段，或 IP 反查 ASN）
+# 华为云 ASN（辅助判据；很多华为IP在非华为ASN下，不能只靠ASN）
 asn:
-  - 55990             # HUAWEI International / Huawei Cloud
-  - 136907            # HUAWEICLOUDS-AP
-  - 137876
-  - 138915
+  - 55990             # Huawei Cloud Service data center（大陆主力）
+  - 136907            # HUAWEI CLOUDS（香港/海外）
+  - 137876            # 华为关联
+  - 136958            # China Unicom Guangdong（华为云部分IP走联通ASN）
 
 # 华为云常见 IP 段（兜底；detect 优先用 rdap_name）
-# 观测自现有数据 + 华为云公开段的代表子集，可持续补充。
+# 数据来源：ipinfo.io + ip-api.com 验证，2026-07-28
 cidr:
-  - 110.41.0.0/16     # 现有数据 ca.find 节点
-  - 122.9.0.0/16      # 现有数据 ca.find / ict.sub 节点
-  - 119.3.0.0/16
-  - 119.8.0.0/16      # muniu 注册 IP 119.8.242.52
-  - 114.115.0.0/16
-  - 114.116.0.0/15
-  - 116.63.0.0/16
-  - 121.36.0.0/14
-  - 122.112.0.0/16
-  - 123.60.0.0/16
-  - 124.70.0.0/15
-  - 139.9.0.0/16
-  - 139.159.0.0/16
-  - 159.138.0.0/16
-  - 101.44.0.0/16
-  - 218.245.99.0/24   # 现有数据 jsqpro 面板 HWCSNET
+  - 110.41.0.0/16     # 华为云
+  - 122.9.0.0/16      # 华为云（AS23724 电信运营，org=Huawei Cloud Service）
+  - 119.3.0.0/16      # 华为云
+  - 119.8.0.0/16      # muniu 注册 IP 119.8.242.52（AS136907 香港华为云）
+  - 114.115.0.0/16    # 华为云（AS23724 电信运营，部分非华为——靠rdap_name区分）
+  - 114.116.0.0/15    # 华为云
+  - 116.63.0.0/16     # 华为云（AS4808 联通运营，org=Huawei Cloud Service）
+  - 116.205.0.0/16    # 华为云北京（speedcat hwclouds-dns 命中）
+  - 121.36.0.0/14     # 华为云
+  - 122.112.0.0/16    # 华为云（AS4847，org=Huawei Cloud Service）
+  - 123.60.0.0/16     # 华为云
+  - 124.70.0.0/15     # 华为云
+  - 139.9.0.0/16      # 华为云
+  - 139.159.0.0/16    # 华为云（AS23724 电信运营，部分非华为）
+  - 159.138.0.0/16    # 华为云海外（AS136907）
+  - 101.44.0.0/16     # 华为云（AS136907，部分长城宽带）
+  - 218.245.99.0/24   # jsqpro 面板 HWCSNET（已知命中）
 
 # 域名 / CNAME / NS 子串匹配（大小写不敏感）
 domain:
