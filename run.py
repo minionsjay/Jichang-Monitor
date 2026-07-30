@@ -594,6 +594,49 @@ def cmd_scan_win_client(args):
             print(f"  python3 run.py collect --airport {args.airport}")
         store.save(snap)
 
+def cmd_scan_clients(args):
+    """只扫有客户端配置的机场（scan-memory），跳过pull登录。需管理员权限。"""
+    global VERBOSE
+    VERBOSE = getattr(args, "verbose", False)
+    detector = Detector()
+    creds = load_credentials()
+    
+    # 收集有client配置的机场
+    targets = []
+    if args.airport:
+        for slug in args.airport.split(","):
+            slug = slug.strip()
+            if not slug: continue
+            client_cfg = creds.get(slug, {}).get("client") or _get_client_config(slug)
+            if client_cfg:
+                targets.append((slug, client_cfg))
+            else:
+                print(f"[跳过] {slug}: 无client配置")
+    else:
+        checked = set()
+        for slug, cred in creds.items():
+            if slug in checked: continue
+            checked.add(slug)
+            client_cfg = cred.get("client") or _get_client_config(slug)
+            if client_cfg and client_cfg.get("core_process"):
+                targets.append((slug, client_cfg))
+        from airmon.config import load_airports
+        apts = load_airports()
+        for slug, apt in apts.items():
+            if slug in checked: continue
+            if apt.get("type") != "client" or not apt.get("enabled"):
+                continue
+            client_cfg = apt.get("client")
+            if client_cfg and client_cfg.get("core_process"):
+                targets.append((slug, client_cfg))
+    
+    print(f"客户端型机场: {len(targets)}个\n")
+    for i, (slug, cfg) in enumerate(targets, 1):
+        print(f"[{i}/{len(targets)}] {slug} (core={cfg.get('core_process','')})")
+        _do_scan_memory(slug, cfg, detector)
+    print(f"\n完成: 扫了{len(targets)}个客户端型机场")
+
+
 def cmd_scan_memory(args):
     """从 Clash 内核进程内存扫描提取节点（需管理员权限）。
 
@@ -1168,6 +1211,10 @@ def main():
     s.add_argument("--dir", required=True, help="客户端 AppData 数据目录")
     s.add_argument("--app-dir", default=None, help="客户端安装目录（含 data/app.so，用于二进制扫描）")
     s.set_defaults(func=cmd_scan_win_client)
+
+    s = sub.add_parser("scan-clients", help="只扫所有有客户端配置的机场（需管理员权限）")
+    s.add_argument("--airport", default=None, help="只扫指定机场（逗号分隔），不填=全部客户端型")
+    s.set_defaults(func=cmd_scan_clients)
 
     s = sub.add_parser("scan-memory", help="从Clash内核进程内存提取节点（需管理员权限）")
     s.add_argument("--airport", required=True)
