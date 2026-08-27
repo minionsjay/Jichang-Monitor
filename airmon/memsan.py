@@ -64,9 +64,9 @@ SEARCH_PATTERNS = {
     # 完整节点 JSON 对象（name+server+port+password）
     'full_node': rb'\{[^}]*"name"[^}]*"server"\s*:\s*"([^"]{3,100})"[^}]*"port"\s*:\s*(\d+)[^}]*"password"\s*:\s*"([^"]{3,64})"[^}]*\}',
     # IP:port 对（非本地）
-    'ip_port': rb'(?<![0-9.])((?:\d{1,3}\.){3}\d{1,3}):(\d{4,5})(?![0-9.])',
+    'ip_port': rb'(?<![0-9.])((?:\d{1,3}\.){3}\d{1,3}):(\d{3,5})(?![0-9.])',
     # domain:port 对
-    'domain_port': rb'([a-z0-9][a-z0-9._-]+\.[a-z]{2,10}):(\d{4,5})',
+    'domain_port': rb'([a-z0-9][a-z0-9._-]+\.[a-z]{2,10}):(\d{3,5})',
     # password/UUID 字段（单独搜索，用于关联到已有节点）
     'password': rb'"password"\s*:\s*"([a-f0-9\-]{20,64})"',
     'uuid': rb'"uuid"\s*:\s*"([a-f0-9\-]{20,64})"',
@@ -180,8 +180,8 @@ def _scan_via_interop(pid: int) -> dict:
         '    "anytls_frag": rb\'anytls[^}]{0,500}"server"\\s*:\\s*"([^"]{3,100})"[^}]*?"port"\\s*:\\s*(\\d+)\',\n'
         '    "vless_frag": rb\'vless[^}]{0,500}"server"\\s*:\\s*"([^"]{3,100})"[^}]*?"port"\\s*:\\s*(\\d+)\',\n'
         '    "full_node": rb\'{[^}]*"name"[^}]*"server"\\s*:\\s*"([^"]{3,100})"[^}]*"port"\\s*:\\s*(\\d+)[^}]*"password"\\s*:\\s*"([^"]{3,64})"[^}]*}\',\n'
-        '    "ip_port": rb\'(?<![0-9.])((?:\\d{1,3}\\.){3}\\d{1,3}):(\\d{4,5})(?![0-9.])\',\n'
-        '    "domain_port": rb\'([a-z0-9][a-z0-9._-]+\\.[a-z]{2,10}):(\\d{4,5})\',\n'
+        '    "ip_port": rb\'(?<![0-9.])((?:\\d{1,3}\\.){3}\\d{1,3}):(\\d{3,5})(?![0-9.])\',\n'
+        '    "domain_port": rb\'([a-z0-9][a-z0-9._-]+\\.[a-z]{2,10}):(\\d{3,5})\',\n'
         '    "password": rb\'"password"\\s*:\\s*"([a-f0-9\\-]{20,64})"\',\n'
         '    "uuid": rb\'"uuid"\\s*:\\s*"([a-f0-9\\-]{20,64})"\',\n'
         '    "external_controller": rb\'external.controller[^\\x00]{0,80}\',\n'
