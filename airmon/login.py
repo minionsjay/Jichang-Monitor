@@ -276,11 +276,80 @@ def whmcs_login(panel: str, email: str, password: str,
     raise LoginError("登录成功但未在产品页找到订阅链接")
 
 
+def xlcc_login(panel: str, email: str, password: str,
+               timeout: int = 15) -> tuple[str, str]:
+    """飞鸟加速(XLCC)面板登录。返回 (subscribe_url, session_cookie)。
+
+    面板特征（SSR 渲染页，非标准 SSPanel/v2board）：
+      POST /passport/login  {account, password, remember_me, code}  → ret==1
+      POST /user/sub        {}                                       → data.sub_prefix（一次性token）
+
+    订阅链接是一次性的：每次 POST /user/sub 生成新 token 并立即作废旧 token，
+    且该链接拉取一次后即失效。所以登录+取链接+拉节点必须连续完成。
+
+    subscribe_url 形如:
+      https://curr.5ysdejn.xyz{sub_prefix}/csh/%E9%A3%9E%E9%B8%9F%E5%8A%A0%E9%80%9F?route=0
+    """
+    base = _norm(panel)
+    s = requests.Session()
+    s.verify = False
+    s.headers.update({"User-Agent": _UA_BROWSER})
+
+    # 登录
+    try:
+        r = s.post(f"{base}/passport/login", data={
+            "account": email,
+            "password": password,
+            "remember_me": True,
+            "code": "",
+        }, timeout=timeout)
+    except requests.RequestException as e:
+        raise LoginError(f"登录请求失败: {e}")
+
+    try:
+        j = r.json()
+    except ValueError:
+        raise LoginError(f"非 XLCC 响应(/passport/login 返回非JSON): {r.text[:120]}")
+
+    if j.get("ret") != 1:
+        raise LoginError(f"登录被拒: {j.get('msg', r.text[:120])}")
+
+    # 取一次性订阅 token
+    try:
+        r2 = s.post(f"{base}/user/sub", data={}, timeout=timeout)
+        j2 = r2.json()
+    except (requests.RequestException, ValueError) as e:
+        raise LoginError(f"取订阅链接失败(/user/sub): {e}")
+
+    if j2.get("ret") != 1:
+        raise LoginError(f"取订阅链接被拒: {j2.get('msg', '')}")
+
+    sub_prefix = (j2.get("data") or {}).get("sub_prefix", "")
+    if not sub_prefix:
+        raise LoginError(f"登录成功但未拿到 sub_prefix: {str(j2)[:150]}")
+
+    # 订阅域名: 优先从面板页面的 subHost 单选框读（curr.5ysdejn.xyz 等）
+    sub_host = "https://curr.5ysdejn.xyz"
+    try:
+        r3 = s.get(f"{base}/user", timeout=timeout)
+        m = re.search(r'name="subHost"\s+value="(https?://[^"]+)"', r3.text)
+        if m:
+            sub_host = m.group(1)
+    except requests.RequestException:
+        pass  # 用默认域名兜底
+
+    # csh=clash格式; 飞鸟加速 URL-encoded 名称; route=0
+    from urllib.parse import quote
+    sub_url = f"{sub_host}{sub_prefix}/csh/{quote('飞鸟加速')}?route=0"
+    cookie = "; ".join(f"{k}={v}" for k, v in s.cookies.get_dict().items())
+    return sub_url, cookie
+
+
 def smart_login(panel: str, email: str, password: str,
                 ptype: str = "auto") -> tuple[str, str, str]:
     """按面板类型登录。返回 (subscribe_url, auth, 识别到的类型)。
 
-    ptype: v2board / sspanel / whmcs / auto（逐个试）。
+    ptype: v2board / sspanel / whmcs / xlcc / auto（逐个试）。
     """
     if ptype == "v2board":
         sub, auth = v2board_login(panel, email, password)
@@ -291,7 +360,10 @@ def smart_login(panel: str, email: str, password: str,
     if ptype == "whmcs":
         sub, auth = whmcs_login(panel, email, password)
         return sub, auth, "whmcs"
-    # auto: v2board → sspanel → whmcs
+    if ptype == "xlcc":
+        sub, auth = xlcc_login(panel, email, password)
+        return sub, auth, "xlcc"
+    # auto: v2board → sspanel → whmcs → xlcc
     errors = []
     try:
         sub, auth = v2board_login(panel, email, password)
@@ -308,6 +380,11 @@ def smart_login(panel: str, email: str, password: str,
         return sub, auth, "whmcs"
     except LoginError as e:
         errors.append(f"whmcs:{e}")
+    try:
+        sub, auth = xlcc_login(panel, email, password)
+        return sub, auth, "xlcc"
+    except LoginError as e:
+        errors.append(f"xlcc:{e}")
     raise LoginError(" | ".join(errors))
 
 

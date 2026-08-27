@@ -300,24 +300,36 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
         auto_started = True
 
     # 等待客户端自动登录+拉订阅+连接代理
-    # 每10秒试一次scan-memory，最多4次（40秒）
-    print(f"    [{slug}] 等待客户端{'自动登录+' if auto_started else ''}连接代理（最多40秒）...", flush=True)
+    # 每10秒扫一次，直到节点数稳定（连续3轮与上一轮相差≤2）或达到上限180秒
+    print(f"    [{slug}] 等待客户端{'自动登录+' if auto_started else ''}连接代理（最多180秒）...", flush=True)
     from airmon.memsan import collect_memory_scan
-    for wait_round in range(4):
+    best_snap = None
+    last_n = None
+    stable_count = 0
+    for wait_round in range(18):
         _time.sleep(10)
         try:
             snap = collect_memory_scan(slug, client_name=core_process,
                                         pid=pid, detector=detector)
-            if snap.nodes:
-                store.save(snap)
-                print(f"    [{slug}] ✓ scan-memory: {len(snap.nodes)}节点, {len(snap.findings)}华为")
-                break
+            n = len(snap.nodes)
+            if n > 0:
+                if best_snap is None or n > len(best_snap.nodes):
+                    best_snap = snap
+                if last_n is not None and abs(n - last_n) <= 2:
+                    stable_count += 1
+                else:
+                    stable_count = 0
+                last_n = n
+                print(f"    [{slug}] scan-memory 第{wait_round+1}轮: {n}节点（稳定{stable_count}/3）", flush=True)
+                if stable_count >= 3:
+                    break
         except Exception:
             pass
-        if wait_round < 3:
-            print(f"    [{slug}] 等待中... ({(wait_round+1)*10}s)", flush=True)
+    if best_snap is not None:
+        store.save(best_snap)
+        print(f"    [{slug}] ✓ scan-memory 最终: {len(best_snap.nodes)}节点, {len(best_snap.findings)}华为", flush=True)
     else:
-        print(f"    [{slug}] scan-memory: 0节点（客户端可能未连接代理）")
+        print(f"    [{slug}] scan-memory: 0节点（客户端可能未连接代理）", flush=True)
 
     # 关闭客户端
     try:
