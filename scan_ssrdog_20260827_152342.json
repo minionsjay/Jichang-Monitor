@@ -1,0 +1,494 @@
+{
+  "airport": "ssrdog",
+  "ts": "2026-08-27T07:23:42Z",
+  "source": "memory_scan:pid19872",
+  "nodes": [
+    {
+      "name": "node-781",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 781,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-801",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 801,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-791",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 791,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-811",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 811,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-665",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 665,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-644",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 644,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-662",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 662,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-771",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 771,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-130",
+      "protocol": "domain",
+      "server": "trace.go",
+      "port": 130,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-131",
+      "protocol": "domain",
+      "server": "trace.go",
+      "port": 131,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-100",
+      "protocol": "domain",
+      "server": "pprof.go",
+      "port": 100,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-101",
+      "protocol": "domain",
+      "server": "pprof.go",
+      "port": 101,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-102",
+      "protocol": "domain",
+      "server": "pprof.go",
+      "port": 102,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-103",
+      "protocol": "domain",
+      "server": "pprof.go",
+      "port": 103,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-104",
+      "protocol": "domain",
+      "server": "pprof.go",
+      "port": 104,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-384",
+      "protocol": "domain",
+      "server": "expvar.go",
+      "port": 384,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-821",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 821,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-622",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 622,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-703",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 703,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-701",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 701,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-702",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 702,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-601",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 601,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-602",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 602,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-603",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 603,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-663",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 663,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-664",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 664,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-642",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 642,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-643",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 643,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-604",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 604,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-605",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 605,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-661",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 661,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-641",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 641,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-681",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 681,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-621",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 621,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-645",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 645,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-704",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 704,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-705",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 705,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-741",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 741,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-751",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 751,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-761",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 761,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-721",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 721,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-623",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 623,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-624",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 624,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-625",
+      "protocol": "ip",
+      "server": "155.254.103.24",
+      "port": 625,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-1991",
+      "protocol": "domain",
+      "server": "iso_646.irv",
+      "port": 1991,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-44346",
+      "protocol": "domain",
+      "server": "comsla-1.dog-sla01.store",
+      "port": 44346,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-4434",
+      "protocol": "domain",
+      "server": "comsla-1.dog-sla01.store",
+      "port": 4434,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "node-3478",
+      "protocol": "domain",
+      "server": "valuestun.voipgate.com",
+      "port": 3478,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    }
+  ],
+  "findings": [],
+  "meta": {
+    "pid": 19872,
+    "regions": 1199,
+    "total_mb": 489.8,
+    "scan_host": "windows-native"
+  }
+}

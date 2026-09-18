@@ -1,0 +1,1205 @@
+<!doctype html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0" name="viewport" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="referrer" content="never">
+    <title>飞鸟加速</title>
+    <link rel="shortcut icon" href="/feiniao.ico" type="image/x-icon">
+    <!-- CSS files -->
+    <link href="/assets/css/tabler.min.css" rel="stylesheet" />
+    <link href="/assets/css/tabler-icons.min.css" rel="stylesheet" />
+    <!-- JS files -->
+    <script src="/assets/js/fuck.min.js"></script>
+    <script src="/assets/js/qrcode.min.js"></script>
+    <script src="/assets/js/jquery.min.js"></script>
+    <script src="/assets/js/lodash.min.js"></script>
+    <style>
+        .home-subtitle {
+            font-size: 14px;
+        }
+
+        .home-title {
+            font-size: 36px;
+        }
+
+        .lottery {
+            position: fixed;
+            bottom: 65px;
+            z-index: 9999;
+                        width: 110px;
+            height: 110px;
+            right: -18px;
+                        display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .lottery-result {
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 554px) {
+            .lottery {
+                transform: scale(.8)!important;
+                                right: -16px;
+                            }
+        }
+
+        .header-user-name {
+            display: flex;
+            align-items: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+        <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+            <div class="container-fluid">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <h1 class="navbar-brand navbar-brand-autodark">
+                    飞鸟加速
+                </h1>
+                <div class="navbar-nav flex-row d-lg-none order-md-last">
+                                        <div id="dropdown-message-mobile"  class="nav-item dropdown d-md-flex me-3">
+                        <a href="#" class="nav-link px-0" data-bs-toggle="dropdown" tabindex="-1" aria-label="Show notifications">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg>
+                                                    </a>
+                        <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card" data-bs-theme="light">
+                            <div class="card" style="width: 300px;">
+                                <div class="card-header">
+                                    <h3 class="card-title">消息</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                                                                <div class="nav-item dropdown">
+                        <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
+                            <img src="/images/avatar.png" class="avatar avatar-sm" />
+                            <div class="d-none d-xl-block ps-2">
+                                                                    <div class="header-user-name">211268240@qq.com</div>
+                                                            </div>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                                                                                    <a href="/user/logout" class="dropdown-item">登出</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="collapse navbar-collapse" id="sidebar-menu">
+                    <ul class="navbar-nav pt-lg-3">
+                        <li class="nav-item">
+                            <a class="nav-link" href="/user">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-home icon"></i>
+                                </span>
+                                <span class="nav-link-title">
+                                    首页
+                                </span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/user/help">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-book icon"></i>
+                                </span>
+                                <span class="nav-link-title">
+                                    使用教程
+                                </span>
+                            </a>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#navbar-extra" data-bs-toggle="dropdown"
+                               data-bs-auto-close="false" role="button" aria-expanded="false">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-brand-telegram icon"></i>
+                                </span>
+                                <span class="nav-link-title">
+                                    订阅
+                                </span>
+                            </a>
+                            <div class="dropdown-menu show">
+                                <a class="dropdown-item" href="/user/plans">
+                                    <i class="ti ti-building-store"></i>&nbsp;
+                                    购买订阅
+                                </a>
+                                <a class="dropdown-item" href="/user/servers">
+                                    <i class="ti ti-server"></i>&nbsp;
+                                    节点状态
+                                </a>
+                            </div>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#navbar-layout" data-bs-toggle="dropdown"
+                               data-bs-auto-close="false" role="button" aria-expanded="false">
+                                <span class="nav-link-icon d-md-none d-lg-inline-block">
+                                    <i class="ti ti-user icon"></i>
+                                </span>
+                                <span class="nav-link-title">
+                                    用户
+                                </span>
+                            </a>
+                            <div class="dropdown-menu show">
+                                <div class="dropdown-menu-columns">
+                                    <div class="dropdown-menu-column">
+                                        <a class="dropdown-item" href="/user/profile">
+                                            <i class="ti ti-info-square"></i>&nbsp;
+                                            个人中心
+                                        </a>
+                                        <a class="dropdown-item" href="/user/orders">
+                                            <i class="ti ti-file-invoice"></i>&nbsp;
+                                            我的订单
+                                        </a>
+                                                                                <a class="dropdown-item" href="/user/invite">
+                                            <i class="ti ti-share"></i>&nbsp;
+                                            我的邀请
+                                        </a>
+                                        <a class="dropdown-item" href="/user/agent">
+                                            <i class="ti ti-cash"></i>&nbsp;
+                                            成为代理
+                                        </a>
+                                        <a class="dropdown-item" href="/user/announcement">
+                                            <i class="ti ti-speakerphone"></i>&nbsp;
+                                            系统公告
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+
+                                            </ul>
+                </div>
+            </div>
+        </aside>
+
+        <header class="navbar navbar-expand-md d-none d-lg-flex d-print-none" >
+            <div class="container-xl">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <div class="navbar-nav flex-row order-md-last">
+                                        <div id="dropdown-message" class="nav-item dropdown d-md-flex me-3">
+                        <a href="#" class="nav-link px-0" data-bs-toggle="dropdown" tabindex="-1" aria-label="Show notifications">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="icon" width="24" height="24" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg>
+                                                    </a>
+                        <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end dropdown-menu-card">
+                            <div class="card" style="width: 500px;">
+                                <div class="card-header">
+                                    <h3 class="card-title">消息</h3>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                                        <div class="nav-item dropdown">
+                        <a href="#" class="nav-link d-flex lh-1 text-reset p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
+                            <img src="/images/avatar.png" class="avatar avatar-sm" />
+                            <div class="d-none d-xl-block ps-2">
+                                                                    <div class="header-user-name">211268240@qq.com</div>
+                                                            </div>
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow">
+                                                        <a href="/user/logout" class="dropdown-item">登出</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="collapse navbar-collapse" id="navbar-menu">
+                    <div class="align-items-center">
+                        <h3 class="card-title" style="margin: 0">首页</h3>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <script>
+            $('.dropdown').on('show.bs.dropdown',function(){
+                let selector =  $(this).attr("id");
+                if (selector === 'dropdown-message' || selector === 'dropdown-message-mobile') {
+                    loadMessages(selector);
+                }
+            });
+
+            $('.dropdown').on('hide.bs.dropdown',function(){
+                let selector =  $(this).attr("id");
+                if (selector === 'dropdown-message' || selector === 'dropdown-message-mobile') {
+                    $("#" + selector + " .list-group").remove();
+                    $("#" + selector + " .card-body").remove();
+                }
+            });
+
+            function formatNum(int) {
+                return int < 10 ? "0" + int : int;
+            }
+            function formatTime(milliseconds) {
+                let date = new Date(milliseconds);
+                return date.getFullYear() + '-' + formatNum(date.getMonth() + 1) + '-' + formatNum(date.getDate()) + ' '
+                    + formatNum(date.getHours()) +  ':' + formatNum(date.getMinutes()) +  ':' + formatNum(date.getSeconds());
+            }
+
+            function loadMessages(selector) {
+                $.ajax({
+                    type: "POST",
+                    url: "/user/message",
+                    dataType: "json",
+                    success: function(response) {
+                        if (response.ret === 1) {
+                            let messages = response.data.messages;
+                            if (messages.length > 0) {
+                                $("#" + selector + " .card").append('<div class="list-group list-group-flush" style="max-height: 600px; overflow-y: scroll;"></div>');
+                                for (let i = 0; i < messages.length; i++) {
+                                    $("#" + selector + " .list-group").append('<div class="list-group-item">'
+                                        + '    <div class="row align-items-center">'
+                                        + '        <div class="col">'
+                                        + '            <a href="#" class="text-reset text-truncate d-block">' + messages[i].title + '</a>'
+                                        + '            <div class="d-block text-secondary mt-n1">' + formatTime(messages[i].create_time) + '</div>'
+                                        + '            <div class="d-block text-secondary mt-n1">' + messages[i].content + '</div>'
+                                        + '        </div>'
+                                        + '    </div>'
+                                        + '</div>');
+                                }
+                            } else {
+                                $("#" + selector + " .card").append('<div class="card-body">没有新消息</div>');
+                            }
+                            $("#" + selector + " .badge").remove();
+                        } else {
+                            $('#fail-message').text(response.msg);
+                            $('#fail-dialog').modal('show');
+                        }
+                    }
+                });
+            }
+        </script>
+<style>
+    .icon-size-32 svg {
+        width: 32px;
+        height: 32px;
+    }
+
+    .divide-y .row {
+        cursor: pointer;
+    }
+
+    .w-1 svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    #subscribe-dialog tr {
+        cursor: pointer;
+    }
+
+    .offcanvas-size-xl {
+        --tblr-offcanvas-width: min(95vw, 600px) !important;
+    }
+
+    .carousel-indicators {
+        margin: 0 auto;
+        width: fit-content;
+        margin-bottom: 0.5rem;
+    }
+
+    .carousel-control-next, .carousel-control-prev {
+        width: 10%;
+    }
+</style>
+
+<div class="page-wrapper">
+    <div class="page-body">
+        <div class="container-xl">
+            <div class="row row-deck row-cards">
+
+                                    <div class="col-12">
+                        <div class="card">
+                            <div id="carousel-banner" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-indicators">
+                                                                                                                <button type="button" data-bs-target="#carousel-banner" data-bs-slide-to="0" class="active"></button>
+                                                                                                                    <button type="button" data-bs-target="#carousel-banner" data-bs-slide-to="1" ></button>
+                                                                                                            </div>
+                                <div class="carousel-inner">
+                                                                                                                <div class="carousel-item active"
+                                                                                role="button" onclick="bannerClick('/user/plans');"
+                                        >
+                                            <img class="d-block w-100" alt="" src="/images/vip.jpg" />
+                                        </div>
+                                                                                                                    <div class="carousel-item "
+                                                                                role="button" onclick="bannerClick('https://portal1.xlcc.plus/user/banner/open?_params_=https%3A%2F%2Factivityr.xlcc.live%2Fh5%2Fopen%3Fredirect%3Dhttps%253A%252F%252Factivityr.xlcc.live%252Finvite%252F');"
+                                        >
+                                            <img class="d-block w-100" alt="" src="/images/invite.jpg" />
+                                        </div>
+                                                                                                            </div>
+                                                                <a class="carousel-control-prev" data-bs-target="#carousel-banner" role="button" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">前一个</span>
+                                </a>
+                                <a class="carousel-control-next" data-bs-target="#carousel-banner" role="button" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">下一个</span>
+                                </a>
+                                                            </div>
+                        </div>
+                    </div>
+                
+                                <div class="col-lg-6">
+                    <div class="card">
+                        <div class="ribbon ribbon-top bg-red">最新<br/>公告</div>
+                        <div class="card-body">
+                            <h3 class="card-title">服务调整说明</h3>
+                            <p>
+                                受不可抗力因素影响，整体网络资源持续紧张，相关情况仍在延续。我们在尽力调配资源、保障服务稳定可用的同时，也不得不做出以下调整：<br/><br/>1、试用节点暂时关闭。<br/>2、通用订阅：使用 小火箭 (Shadowsocks) 等第三方工具拉取将仅显示部分节点。<br/>3、<font color="red">iOS TestFlight版本发布，推荐iOS付费用户优先使用。</font ><br/>4、套餐价格：将基于成本做跟进调整，具体以商品列表展示价格为准。<br/>5、安卓/电脑新版本发布，可前往官网更新，新版增加更多节点（因内核差异旧版应用无法显示）。<br/><br/>感谢您一路以来的支持与陪伴。后续如有进一步安排，请以我们发布的最新公告为准。
+                                <br/><br/>
+                                2026-05-20
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                
+                                <div class="col-lg-6">
+                                    <div class="card">
+                        <div class="card-body">
+                            <h3 class="card-title">我的订阅</h3>
+                            <p class="my-3">
+                                                                
+                                                                                                                                                        您的订阅于2026-11-24 18:16到期，距离到期还有89天。
+                                                                                                                                        </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body card-body-scrollable card-body-scrollable-shadow">
+                            <h3 class="card-title">捷径</h3>
+                            <div class="divide-y">
+                                                                                                        <div>
+                                        <div class="row" onclick="showSubscribeDialog(0, 'csh')">
+                                            <div class="col">
+                                                <div class="text-truncate">
+                                                                                                            一键订阅（clash/小火箭）
+                                                                                                    </div>
+                                                <div class="text-secondary">
+                                                                                                            快速将节点导入对应客户端进行使用
+                                                                                                    </div>
+                                            </div>
+                                            <div class="col-auto icon-size-32">
+                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                     class="icon icon-tabler icon-tabler-rss" width="24" height="24"
+                                                     viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none"
+                                                     stroke-linecap="round" stroke-linejoin="round">
+                                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                                    <path d="M5 19m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0"></path>
+                                                    <path d="M4 4a16 16 0 0 1 16 16"></path>
+                                                    <path d="M4 11a9 9 0 0 1 9 9"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                                                                                    <div>
+                                    <div class="row" onclick="buy()">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                续费订阅
+                                            </div>
+                                            <div class="text-secondary">对您当前的订阅进行续费</div>
+                                        </div>
+                                        <div class="col-auto icon-size-32">
+                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                 class="icon icon-tabler icon-tabler-clock" width="24" height="24"
+                                                 viewBox="0 0 24 24" stroke-width="1" stroke="currentColor" fill="none"
+                                                 stroke-linecap="round" stroke-linejoin="round">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                                <path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0"></path>
+                                                <path d="M12 7v5l3 3"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="row" onclick="servers()">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                节点状态
+                                            </div>
+                                            <div class="text-secondary">查看平台节点分布及状态</div>
+                                        </div>
+                                        <div class="col-auto icon-size-32">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-server">
+                                                <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                                <path d="M3 4m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z" />
+                                                <path d="M3 12m0 3a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v2a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3z" />
+                                                <path d="M7 8l0 .01" />
+                                                <path d="M7 16l0 .01" />
+                                            </svg>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body card-body-scrollable card-body-scrollable-shadow">
+                            <h3 class="card-title">使用教程</h3>
+                            <div class="divide-y">
+                                <div>
+                                    <div class="row"
+                                         data-bs-toggle="offcanvas" href="#subscribe-android-help-dialog" role="button" aria-controls="subscribe-android-help-dialog">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                安卓版本&nbsp;|&nbsp;专属客户端
+                                            </div>
+                                            <div class="text-secondary">最后更新2026-08-03</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                                                <div>
+                                    <div class="row"
+                                         data-bs-toggle="offcanvas" href="#subscribe-ios-help-dialog" role="button" aria-controls="subscribe-ios-help-dialog">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                iOS TestFlight版本&nbsp;|&nbsp;专属客户端&nbsp;&nbsp;<span class="badge badge-outline text-red">New</span>
+                                            </div>
+                                            <div class="text-secondary">最后更新2026-08-03</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                                                <div>
+                                    <div class="row"
+                                         data-bs-toggle="offcanvas" href="#subscribe-windows-help-dialog" role="button" aria-controls="subscribe-windows-help-dialog">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                Windows版本&nbsp;|&nbsp;专属客户端
+                                            </div>
+                                            <div class="text-secondary">最后更新2026-08-03</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="row"
+                                         data-bs-toggle="offcanvas" href="#subscribe-mac-help-dialog" role="button" aria-controls="subscribe-mac-help-dialog">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                Mac版本&nbsp;|&nbsp;专属客户端
+                                            </div>
+                                            <div class="text-secondary">最后更新2026-08-03</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="row"
+                                         data-bs-toggle="offcanvas" href="#subscribe-shadowrocket-help-dialog" role="button" aria-controls="subscribe-shadowrocket-help-dialog">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                iOS版本&nbsp;|&nbsp;小火箭
+                                            </div>
+                                            <div class="text-secondary">最后更新2026-08-03</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="row"
+                                         data-bs-toggle="offcanvas" href="#subscribe-clash-verge-help-dialog" role="button" aria-controls="subscribe-clash-verge-help-dialog">
+                                        <div class="col">
+                                            <div class="text-truncate">
+                                                Clash Verge
+                                            </div>
+                                            <div class="text-secondary">最后更新2026-08-03</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="modal modal-blur fade" id="subscribe-dialog" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <input id="subPrefix" type="text" hidden>
+                <input id="subtype" type="text" hidden>
+                <input id="route" type="number" hidden>
+                <div class="card-table table-responsive">
+                    <table class="table table-vcenter">
+                        <tbody>
+                        <tr style="display: none;">
+                            <td class="w-1">
+                                <svg  xmlns="http://www.w3.org/2000/svg"  width="24"  height="24"  viewBox="0 0 24 24"  fill="none"  stroke="currentColor"  stroke-width="2"  stroke-linecap="round"  stroke-linejoin="round"  class="icon icon-tabler icons-tabler-outline icon-tabler-world"><path stroke="none" d="M0 0h24v24H0z" fill="none"/><path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M3.6 9h16.8" /><path d="M3.6 15h16.8" /><path d="M11.5 3a17 17 0 0 0 0 18" /><path d="M12.5 3a17 17 0 0 1 0 18" /></svg>
+                            </td>
+                            <td class="text-break">
+                                <div class="form-selectgroup">
+                                                                                                                <label class="form-selectgroup-item">
+                                            <input type="radio" name="subHost" value="https://curr.5ysdejn.xyz" class="form-selectgroup-input" checked />
+                                            <span class="form-selectgroup-label">订阅地址</span>
+                                        </label>
+                                                                                                            </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="w-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-link">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M9 15l6 -6" />
+                                    <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" />
+                                    <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />
+                                </svg>
+                            </td>
+                            <td id="subscribe_link" class="text-break">
+                            </td>
+                        </tr>
+                        <tr onclick="copySubscribeLink()">
+                            <td class="w-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-copy"
+                                     width="24" height="24" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"
+                                     fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                    <path d="M8 8m0 2a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"></path>
+                                    <path d="M16 8v-2a2 2 0 0 0 -2 -2h-8a2 2 0 0 0 -2 2v8a2 2 0 0 0 2 2h2"></path>
+                                </svg>
+                            </td>
+                            <td class="td-truncate">
+                                <div class="text-truncate">
+                                    复制订阅地址
+                                </div>
+                            </td>
+                        </tr>
+                        <tr onclick="showSubscribeQrcode()">
+                            <td class="w-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="icon icon-tabler icon-tabler-qrcode"
+                                     width="24" height="24" viewBox="0 0 24 24" stroke-width="1" stroke="currentColor"
+                                     fill="none" stroke-linecap="round" stroke-linejoin="round">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+                                    <path d="M4 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
+                                    <path d="M7 17l0 .01"></path>
+                                    <path d="M14 4m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
+                                    <path d="M7 7l0 .01"></path>
+                                    <path d="M4 14m0 1a1 1 0 0 1 1 -1h4a1 1 0 0 1 1 1v4a1 1 0 0 1 -1 1h-4a1 1 0 0 1 -1 -1z"></path>
+                                    <path d="M17 7l0 .01"></path>
+                                    <path d="M14 14l3 0"></path>
+                                    <path d="M20 14l0 .01"></path>
+                                    <path d="M14 14l0 3"></path>
+                                    <path d="M14 20l3 0"></path>
+                                    <path d="M17 17l3 0"></path>
+                                    <path d="M20 17l0 3"></path>
+                                </svg>
+                            </td>
+                            <td class="td-truncate">
+                                扫描二维码订阅
+                            </td>
+                        </tr>
+                        <tr id="import-row" onclick="importSubscribe()">
+                            <td class="w-1">
+                                <img id="import-platform-img" src="" width="24px" height="24px"/>
+                            </td>
+                            <td id="import-platform-label" class="td-truncate">
+                            </td>
+                        </tr>
+                        <tr id="recommend-row" onclick="recommendApp()" data-bs-dismiss="modal">
+                            <td class="w-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="icon icon-tabler icons-tabler-outline icon-tabler-terminal-2">
+                                    <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+                                    <path d="M8 9l3 3l-3 3" />
+                                    <path d="M13 15l3 0" />
+                                    <path d="M3 6a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2l0 -12" />
+                                </svg>
+                            </td>
+                            <td class="td-truncate">
+                                <div class="text-truncate text-red">
+                                    推荐使用专属客户端App
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row mb-3 align-items-center"
+                     style="margin-left: 15px; margin-right: 15px; margin-top: 15px;">
+                    <button id="help-button" type="button" class="btn btn-primary" data-bs-dismiss="modal">不会使用，查看使用教程
+                    </button>
+                    <button id="import-fail-button" type="button" style="margin-top: 15px;" class="btn btn-primary">订阅导入失败？尝试终极方案
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal modal-blur fade" id="qrcode-dialog" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-body" style="display: flex; align-items: center; flex-direction: column">
+                    <p id="qrcode"></p>
+                    使用支持扫码的客户端进行订阅
+                </div>
+            </div>
+        </div>
+    </div>
+
+    
+    <div class="offcanvas offcanvas-end offcanvas-size-xl" tabindex="-1" id="subscribe-android-help-dialog" aria-labelledby="offcanvasEndLabel">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title">安卓版本&nbsp;|&nbsp;专属客户端</h2>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    <i class="ti ti-arrow-badge-right"></i><i class="ti ti-arrow-badge-right"></i>&nbsp;点击<a href="https://download.fnxz.live/000000" download="Android">下载客户端</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+        <div class="offcanvas offcanvas-end offcanvas-size-xl" tabindex="-1" id="subscribe-ios-help-dialog" aria-labelledby="offcanvasEndLabel">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title">iOS TestFlight版本&nbsp;|&nbsp;专属客户端</h2>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="list-unstyled lh-lg">
+                                    <li>
+                        支持iOS 15及以上的系统，iOS 15以下系统，点击<a class="subscribe-shadowrocket-help-dialog-btn" href="javascript:void(0)">查看iOS版本&nbsp;|&nbsp;小火箭教程</a><br/><br/>
+                    </li>
+                    <li>
+                        由于苹果官方对 TestFlight 名额有严格的数量限制，为了确保核心用户的网络质量与服务稳定性，<span style="color: red;">当前 TestFlight 版本仅定向对已付费的会员用户开放。</span>如未付费，请先点击 <a href="/user/plans">购买会员</a> 后，再切换回当前页下载。<br/><br/>
+                    </li>
+                                            <li>
+                            <i class="ti ti-arrow-badge-right"></i><i class="ti ti-arrow-badge-right"></i>&nbsp;<a href="https://teflst.fn18.cc/" target="_blank">点击下载</a>
+                        </li>
+                                                </ul>
+        </div>
+    </div>
+    
+    <div class="offcanvas offcanvas-end offcanvas-size-xl" tabindex="-1" id="subscribe-shadowrocket-help-dialog" aria-labelledby="offcanvasEndLabel">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title">iOS版本&nbsp;|&nbsp;小火箭</h2>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <h3>第一步： Apple ID准备</h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    Shadowrocket（ 俗称“ 小火箭 ” ）需要国外 Apple ID 下载，Apple ID获取方式如下：
+                </li>
+                <li>1、百度、谷歌、淘宝搜索租用或购买，或点击此处<a href="https://goso001.com/?from=16338/" target="_blank">购买【独享】小火箭美区成品号</a>前往购买（此链接为第三方购买链接，和本站无任何关联）</li>
+                <li>2、使用共享Apple ID（由第三方提供，和本站无任何关联）</li>
+				<li style="color: red;font-weight: bold;">
+					***重要：如未进行过此类操作，勿必仔细查看相关使用教程
+				</li>
+				<li style="color: red;font-weight: bold;">
+					***重要：使用共享外区 ID 账号必须从App Store 登录，千万不要登录 iCloud，否则可能导致锁机或者隐私泄漏！
+				</li>
+				<li>
+					您可以尝试使用其他第三方提供的共享外区Apple ID，或自行寻找（<a href="https://idshare001.me/goso.html" target="_blank">点击获取第三方提供的共享ID</a>，<a href="https://free.iosapp.icu/" target="_blank">点击获取第三方提供的共享ID(备用链接)</a>），免费下载 Shadowrocket。共享账号会频繁更改密码，无稳定保证，且后续无法自动更新 App。如果账号被锁下载不了，请换个账号或等待 30 分钟后再试，此类共享账号会定期更新。
+				</li>
+				<li style="color: red;font-weight: bold;">
+					***重要：使用共享外区 ID 账号必须从App Store 登录，千万不要登录iCloud，否则可能导致锁机或者隐私泄漏！下载完后请及时退出登录，避免设备被锁！
+				</li>
+				<li style="color: red;font-weight: bold;">
+					如弹出安全验证，请点 [其他选项]，再点 [不升级]。
+				</li>
+            </ul>
+
+            <p>
+            <h3>第二步： 退出您个人使用的ID，然后登入购买来的ID</h3>
+            <ul class="list-unstyled lh-lg">
+				<li style="color: red;font-weight: bold;">
+					***重要：使用共享外区 ID 账号必须从App Store 登录，千万不要登录 iCloud，否则可能导致锁机或者隐私泄漏！下载完后请及时退出登录，避免设备被锁！
+				</li>
+				<li style="color: red;font-weight: bold;">
+					如弹出安全验证，请点 [其他选项]，再点 [不升级]。
+				</li>
+                <li>
+                    🍎iOS14及以上版本的操作方法：打开App Store > 点击右上角头像 > 拉到最下面，点击退出登录 > 您的国区🆔 > 登录购买的国外苹果🆔
+                </li>
+                <li>
+                    🍎iOS13及以下版本的操作方法：打开设置 > 找到 iTunes Store与App Store > 退出你的ID > 您的国区🆔 > 登录购买的国外苹果🆔
+                </li>
+            </ul>
+            </p>
+
+            <p>
+            <h3>第三步： 在APP Store里搜索 Shadowrocket 并下载，或直接点击此处<a href="https://apps.apple.com/us/app/shadowrocket/id932747118" target="_blank" style="color: rgba(var(--tblr-link-color-rgb),var(--tblr-link-opacity,1))">打开 App Store 下载 Shadowrocket</a></h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    <img src="/images/ios01.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+            </ul>
+            </p>
+
+            <p>
+            <h3>第四步： 一键订阅</h3>
+            <ul class="list-unstyled lh-lg">
+                <li><a href="/passport/login">回到我们的网站</a>，登录您在我们<a href="https://xlcc.net" target="_blank">官网</a>注册的账号，在您登录后看到的首页里点击捷径-一键订阅，此处我们推荐您选择（导入到Shadowrocket）即可
+				</li>
+				<li style="color: red;">
+                    ***如遇到一键订阅无响应，可以尝试大退浏览器重新打开此页面，或者选择其他方式导入***
+                </li>
+				<li style="color: red;">
+                    1).扫描二维码订阅：点击后保存二维码，在小火箭首页左上角扫码导入即可；
+                </li>
+				<li style="color: red;">
+                    2).复制订阅地址：复制后，小火箭切换到配置页面，点击右上角加号，将复制的地址粘贴进去下载即可
+                </li>
+                <li>
+                    <img src="/images/ios02-01-1eebe49f6da0.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+				<li>
+                    <img src="/images/ios02-02-1eebe49f6da0.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+            </ul>
+            </p>
+
+            <p>
+            <h3>第五步：启动Shadowrocket</h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    1、首页第二项“全局路由”选择代理（通过代理转发流量）
+                </li>
+                <li>
+                    2、选择您需要连接的节点，国旗前亮黄灯代表选中，然后点击顶部的开关启动代理
+                </li>
+                <li>
+                    <img src="/images/ios03-1eebe49f6da0.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+            </ul>
+            </p>
+
+            <p>
+            <h3>第六步</h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    在浏览器内访问常用海外网站，看看是否翻成功了吧~
+                </li>
+            </ul>
+            </p>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end offcanvas-size-xl" tabindex="-1" id="subscribe-windows-help-dialog" aria-labelledby="offcanvasEndLabel">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title">Windows版本&nbsp;|&nbsp;专属客户端</h2>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    支持Win10及以上的系统，点击<a href="https://download.fnxz.live/windows" download="windows">下载客户端</a>
+                </li>
+                <li>
+                    如果被Win10、360、电脑管家、金山毒霸等误报病毒，请在相应软件内恢复后使用
+                </li>
+            </ul>
+
+            <p>
+            <h3>被Win10误隔离威胁的解决方法</h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    1、点击左下角开始，随后选择“设置”点击进入。
+                </li>
+                <li>
+                    <img src="/images/windows-01.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+                <li>
+                    2、在设置中点击打开“更新和安全”。
+                </li>
+                <li>
+                    <img src="/images/windows-02.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+                <li>
+                    3、点击左侧的“Windows安全中心”，再点击右侧的“打开Windows安全中心”。
+                </li>
+                <li>
+                    <img src="/images/windows-03.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+                <li>
+                    4、点击左侧的“病毒和威胁防护”，再点击右侧的“保护历史记录”。
+                </li>
+                <li>
+                    <img src="/images/windows-04.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+                <li>
+                    5、如果弹出“你允许此应用对你的设备进行更改吗？”弹窗，点击“是”。
+                </li>
+                <li>
+                    <img src="/images/windows-05.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+                <li>
+                    6、找到被误隔离的威胁，点击“还原”。
+                </li>
+                <li>
+                    <img src="/images/windows-06-1eebe49f6da0.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end offcanvas-size-xl" tabindex="-1" id="subscribe-mac-help-dialog" aria-labelledby="offcanvasEndLabel">
+        <div class="offcanvas-header">
+            <h2 class="offcanvas-title">Mac版本&nbsp;|&nbsp;专属客户端</h2>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    支持macOS 10.13及以上版本的系统，点击<a href="https://download.fnxz.live/macos" download="mac">下载客户端</a>
+                </li>
+            </ul>
+
+            <p>
+            <h3>第一步：首次打开App时，系统会提示无法打开，此时点击“取消”。</h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    <img src="/images/mac_app01.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+            </ul>
+            </p>
+
+            <p>
+            <h3>第二步：进入“系统设置”-->“隐私与安全性”。系统会提示“已阻止使用“飞鸟加速.app”，因为来自身份不明的开发者。”，此时点击“仍要打开”。</h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    <img src="/images/mac_app02.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+            </ul>
+            </p>
+
+            <p>
+            <h3>第三步：系统会再次提示用户，是否确定要打开App，此时点击“打开”。然后就可以正常使用了。</h3>
+            <ul class="list-unstyled lh-lg">
+                <li>
+                    <img src="/images/mac_app03.jpg" style="border: 1px solid #eee; max-width: 100%"/>
+                </li>
+            </ul>
+            </p>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end offcanvas-size-xl" tabindex="-1" id="subscribe-clash-verge-help-dialog" aria-labelledby="offcanvasEndLabel">
+            <div class="offcanvas-header">
+                <h2 class="offcanvas-title">Clash Verge</h2>
+                <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <ul class="list-unstyled lh-lg">
+                    <li>
+                        点击进入：<a href="https://github.com/clash-verge-rev/clash-verge-rev/releases" target="_blank" download="Clash Verge">Clash Verge Rev 官方 Github 下载地址</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    
+    
+    <script>
+        let os = null;
+
+        function servers() {
+            $(location).attr('href', '/user/servers');
+        }
+
+        function buy() {
+            $(location).attr('href', '/user/plans');
+        }
+
+        function showSubscribeDialog(route, subType) {
+            $.ajax({
+                type: "POST",
+                url: "/user/sub",
+                dataType: "json",
+                timeout: 30000,
+                data: {
+                },
+                complete: function(xhr, status) {
+                    if (status === 'timeout') {
+                        $('#fail-message').text("网络超时");
+                        $('#fail-dialog').modal('show');
+                    }
+                },
+                error: function (xhr, status, error) {
+                    $('#fail-message').text("请求出错");
+                    $('#fail-dialog').modal('show');
+                },
+                success: function(data) {
+                    if (data.ret === 1) {
+                        let subPrefix = data.data.sub_prefix;
+                        os = new UAParser().getOS().name;
+
+                        if (subType !== 'csh' || os !== 'iOS') {
+                            $("#import-row").hide();
+                        } else {
+                            $("#import-row").show();
+                            $("#import-platform-img").attr("src", "/images/Shadowrocket.png");
+                            $("#import-platform-label").html("导入到Shadowrocket");
+                        }
+
+                                                $("#recommend-row").show();
+                        
+                                                $("#import-fail-button").hide();
+                        
+                        $("#subPrefix").val(subPrefix);
+                        $("#subtype").val(subType);
+                        $("#route").val(route);
+                        $('input[name="subHost"]').first().prop('checked', true).trigger('change');
+
+                        $('#subscribe-dialog').modal('show');
+                    } else {
+                        $('#fail-message').text(data.msg);
+                        $('#fail-dialog').modal('show');
+                    }
+                }
+            });
+        }
+
+        $("#help-button").click(function () {
+            if (os === 'Android' || os === 'HarmonyOS') {
+                new bootstrap.Offcanvas(document.getElementById("subscribe-android-help-dialog")).show();
+            } else if (os === 'iOS') {
+                new bootstrap.Offcanvas(document.getElementById("subscribe-shadowrocket-help-dialog")).show();
+            } else if (os === 'Windows' || os === 'Mac OS') {
+                new bootstrap.Offcanvas(document.getElementById("subscribe-clash-verge-help-dialog")).show();
+            } else {
+            }
+        });
+
+        $("#import-fail-button").click(function () {
+            $('#import-fail-dialog').modal('show');
+        });
+
+        $('input[name="subHost"]').change(function() {
+            let subHost = $(this).val();
+            let subPrefix = $("#subPrefix").val();
+            let subType = $("#subtype").val();
+            let route = $("#route").val();
+
+            let subscribeLink = subHost + subPrefix + '/' + subType + '/' + encodeURIComponent("飞鸟加速") + "?route=" + route;
+            $("#subscribe_link").html(subscribeLink);
+        });
+
+        function copySubscribeLink() {
+            let subHost = $('input[name="subHost"]:checked').val();
+            let subPrefix = $("#subPrefix").val();
+            let subType = $("#subtype").val();
+            let route = $("#route").val();
+
+            let subscribeLink = subHost + subPrefix + '/' + subType + '/' + encodeURIComponent("飞鸟加速") + "?route=" + route;
+            navigator.clipboard.writeText(subscribeLink).then(function () {
+                alert('复制成功');
+            });
+        }
+
+        function showSubscribeQrcode() {
+            let subHost = $('input[name="subHost"]:checked').val();
+            let subPrefix = $("#subPrefix").val();
+            let subType = $("#subtype").val();
+            let route = $("#route").val();
+
+            let subscribeLink = subHost + subPrefix + '/' + subType + '/' + encodeURIComponent("飞鸟加速") + "?route=" + route;
+            $("#qrcode").html("");
+            new QRCode('qrcode', {
+                text: subscribeLink,
+                width: 128,
+                height: 128,
+                colorDark: '#000000',
+                colorLight: '#ffffff',
+                correctLevel: QRCode.CorrectLevel.M
+            });
+            $('#qrcode-dialog').modal('show');
+            $(".modal-backdrop").last().remove();
+        }
+
+        function importSubscribe() {
+            let subHost = $('input[name="subHost"]:checked').val();
+            let subPrefix = $("#subPrefix").val();
+            let subType = $("#subtype").val();
+            let route = $("#route").val();
+
+            let subscribeLink = subHost + subPrefix + '/' + subType + '/' + encodeURIComponent("飞鸟加速") + "?route=" + route;
+            if (os === 'Android' || os === 'HarmonyOS') {
+                window.location.href = "clash://install-config?url=" + encodeURIComponent(subscribeLink) + "&name=飞鸟加速";
+            } else if (os === 'iOS') {
+                window.location.href = "shadowrocket://add/sub://" + window.btoa(subscribeLink).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") + "?remark=飞鸟加速"
+            } else if (os === 'Windows') {
+                window.location.href = "clash://install-config?url=" + encodeURIComponent(subscribeLink) + "&name=飞鸟加速";
+            } else if (os === 'Mac OS') {
+                window.location.href = "clash://install-config?url=" + encodeURIComponent(subscribeLink) + "&name=飞鸟加速";
+            } else {
+            }
+        }
+
+        function recommendApp() {
+            if (os === 'Android' || os === 'HarmonyOS') {
+                new bootstrap.Offcanvas(document.getElementById("subscribe-android-help-dialog")).show();
+            } else if (os === 'iOS') {
+                new bootstrap.Offcanvas(document.getElementById("subscribe-ios-help-dialog")).show();
+            } else if (os === 'Windows') {
+                new bootstrap.Offcanvas(document.getElementById("subscribe-windows-help-dialog")).show();
+            } else if (os === 'Mac OS') {
+                new bootstrap.Offcanvas(document.getElementById("subscribe-mac-help-dialog")).show();
+            } else {
+            }
+        }
+
+        function bannerClick(jump_path) {
+            window.open(jump_path);
+        }
+
+        $(".subscribe-shadowrocket-help-dialog-btn").click(function () {
+            new bootstrap.Offcanvas(document.getElementById("subscribe-shadowrocket-help-dialog")).show();
+        });
+    </script>
+
+    <div class="modal modal-blur fade" id="success-dialog" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-status bg-success"></div>
+            <div class="modal-body text-center py-4">
+                <i class="ti ti-circle-check icon mb-2 text-green icon-lg" style="font-size:3.5rem;"></i>
+                <p id="success-message" class="text-muted">成功</p>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col">
+                            <a id="success-confirm" href="" class="btn w-100" data-bs-dismiss="modal">
+                                好
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="fail-dialog" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            <div class="modal-status bg-danger"></div>
+            <div class="modal-body text-center py-4">
+                <i class="ti ti-circle-x icon mb-2 text-danger icon-lg" style="font-size:3.5rem;"></i>
+                <p id="fail-message" class="text-muted">失败</p>
+            </div>
+            <div class="modal-footer">
+                <div class="w-100">
+                    <div class="row">
+                        <div class="col">
+                            <a id="fail-confirm" href="" class="btn btn-danger w-100" data-bs-dismiss="modal">
+                                确认
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<footer class="footer footer-transparent d-print-none">
+    <div class="container-xl">
+        <div class="row text-center align-items-center flex-row-reverse">
+        </div>
+    </div>
+</footer>
+</div>
+</div>
+
+
+<script>
+    $("#switch_theme_mode").click(function() {
+        $.ajax({
+            type: "POST",
+            url: "/user/switch_theme_mode",
+            dataType: "json",
+            success: function(data) {
+                if (data.ret == 1) {
+                    $('#success-message').text(data.msg);
+                    $('#success-dialog').modal('show');
+                    window.setTimeout("location.reload()", 1200);
+                } else {
+                    $('#fail-message').text(data.msg);
+                    $('#fail-dialog').modal('show');
+                }
+            }
+        })
+    });
+
+    </script>
+<script src="/assets/js/tabler.min.js"></script>
+<script src="/assets/js/ua-parser.min.js"></script>
+<script src="/assets/js/clipboard-polyfill.overwrite-globals.es5.min.js"></script>
+<script src="/assets/js/lottie_svg.min.js"></script>
+
+
+
+
+<script type="text/javascript">
+	 window.$zoho=window.$zoho || {
+	 };
+	 $zoho.salesiq=$zoho.salesiq||{
+		ready:function(){
+		}
+	};
+	 var d = document; 
+	 s = d.createElement("script"); 
+	 s.type = "text/javascript"; 
+	 s.id = "zsiqscript"; 
+	 s.defer = true; 
+	 s.src = "https://salesiq.zohopublic.com/widget?wc=siq07c0ab2a503f5e2d405f254bf32a349882684934e19915ceb47f2872f4c4ff1e"; 
+	 t = d.getElementsByTagName("script")[0]; 
+	 t.parentNode.insertBefore(s, t);
+</script>
+
+</body>
+
+</html>
+    <script>
+        function shouldPopupAnn() {
+                        return false;
+        }
+
+        function shouldPopupVip() {
+            let popupVipConfig =   false ;
+            if (popupVipConfig) {
+                let last = localStorage.getItem(4040972);
+                let date = new Date();
+                let current = date.getFullYear() + "-" + (date.getMonth() + 1) + "-" + date.getDate();
+
+                if (last === undefined || last === null || last !== current) {
+                    return current;
+                }
+            }
+            return false;
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            let annId = shouldPopupAnn();
+            let current = shouldPopupVip();
+            if (typeof annId !== 'boolean') {
+                sessionStorage.setItem('popupAnnId4040972', annId);
+                $('#pop-ann-dialog').modal('show');
+                $('#pop-ann-dialog').on('hide.bs.modal', function () {
+                    if (typeof current !== 'boolean') {
+                        localStorage.setItem(4040972, current);
+                        $('#pop-vip-activity-dialog').modal('show');
+                    }
+                });
+            } else if (typeof current !== 'boolean'){
+                localStorage.setItem(4040972, current);
+                $('#pop-vip-activity-dialog').modal('show');
+            }
+        });
+    </script>

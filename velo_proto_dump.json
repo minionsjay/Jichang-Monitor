@@ -1,0 +1,24 @@
+{
+ "pid": 1654060,
+ "scanned_mb": 393.5,
+ "results": {
+  "aero_prefix": {
+   "aero-device-challenge": 2
+  },
+  "pubkey_pem": {
+   "-----BEGIN PUBLIC KEY-----\n\u0000\u0000\u0000\u0000\u0000r�\u0005\u0000SC\u0015\u000f\u0004\u0000\u0000\u0000\u0000\u0000\u0000\u0000Pg\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000r�\u0005\u0000S��3\u001c\u0000\u0000\u0000\u0000\u0000\u0000\u0000_jHc@124183791\u0000\u0000r�\u0005\u0000VC\u001e(\u0006\u0000\u0000\u0000\u0000\u0000\u0000\u0000Xsi\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000\u0000": 1,
+   "-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwZikiI8xHKFJlr397FGb\n94/Hym1e6tyNiTWXfNvsSiD7ZgyLUaxGUd": 1,
+   "-----BEGIN PUBLIC KEY-----\\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwZikiI8xHKFJlr397FGb\\n94/Hym1e6tyNiTWXfNvsSiD7ZgyLUaxG": 1
+  },
+  "x_attest": {
+   "X-Device-Attest)([:=]\\s*)[A-Za-z0-9._~+/=-]{8,}": 1,
+   "X-Device-Attest)([:=]\\s*)[^\\s,;]+": 1
+  },
+  "challenge_json": {
+   "{\"challenge_id\":\"tFJudZLhwWcU35pQCs3ZbOs1JB7lb0e7\",\"nonce\":\"598d2949be1ab4ed417129dd7e02358d5f2984ae476211772fa133e4fcbc3f02\",\"expires_at\":1789629449,\"observe_only\":true}": 2
+  },
+  "device_id": {
+   "\"device_id\":\"985d955a3860555b3c72cdca2c53398639adc6aa70e29337eb3ec46adec5875e\"": 2
+  }
+ }
+}

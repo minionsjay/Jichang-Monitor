@@ -1,0 +1,376 @@
+{
+  "airport": "ssrdog",
+  "ts": "2026-08-27T07:23:42Z",
+  "source": "memory_scan:pid19872",
+  "nodes": [
+    {
+      "name": "Hong Kong|01",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 601,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Hong Kong|02",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 602,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Hong Kong|03",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 603,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Hong Kong|04",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 604,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Hong Kong|05",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 605,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Japan|01",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 621,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Japan|02",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 622,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Japan|03",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 623,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Japan|04",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 624,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Japan|05",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 625,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "South Korea",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 641,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Singapore|01",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 642,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Singapore|02",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 643,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Singapore|03",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 644,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Singapore|04",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 645,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Singapore|05",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 661,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Taiwan|01",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 662,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Taiwan|02",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 663,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Taiwan|03",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 664,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Taiwan|04",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 665,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Taiwan|05",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 681,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Great Britain",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 701,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "United States|01",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 702,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "United States|02",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 703,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "United States|03",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 704,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "United States|04",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 705,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "United States|05",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 721,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Canada",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 741,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "France",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 751,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Germany",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 761,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Philippines",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 771,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Netherlands",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 781,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Turkey",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 791,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Vietnam",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 801,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Malaysia",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 811,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    },
+    {
+      "name": "Thailand",
+      "protocol": "anytls",
+      "server": "155.254.103.24",
+      "port": 821,
+      "raw": {
+        "source": "memory_scan",
+        "password": "d0575068-ace3-4f8a-82c9-d1bde572409d"
+      }
+    }
+  ],
+  "findings": [],
+  "meta": {
+    "pid": 19872,
+    "regions": 1199,
+    "total_mb": 489.8,
+    "scan_host": "windows-native",
+    "cleaned": true,
+    "ip_owner": "155.254.103.24 = Tomorin Network LLC (AS401984), Hong Kong Kowloon"
+  }
+}

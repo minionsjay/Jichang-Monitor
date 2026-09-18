@@ -1,0 +1,1845 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="page-title">概览 - 白月光</title>
+<link rel="icon" type="image/png" href="/static/img/logo.png">
+
+<link rel="preconnect" href="https://fonts.loli.net" crossorigin>
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link id="font-css" href="https://fonts.loli.net/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"
+  onerror="this.onerror=null;this.href='https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap'">
+<link rel="stylesheet" href="/static/css/style.css?v=1789262113">
+<script src="/static/js/htmx.min.js"></script>
+<script src="/static/js/business-time.js?v=20260910utc8"></script>
+<script src="/static/js/commission-transfers.js?v=20260913live2"></script>
+<script src="/static/js/invite-live.js?v=20260913live2"></script>
+<link rel="stylesheet" href="/static/css/dashboard-traffic.css?v=20260912trend2">
+<script src="/static/js/dashboard-traffic.js?v=20260912trend2"></script>
+<script>
+
+(function(){
+  var ic = new URLSearchParams(window.location.search).get('invite_code');
+  if (ic) localStorage.setItem('invite_code', ic);
+})();
+
+(function(){
+  if (localStorage.getItem('sidebarCollapsed') === '1') {
+    document.documentElement.classList.add('sidebar-collapsed');
+  }
+})();
+</script>
+<style>
+ 
+#main-content { animation: fadeSlideIn 0.25s ease-out; }
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.htmx-swapping { opacity: 0; transition: opacity 0.1s ease-out; }
+ 
+.guest-nav{display:flex;gap:4px;position:absolute;left:50%;transform:translateX(-50%)}
+.gn-item{padding:8px 18px;font-size:15.5px;font-weight:500;color:var(--text-secondary);text-decoration:none;border-radius:8px;transition:all .15s}
+.gn-item:hover{color:var(--text-primary)}
+.gn-item.active{color:var(--accent);font-weight:600}
+.btn-guest{display:inline-block;padding:9px 24px;font-size:16.5px;font-weight:500;text-decoration:none;border-radius:var(--radius-xs);transition:all .2s;border:1px solid var(--border);background:var(--surface);color:var(--text-primary)}
+.btn-guest:hover{border-color:var(--accent);color:var(--accent)}
+.btn-guest-primary{background:var(--accent);color:#fff!important;border:none;font-weight:600}
+.btn-guest-primary:hover{background:var(--accent-hover);color:#fff!important}
+</style>
+<script>
+
+document.addEventListener("htmx:beforeSwap", function() {
+  if (window._pageCleanup) { window._pageCleanup(); window._pageCleanup = null; }
+});
+
+document.addEventListener("htmx:afterSwap", function(e) {
+  if (e.detail.target && e.detail.target.id === "main-content") {
+    e.detail.target.style.animation = "none";
+    e.detail.target.offsetHeight; 
+    e.detail.target.style.animation = "";
+  }
+});
+</script>
+</head>
+<body>
+
+
+<div id="wechatBlock" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg,#fff);z-index:99999;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;">
+  <div style="width:64px;height:64px;margin-bottom:24px;border-radius:16px;background:var(--surface,#f1f5f9);display:flex;align-items:center;justify-content:center;">
+    <svg width="32" height="32" fill="none" viewBox="0 0 24 24" stroke="var(--accent,#6366f1)" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5a17.92 17.92 0 01-8.716-2.247m0 0A8.966 8.966 0 013 12c0-1.528.38-2.968 1.05-4.228"/></svg>
+  </div>
+  <h2 style="font-size:20px;font-weight:600;color:var(--text-primary,#1a1a2e);margin:0 0 12px;">请使用浏览器打开</h2>
+  <p style="font-size:16.5px;color:var(--text-secondary,#64748b);margin:0;line-height:1.6;">点击右上角菜单，选择「在浏览器中打开」</p>
+</div>
+<script>
+(function(){
+  var ua=navigator.userAgent.toLowerCase();
+  if(/micromessenger|qq\/|weibo|dingtalk|alipay|bytedance|toutiao/.test(ua)){
+    var b=document.getElementById('wechatBlock');
+    if(b){b.style.display='flex';document.body.style.overflow='hidden';}
+  }
+})();
+</script>
+
+
+
+
+<div class="app-layout">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <a href="/" class="sidebar-brand" hx-boost="true" hx-target="#main-content" hx-push-url="true" hx-swap="innerHTML show:window:top">
+        <img src="/static/img/logo.png" class="logo-mark">
+        <span class="sidebar-logo-text">白月光</span>
+      </a>
+    </div>
+    <nav class="sidebar-nav" id="sidebar-nav" hx-boost="true" hx-target="#main-content" hx-push-url="true" hx-swap="innerHTML show:window:top">
+      <a class="sidebar-nav-item active" href="/"><div class="sidebar-nav-icon qa-blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg></div><span class="sidebar-nav-label">首页概览</span></a>
+      <a class="sidebar-nav-item" href="/subscription"><div class="sidebar-nav-icon qa-violet"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8.288 15.038a5.25 5.25 0 017.424 0M5.106 11.856c3.807-3.808 9.98-3.808 13.788 0M1.924 8.674c5.565-5.565 14.587-5.565 20.152 0M12.53 18.22l-.53.53-.53-.53a.75.75 0 011.06 0z"/></svg></div><span class="sidebar-nav-label">订阅管理</span></a>
+      <a class="sidebar-nav-item" href="/store"><div class="sidebar-nav-icon qa-blue"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.15c0 .415.336.75.75.75z"/></svg></div><span class="sidebar-nav-label">套餐商店</span></a>
+      <a class="sidebar-nav-item" href="/orders"><div class="sidebar-nav-icon qa-amber"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/></svg></div><span class="sidebar-nav-label">我的订单</span></a>
+      <a class="sidebar-nav-item" href="/invite"><div class="sidebar-nav-icon qa-rose"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M21 11.25v8.25a1.5 1.5 0 01-1.5 1.5H5.25a1.5 1.5 0 01-1.5-1.5v-8.25M12 4.875A2.625 2.625 0 109.375 7.5H12m0-2.625V7.5m0-2.625A2.625 2.625 0 1114.625 7.5H12m0 0V21m-8.625-9.75h18c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125h-18c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"/></svg></div><span class="sidebar-nav-label">邀请返利</span></a>
+      <a class="sidebar-nav-item" href="/docs"><div class="sidebar-nav-icon qa-teal"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"/></svg></div><span class="sidebar-nav-label">使用文档</span></a>
+      <a class="sidebar-nav-item" href="/nodes"><div class="sidebar-nav-icon qa-indigo"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5.25 14.25h13.5m-13.5 0a3 3 0 01-3-3m3 3a3 3 0 100 6h13.5a3 3 0 100-6m-16.5-3a3 3 0 013-3h13.5a3 3 0 013 3m-19.5 0a4.5 4.5 0 01.9-2.7L5.737 5.1a3.375 3.375 0 012.7-1.35h7.126c1.062 0 2.062.5 2.7 1.35l2.587 3.45a4.5 4.5 0 01.9 2.7m0 0a3 3 0 01-3 3m0 3h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008zm-3 6h.008v.008h-.008v-.008zm0-6h.008v.008h-.008v-.008z"/></svg></div><span class="sidebar-nav-label">节点列表</span></a>
+      <a class="sidebar-nav-item" href="/profile"><div class="sidebar-nav-icon qa-gray"><svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"/></svg></div><span class="sidebar-nav-label">个人中心</span></a>
+      
+    </nav>
+    <div class="sidebar-footer">
+      <button class="sidebar-toggle" id="sidebarToggle" onclick="toggleSidebar()" title="收起/展开">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5"/></svg>
+        <span class="sidebar-nav-label">收起菜单</span>
+      </button>
+    </div>
+  </aside>
+
+  <div class="app-body">
+    <header class="topbar topbar-compact">
+      <div class="topbar-left">
+        <button class="sidebar-hamburger" id="sidebarHamburger" onclick="toggleSidebarMobile()">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/></svg>
+        </button>
+        <div id="topbar-page-title"></div>
+      </div>
+      <div class="topbar-right">
+        <div class="topbar-icon" id="noticeBell" onclick="toggleNoticePanel()" style="cursor:pointer;position:relative;">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"/></svg>
+          <span id="noticeBadge" style="display:none;position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;line-height:18px;text-align:center;font-size:11px;font-weight:700;color:#fff;background:#ef4444;border-radius:10px;padding:0 5px;"></span>
+        </div>
+
+      </div>
+    </header>
+
+    <main class="main" id="main-content">
+      
+
+<div class="welcome-section animate-in delay-1" data-live-page="dashboard">
+  <div>
+    <div class="welcome-greeting">欢迎回来, 211268240@qq.com
+<script>
+var selectedRechargeAmount = 0;
+function selectRechargeAmount(amount, btn) {
+  document.querySelectorAll('.recharge-amount-btn').forEach(function(b) {
+    b.style.borderColor = 'var(--border)';
+    b.style.background = 'var(--bg-primary)';
+  });
+  btn.style.borderColor = 'var(--accent)';
+  btn.style.background = 'var(--bg-secondary)';
+  if (amount === 0) {
+    document.getElementById('customAmountRow').style.display = 'block';
+    document.getElementById('customAmount').focus();
+    selectedRechargeAmount = 0;
+  } else {
+    document.getElementById('customAmountRow').style.display = 'none';
+    selectedRechargeAmount = amount;
+  }
+}
+function submitRecharge() {
+  var amount = selectedRechargeAmount;
+  if (amount === 0) {
+    amount = parseInt(document.getElementById('customAmount').value);
+  }
+  if (!amount || amount < 1) {
+    showConfirm("提示",'请选择或输入充值金额',null,{okText:"知道了"});
+    return;
+  }
+  window.location.href = '/checkout?plan_id=0&period=deposit&amount=' + (amount * 100);
+}
+</script>
+</div>
+    <div class="welcome-sub">上次登录: 2026-09-16 09:56</div>
+  </div>
+  <div class="balance-block">
+    <div class="balance-info">
+      <div class="balance-label">账户余额</div>
+      <div class="balance-amount"><span>&yen;</span>0.00</div>
+    </div>
+    <button class="btn-topup" onclick="document.getElementById('rechargePanel').style.display=document.getElementById('rechargePanel').style.display==='none'?'block':'none'">充值</button>
+  </div>
+</div>
+
+
+
+<div id="rechargePanel" class="card full-width animate-in" style="display:none;margin-bottom:0;margin-top:-8px;">
+  <div style="font-size:15.5px;color:var(--text-secondary);margin-bottom:12px;">选择充值金额</div>
+  <div class="recharge-grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+    <button class="recharge-amount-btn" onclick="selectRechargeAmount(50,this)" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-primary);color:var(--text-primary);font-size:16.5px;font-weight:600;cursor:pointer;transition:all 0.2s;">¥50</button>
+    <button class="recharge-amount-btn" onclick="selectRechargeAmount(100,this)" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-primary);color:var(--text-primary);font-size:16.5px;font-weight:600;cursor:pointer;transition:all 0.2s;">¥100</button>
+    <button class="recharge-amount-btn" onclick="selectRechargeAmount(200,this)" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-primary);color:var(--text-primary);font-size:16.5px;font-weight:600;cursor:pointer;transition:all 0.2s;">¥200</button>
+    <button class="recharge-amount-btn" onclick="selectRechargeAmount(500,this)" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-primary);color:var(--text-primary);font-size:16.5px;font-weight:600;cursor:pointer;transition:all 0.2s;">¥500</button>
+    <button class="recharge-amount-btn" onclick="selectRechargeAmount(1000,this)" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-primary);color:var(--text-primary);font-size:16.5px;font-weight:600;cursor:pointer;transition:all 0.2s;">¥1000</button>
+    <button class="recharge-amount-btn" onclick="selectRechargeAmount(0,this)" style="padding:10px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-primary);color:var(--text-primary);font-size:16.5px;font-weight:600;cursor:pointer;transition:all 0.2s;">自定义</button>
+  </div>
+  <div id="customAmountRow" style="display:none;margin-bottom:12px;">
+    <input type="number" id="customAmount" placeholder="输入金额" min="1" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-xs);background:var(--bg-primary);color:var(--text-primary);font-size:16.5px;outline:none;box-sizing:border-box;">
+  </div>
+  <button onclick="submitRecharge()" style="width:100%;padding:10px;background:var(--accent);color:white;border:none;border-radius:var(--radius-xs);font-size:16.5px;font-weight:600;cursor:pointer;">确认充值</button>
+</div>
+
+
+
+
+
+
+<div class="card-grid">
+
+  
+  <div class="card animate-in delay-2">
+    <div class="card-header">
+      <span class="card-title">当前套餐</span>
+      
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="card-badge badge-success">运行中</span>
+          <a href="/checkout?plan_id=66" style="padding:5px 16px;font-size:13px;font-weight:600;color:var(--accent);background:transparent;border:1.5px solid var(--accent);border-radius:20px;text-decoration:none;transition:all .2s;letter-spacing:0.5px;" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='transparent';this.style.color='var(--accent)'">续费</a>
+        </div>
+      
+    </div>
+    <div class="plan-name">小包</div>
+    <div class="plan-details">
+      <div class="plan-row">
+        <span class="plan-row-label">套餐价格</span>
+        <span class="plan-row-value">&yen;66.00/季</span>
+      </div>
+      <div class="plan-divider"></div>
+      <div class="plan-row">
+        <span class="plan-row-label">到期时间</span>
+        <span class="plan-row-value">2027-09-09</span>
+      </div>
+      <div class="plan-divider"></div>
+      <div class="plan-row">
+        <span class="plan-row-label">重置日期</span>
+        <span class="plan-row-value dashboard-reset-value">每月9日<small class="reset-countdown" title="补偿延长有效期，不改变流量重置日">下次 10月9日（23 天后）</small></span>
+      </div>
+    </div>
+  </div>
+
+  
+  <div class="card dashboard-traffic-card animate-in delay-3">
+    <div class="card-header">
+      <span class="card-title">流量使用</span>
+      <span style="font-size:14.5px;color:var(--text-tertiary);font-weight:500;">0%</span>
+    </div>
+    <div class="dashboard-traffic-summary">
+    <div class="dashboard-traffic-progress">
+    <div class="traffic-big">
+      <span class="traffic-used">0.00</span>
+      <span class="traffic-total">GB / 100 GB</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" style="width: 0.0%;"></div>
+    </div>
+    </div>
+    <div class="traffic-stats">
+      <div class="traffic-stat">
+        <span class="traffic-stat-label">上行流量</span>
+        <span class="traffic-stat-value">0 B</span>
+      </div>
+      <div class="traffic-stat">
+        <span class="traffic-stat-label">下行流量</span>
+        <span class="traffic-stat-value">0 B</span>
+      </div>
+      <div class="traffic-stat">
+        <span class="traffic-stat-label">总流量</span>
+        <span class="traffic-stat-value">100.0 GB</span>
+      </div>
+    </div>
+    </div>
+    <section id="dashboardTrafficTrend" class="traffic-trend" aria-label="近30天每日流量趋势">
+      <div class="traffic-trend-heading"><span>近 30 天流量趋势</span><span class="traffic-trend-hint">每日合计 · UTC+8</span></div>
+      <div class="traffic-trend-stage">
+        <div class="traffic-trend-status" role="status">正在加载流量趋势…</div>
+      </div>
+    </section>
+    <script>
+    (function () {
+      var previousCleanup = window._pageCleanup;
+      var cleanup = window.DashboardTraffic.mount(document.getElementById('dashboardTrafficTrend'));
+      window._pageCleanup = function () {
+        cleanup();
+        if (previousCleanup) previousCleanup();
+      };
+    })();
+    </script>
+  </div>
+
+  
+  <div class="card animate-in delay-4" id="dashboard-online-devices">
+    <div class="card-header">
+      <span class="card-title">在线设备</span>
+    </div>
+    <div class="devices-count"><b id="dashboard-online-count" style="font-weight:inherit;">0</b> <span>/ 5 台</span></div>
+    <div class="devices-limit">当前已连接设备</div>
+    <div class="device-list" id="dashboard-online-list">
+      
+    </div>
+    <template id="dashboard-device-template">
+      <div class="device-item">
+        <div class="device-left">
+          <div class="device-icon">
+            <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z"/></svg>
+          </div>
+          <div>
+            <div class="device-name" data-live-node></div>
+            <div data-live-address style="font-size:14px;color:var(--text-secondary);"></div>
+          </div>
+        </div>
+        <div class="status-dot"></div>
+      </div>
+    </template>
+  </div>
+
+  
+  <div class="card animate-in delay-5">
+    <div class="card-header">
+      <span class="card-title">系统公告</span>
+    </div>
+    
+      <div style="display:flex;flex-direction:column;gap:0;">
+      
+        
+        <div data-nid="41" onclick="openNoticeDetail(Number(this.dataset.nid))" style="display:flex;gap:12px;align-items:center;padding:10px 0;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+          <div style="min-width:46px;height:22px;background:var(--accent-light);color:var(--accent);font-size:13.5px;font-weight:600;border-radius:5px;display:flex;align-items:center;justify-content:center;">09-13</div>
+          <div style="font-size:15.5px;font-weight:600;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">VLESS 节点全面上线通知</div>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-tertiary)" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+        </div>
+      
+        <div style="height:1px;background:var(--border-light);"></div>
+        <div data-nid="40" onclick="openNoticeDetail(Number(this.dataset.nid))" style="display:flex;gap:12px;align-items:center;padding:10px 0;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+          <div style="min-width:46px;height:22px;background:var(--accent-light);color:var(--accent);font-size:13.5px;font-weight:600;border-radius:5px;display:flex;align-items:center;justify-content:center;">09-08</div>
+          <div style="font-size:15.5px;font-weight:600;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">白月光服务恢复通知</div>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-tertiary)" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+        </div>
+      
+        <div style="height:1px;background:var(--border-light);"></div>
+        <div data-nid="39" onclick="openNoticeDetail(Number(this.dataset.nid))" style="display:flex;gap:12px;align-items:center;padding:10px 0;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+          <div style="min-width:46px;height:22px;background:var(--accent-light);color:var(--accent);font-size:13.5px;font-weight:600;border-radius:5px;display:flex;align-items:center;justify-content:center;">09-07</div>
+          <div style="font-size:15.5px;font-weight:600;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">多协议节点上线通知</div>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-tertiary)" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+        </div>
+      
+        <div style="height:1px;background:var(--border-light);"></div>
+        <div data-nid="38" onclick="openNoticeDetail(Number(this.dataset.nid))" style="display:flex;gap:12px;align-items:center;padding:10px 0;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+          <div style="min-width:46px;height:22px;background:var(--accent-light);color:var(--accent);font-size:13.5px;font-weight:600;border-radius:5px;display:flex;align-items:center;justify-content:center;">09-05</div>
+          <div style="font-size:15.5px;font-weight:600;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">线路调整及补偿公告</div>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-tertiary)" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+        </div>
+      
+        <div style="height:1px;background:var(--border-light);"></div>
+        <div data-nid="32" onclick="openNoticeDetail(Number(this.dataset.nid))" style="display:flex;gap:12px;align-items:center;padding:10px 0;cursor:pointer;transition:opacity .15s;" onmouseover="this.style.opacity='0.7'" onmouseout="this.style.opacity='1'">
+          <div style="min-width:46px;height:22px;background:var(--accent-light);color:var(--accent);font-size:13.5px;font-weight:600;border-radius:5px;display:flex;align-items:center;justify-content:center;">03-26</div>
+          <div style="font-size:15.5px;font-weight:600;color:var(--text-primary);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">【安全升级】系统新增订阅自动重置保护功能</div>
+          <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="var(--text-tertiary)" stroke-width="2" style="flex-shrink:0;"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5"/></svg>
+        </div>
+      
+      </div>
+    
+  </div>
+
+
+
+  
+  <div class="card full-width animate-in delay-6">
+    <div class="card-header">
+      <span class="card-title">订阅链接</span>
+    </div>
+
+    
+    <div class="sub-tabs">
+      <div class="sub-tab active" data-tab="ios">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+        苹果手机
+      </div>
+      <div class="sub-tab" data-tab="android">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.6 9.48l1.84-3.18c.16-.31.04-.69-.26-.85-.29-.15-.65-.06-.83.22l-1.88 3.24a11.463 11.463 0 00-8.94 0L5.65 5.67c-.19-.29-.58-.38-.87-.2-.28.18-.37.54-.22.83L6.4 9.48A10.78 10.78 0 002 18h20a10.78 10.78 0 00-4.4-8.52zM7 15.25a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5zm10 0a1.25 1.25 0 110-2.5 1.25 1.25 0 010 2.5z"/></svg>
+        安卓手机
+      </div>
+      <div class="sub-tab" data-tab="desktop">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25A2.25 2.25 0 015.25 3h13.5A2.25 2.25 0 0121 5.25z"/></svg>
+        Windows / Mac
+      </div>
+    </div>
+
+    
+    <div class="sub-tab-content active" id="tab-ios">
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#147EFB,#0D5FBB);">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+          </svg>
+        </div>
+        <div class="app-info">
+          <div class="app-name">Shadowrocket</div>
+          <div class="app-desc">推荐 &middot; 简单易用</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('Shadowrocket')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-import" onclick="importToApp('Shadowrocket')">一键导入</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#16B8A6,#087F8C);">
+          <span style="color:white;font-weight:700;font-size:15.5px;">CM</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">clash.mi</div>
+          <div class="app-desc">Mihomo 内核 &middot; 多协议支持</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('ClashMi')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-import" onclick="importToApp('ClashMi')">一键导入</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#6C5CE7,#A66BFF);">
+          <span style="color:white;font-weight:700;font-size:16.5px;">S</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">Stash</div>
+          <div class="app-desc">功能强大 &middot; 规则灵活</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('Stash')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-import" onclick="importToApp('Stash')">一键导入</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#FF6B6B,#EE5A24);">
+          <span style="color:white;font-weight:700;font-size:16.5px;">Q</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">Quantumult X</div>
+          <div class="app-desc">进阶用户推荐</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('QuantumultX')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-copy" onclick="copySubURL(this,'QuantumultX')">复制订阅</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#2196F3,#1565C0);">
+          <span style="color:white;font-weight:700;font-size:16.5px;">Su</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">Surge</div>
+          <div class="app-desc">专业级代理工具</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('Surge')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-import" onclick="importToApp('Surge')">一键导入</button>
+        </div>
+      </div>
+<div class="app-item">        <div class="app-icon" style="background:linear-gradient(135deg,#FF9800,#F57C00);">          <span style="color:white;font-weight:700;font-size:15.5px;">SB</span>        </div>        <div class="app-info">          <div class="app-name">sing-box</div>          <div class="app-desc">跨平台通用代理</div>        </div>        <div class="app-actions">          <button class="app-btn app-btn-qr" onclick="showQR('SingBox')">            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">              <rect x="3" y="3" width="7" height="7"/>              <rect x="14" y="3" width="7" height="7"/>              <rect x="3" y="14" width="7" height="7"/>              <rect x="14" y="14" width="3" height="3"/>              <rect x="18" y="18" width="3" height="3"/>            </svg>            二维码          </button>          <button class="app-btn app-btn-import" onclick="importToApp('SingBox')">一键导入</button>        </div>      </div>
+    </div>
+
+    
+    <div class="sub-tab-content" id="tab-android">
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#00BCD4,#0097A7);">
+          <span style="color:white;font-weight:700;font-size:15.5px;">v2</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">v2rayNG</div>
+          <div class="app-desc">推荐 &middot; 轻量稳定</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('V2rayNG')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-copy" onclick="copySubURL(this,'V2rayNG')">复制订阅</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#FF7043,#E64A19);">
+          <span style="color:white;font-weight:700;font-size:15.5px;">CM</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">ClashMeta</div>
+          <div class="app-desc">功能全面 &middot; 规则丰富</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('ClashMeta')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-import" onclick="importToApp('ClashMeta')">一键导入</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#66BB6A,#388E3C);">
+          <span style="color:white;font-weight:700;font-size:15.5px;">Sf</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">Surfboard</div>
+          <div class="app-desc">Surge 兼容客户端</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-qr" onclick="showQR('Surfboard')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+              <rect x="14" y="14" width="3" height="3"/>
+              <rect x="18" y="18" width="3" height="3"/>
+            </svg>
+            二维码
+          </button>
+          <button class="app-btn app-btn-import" onclick="importToApp('Surfboard')">一键导入</button>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sub-tab-content" id="tab-desktop">
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#5C6BC0,#3949AB);">
+          <span style="color:white;font-weight:700;font-size:15.5px;">CV</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">Clash Verge Rev</div>
+          <div class="app-desc">推荐 &middot; Win/Mac/Linux</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-import" onclick="importToApp('ClashMeta')">一键导入</button>
+          <button class="app-btn app-btn-copy" onclick="copySubURL(this,'ClashMeta')">复制订阅</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#26A69A,#00897B);">
+          <span style="color:white;font-weight:700;font-size:15.5px;">V2</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">V2rayN</div>
+          <div class="app-desc">复制链接后，在客户端添加订阅</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-import" onclick="copySubURL(this,'V2rayN')">复制订阅</button>
+        </div>
+      </div>
+
+      <div class="app-item">
+        <div class="app-icon" style="background:linear-gradient(135deg,#AB47BC,#7B1FA2);">
+          <span style="color:white;font-weight:700;font-size:15.5px;">Sv</span>
+        </div>
+        <div class="app-info">
+          <div class="app-name">Surge Mac</div>
+          <div class="app-desc">macOS 专业代理</div>
+        </div>
+        <div class="app-actions">
+          <button class="app-btn app-btn-import" onclick="importToApp('Surge')">一键导入</button>
+          <button class="app-btn app-btn-copy" onclick="copySubURL(this,'Surge')">复制订阅</button>
+        </div>
+      </div>
+    </div>
+
+    
+    <div class="sub-bottom-actions">
+      <button class="btn btn-outline" style="color:var(--danger);border-color:var(--danger);" onclick="showConfirm('重置密钥','重置后旧订阅链接将全部失效，确定要重置吗？',function(){fetch('/api/u/rsk',{method:'POST'}).then(function(r){return r.json()}).then(function(d){if(d.data){location.reload()}else{showConfirm('提示',d.message||'重置失败',null,{okText:'知道了'})}}).catch(function(){showConfirm('提示','网络错误',null,{okText:'知道了'})})},{danger:true,okText:'确定重置'})">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182"/></svg>
+        重置密钥
+      </button>
+      <button class="btn btn-primary" onclick="copySubURL(this)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9.75a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"/></svg>
+        复制通用订阅链接
+      </button>
+    </div>
+    <div style="font-size:14.5px;color:var(--text-tertiary);margin-top:12px;text-align:center;">请勿将订阅链接分享给他人，重置密钥后所有旧链接将失效</div>
+    <div style="font-size:14px;color:#e53e3e;margin-top:8px;text-align:center;font-weight:500;">请不要使用代理更新订阅</div>
+  </div>
+
+  
+  <div class="qr-modal-overlay" id="qrModal" onclick="if(event.target===this)closeQR()">
+    <div class="qr-modal">
+      <div class="qr-modal-header">
+        <span id="qrModalTitle">扫码导入</span>
+        <button class="qr-modal-close" onclick="closeQR()">&times;</button>
+      </div>
+      <div class="qr-modal-body">
+        <div id="qrcode"></div>
+        <div class="qr-modal-tip">使用 App 扫描二维码导入订阅</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/qrcode.min.js"></script>
+  <script>
+  var SUB_URL = 'https:\/\/z9je1uhn3w.todust.cc\/da3b423ca6406becb8a5860a92f37fb7';
+  var SITE_NAME = '白月光';
+
+  
+  document.querySelectorAll(".sub-tab").forEach(function(tab){tab.addEventListener("click",function(){document.querySelectorAll(".sub-tab").forEach(function(t){t.classList.remove("active")});document.querySelectorAll(".sub-tab-content").forEach(function(c){c.classList.remove("active")});this.classList.add("active");document.getElementById("tab-"+this.dataset.tab).classList.add("active")})});
+
+  var appImportPrefixes = {
+    Surge: 'surge:///install-config?url=', Stash: 'stash://install-config?url=',
+    ClashMi: 'clashmi://install-config?url=', SingBox: 'sing-box://import-remote-profile?url=',
+    Clash: 'clash://install-config?url=', ClashMeta: 'clash://install-config?url=',
+    Surfboard: 'surfboard:///install-config?url=', Loon: 'loon://import?url='
+  };
+
+  function getAppUrl(flag) {
+    if (!SUB_URL) return '';
+    var url = getSubUrl(flag);
+    if (flag === 'Shadowrocket') {
+      var bytes = new TextEncoder().encode(url);
+      var base64 = btoa(Array.from(bytes, function(byte) { return String.fromCharCode(byte); }).join(''));
+      return 'shadowrocket://add/sub://' + base64 + '?remark=' + encodeURIComponent(SITE_NAME);
+    }
+    if (flag === 'QuantumultX') {
+      return 'quantumult-x:///update-configuration?remote-resource=' +
+        encodeURIComponent(JSON.stringify({server_remote: [url + ',tag=' + SITE_NAME]}));
+    }
+    var prefix = appImportPrefixes[flag];
+    return prefix ? prefix + encodeURIComponent(url) + '&name=' + encodeURIComponent(SITE_NAME) : '';
+  }
+
+  function withoutFormatParams(params) {
+    return params.filter(function(param) {
+      var key = param.split('=')[0];
+      try { key = decodeURIComponent(key); } catch(e) {}
+      return param && !/^(flag|name)$/i.test(key);
+    });
+  }
+
+  
+  
+  function getSubUrl(flag) {
+    if (!SUB_URL || !flag) return SUB_URL;
+    var format = flag === 'ClashMi' ? 'ClashMeta' : flag;
+    var hash = SUB_URL.indexOf('#');
+    var fragment = hash < 0 ? '' : SUB_URL.slice(hash);
+    var url = hash < 0 ? SUB_URL : SUB_URL.slice(0, hash);
+    var query = url.indexOf('?');
+    var pathParts = (query < 0 ? url : url.slice(0, query)).split('&');
+    var path = pathParts.shift();
+    var pathParams = withoutFormatParams(pathParts);
+    var queryParams = query < 0 ? [] : withoutFormatParams(url.slice(query + 1).split('&'));
+    var params = query < 0 ? pathParams : queryParams;
+    params.push('flag=' + encodeURIComponent(format), 'name=' + encodeURIComponent(SITE_NAME));
+    return path + (pathParams.length ? '&' + pathParams.join('&') : '') +
+      (query < 0 ? '' : '?' + queryParams.join('&')) + fragment;
+  }
+
+  
+  var qrCodeType = {
+    Shadowrocket: 'native', QuantumultX: 'appurl', Surge: 'appurl',
+    Stash: 'appurl', Loon: 'appurl', Surfboard: 'appurl',
+    SingBox: 'appurl', Clash: 'appurl', ClashMeta: 'appurl', ClashMi: 'appurl',
+    V2rayN: 'native', V2rayNG: 'native'
+  };
+
+  function importToApp(flag) {
+    if (!SUB_URL) { showConfirm("提示",'暂无订阅链接',null,{okText:"知道了"}); return; }
+    var url = getAppUrl(flag);
+    if (!url) { showConfirm("提示",'请复制订阅链接后，在客户端添加订阅',null,{okText:"知道了"}); return; }
+    window.open(url);
+  }
+
+  function copyToClipboard(text, btn) {
+    var o = btn.innerHTML;
+    function onOk() { btn.innerHTML = '已复制'; setTimeout(function() { btn.innerHTML = o; }, 2000); }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(onOk).catch(function() { fallbackCopy(text, onOk); });
+    } else {
+      fallbackCopy(text, onOk);
+    }
+  }
+  function fallbackCopy(text, cb) {
+    var el = document.createElement("input");
+    el.setAttribute("readonly","");
+    el.setAttribute("contenteditable","true");
+    el.value = text;
+    el.style.cssText = "position:fixed;left:-9999px;top:-9999px;opacity:0;font-size:16px";
+    document.body.appendChild(el);
+    if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+      var range = document.createRange();
+      range.selectNodeContents(el);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      el.setSelectionRange(0, 999999);
+    } else {
+      el.select();
+      el.setSelectionRange(0, 999999);
+    }
+    var ok = false;
+    try { ok = document.execCommand("copy"); } catch(e) {}
+    document.body.removeChild(el);
+    if (ok) { cb(); } else { showConfirm("提示","复制失败，请长按手动复制：\n" + text, null, {okText:"知道了"}); }
+  }
+  function copySubURL(btn, flag) {
+    if (!SUB_URL) { showConfirm("提示",'暂无订阅链接',null,{okText:"知道了"}); return; }
+    var url = flag ? getSubUrl(flag) : SUB_URL;
+    copyToClipboard(url, btn);
+  }
+
+  var qrInstance = null;
+  function showQR(flag) {
+    if (!SUB_URL) { showConfirm("提示",'暂无订阅链接',null,{okText:"知道了"}); return; }
+    var type = qrCodeType[flag] || 'native';
+    var qrUrl = (type === 'appurl') ? getAppUrl(flag) : getSubUrl(flag);
+    document.getElementById('qrModalTitle').textContent = flag + ' - 扫码导入';
+
+    if (qrInstance) { try { qrInstance.clear(); } catch(e) {} qrInstance = null; }
+    var el = document.getElementById('qrcode');
+    el.innerHTML = '';
+    document.getElementById('qrModal').classList.add('active');
+    var wrapper = document.createElement('div');
+    el.appendChild(wrapper);
+    try {
+      qrInstance = new QRCode(wrapper, {text: qrUrl, width: 200, height: 200, colorDark: '#1a1a2e', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M});
+    } catch(e) { console.error('QR error', e); }
+    var tipEl = document.querySelector('.qr-modal-tip');
+    if (tipEl) {
+      if (flag === 'Shadowrocket') {
+        tipEl.innerHTML = '用 Shadowrocket 软件扫码导入订阅';
+      } else if (type === 'appurl') {
+        tipEl.innerHTML = '使用手机相机扫码导入 ' + flag;
+      } else {
+        tipEl.innerHTML = '使用 ' + flag + ' 扫描二维码导入订阅';
+      }
+    }
+  }
+
+  function closeQR() {
+    document.getElementById('qrModal').classList.remove('active');
+    if (qrInstance) { try { qrInstance.clear(); } catch(e) {} qrInstance = null; }
+    document.getElementById('qrcode').innerHTML = '';
+  }
+  </script>
+
+
+
+</div>
+
+    </main>
+  </div>
+</div>
+
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebarMobile()"></div>
+
+<script>
+function toggleSidebar() {
+  document.documentElement.classList.toggle('sidebar-collapsed');
+  localStorage.setItem('sidebarCollapsed',
+    document.documentElement.classList.contains('sidebar-collapsed') ? '1' : '0');
+}
+function toggleSidebarMobile() {
+  var sidebar = document.getElementById('sidebar');
+  var overlay = document.getElementById('sidebarOverlay');
+  sidebar.classList.toggle('mobile-open');
+  overlay.classList.toggle('active');
+}
+(function(){
+  var lastNavRefresh = 0;
+  function applyOOB(html) {
+    var tmp = document.createElement('div');
+    tmp.innerHTML = html;
+    tmp.querySelectorAll('[hx-swap-oob]').forEach(function(el) {
+      var id = el.id;
+      el.removeAttribute('hx-swap-oob');
+      if (id) {
+        var target = document.getElementById(id);
+        if (target) target.outerHTML = el.outerHTML;
+      }
+    });
+    if (window.htmx) htmx.process(document.body);
+  }
+  window.refreshSidebarNav = function(force) {
+    if (!document.getElementById('sidebar-nav')) return;
+    var now = Date.now();
+    if (!force && now - lastNavRefresh < 1500) return;
+    lastNavRefresh = now;
+    fetch(window.location.pathname + window.location.search, {
+      headers: { 'HX-Request': 'true', 'HX-Boosted': 'true' },
+      cache: 'no-store',
+      credentials: 'same-origin'
+    }).then(function(resp) {
+      if (resp.ok) return resp.text();
+    }).then(function(html) {
+      if (html) applyOOB(html);
+    }).catch(function() {});
+  };
+  window.addEventListener('focus', function(){ window.refreshSidebarNav(true); });
+  window.addEventListener('pageshow', function(){ window.refreshSidebarNav(true); });
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden) window.refreshSidebarNav(true);
+  });
+})();
+</script>
+
+
+
+
+
+<div class="toast-container" id="toastContainer"></div>
+
+
+<div class="confirm-overlay" id="confirmModal" onclick="if(event.target===this)_confirmReject()">
+  <div class="confirm-modal">
+    <div class="confirm-header">
+      <div class="confirm-icon confirm-warn" id="confirmIcon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+      </div>
+      <span class="confirm-title" id="confirmTitle"></span>
+    </div>
+    <div class="confirm-body" id="confirmBody"></div>
+    <div class="confirm-footer">
+      <button class="confirm-btn-cancel" onclick="_confirmReject()">&#21462;&#28040;</button>
+      <button class="confirm-btn-ok" id="confirmOkBtn" onclick="_confirmResolve()">&#30830;&#23450;</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+
+function sanitizeHTML(html) {
+  var doc = new DOMParser().parseFromString('<div>' + (html || '') + '</div>', 'text/html');
+  var allowedTags = new Set(['A','B','BLOCKQUOTE','BR','BUTTON','CODE','DEL','DIV','EM','H1','H2','H3','H4','H5','H6','HR','I','IMG','LI','OL','P','PRE','S','SPAN','STRONG','TABLE','TBODY','TD','TH','THEAD','TR','UL']);
+  var allowedAttrs = new Set(['alt','class','href','rel','src','target','title']);
+  Array.from(doc.body.querySelectorAll('*')).forEach(function(el) {
+    if (!allowedTags.has(el.tagName)) {
+      el.replaceWith(document.createTextNode(el.textContent || ''));
+      return;
+    }
+    Array.from(el.attributes).forEach(function(attr) {
+      if (!allowedAttrs.has(attr.name.toLowerCase())) el.removeAttribute(attr.name);
+    });
+    ['href','src'].forEach(function(name) {
+      if (!el.hasAttribute(name)) return;
+      try {
+        var parsed = new URL(el.getAttribute(name), window.location.origin);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') el.removeAttribute(name);
+      } catch (_) {
+        el.removeAttribute(name);
+      }
+    });
+    if (el.tagName === 'A') {
+      el.setAttribute('target', '_blank');
+      el.setAttribute('rel', 'noopener noreferrer');
+    }
+  });
+  return doc.body.firstElementChild ? doc.body.firstElementChild.innerHTML : '';
+}
+
+
+function showToast(msg, type) {
+  type = type || "info";
+  var icons = {
+    success: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+    error: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>',
+    warning: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>',
+    info: '<svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>'
+  };
+  var container = document.getElementById("toastContainer");
+  var toast = document.createElement("div");
+  toast.className = "toast toast-" + type;
+  var icon = document.createElement("div");
+  icon.className = "toast-icon";
+  icon.innerHTML = icons[type] || icons.info;
+  var text = document.createElement("span");
+  text.textContent = String(msg == null ? "" : msg);
+  toast.appendChild(icon);
+  toast.appendChild(text);
+  container.appendChild(toast);
+  setTimeout(function() {
+    toast.classList.add("toast-out");
+    setTimeout(function() { toast.remove(); }, 250);
+  }, 2500);
+}
+
+
+var _confirmCb = null;
+var _confirmCancelCb = null;
+
+function showConfirm(title, msg, onOk, opts) {
+  opts = opts || {};
+  document.getElementById("confirmTitle").textContent = title;
+  document.getElementById("confirmBody").textContent = msg;
+  var okBtn = document.getElementById("confirmOkBtn");
+  okBtn.className = "confirm-btn-ok" + (opts.danger ? " confirm-btn-danger" : "");
+  okBtn.textContent = opts.okText || "\u786e\u5b9a";
+  var icon = document.getElementById("confirmIcon");
+  icon.className = "confirm-icon " + (opts.danger ? "confirm-danger" : "confirm-warn");
+  _confirmCb = onOk || null;
+  _confirmCancelCb = opts.onCancel || null;
+  document.getElementById("confirmModal").classList.add("active");
+}
+
+function _confirmResolve() {
+  document.getElementById("confirmModal").classList.remove("active");
+  if (_confirmCb) { var cb = _confirmCb; _confirmCb = null; _confirmCancelCb = null; cb(); }
+}
+
+function _confirmReject() {
+  document.getElementById("confirmModal").classList.remove("active");
+  if (_confirmCancelCb) { var cb = _confirmCancelCb; _confirmCancelCb = null; _confirmCb = null; cb(); }
+  _confirmCb = null; _confirmCancelCb = null;
+}
+</script>
+
+
+
+<div class="confirm-overlay" id="alertPopup" onclick="if(event.target===this)document.getElementById('alertPopup').classList.remove('active')">
+  <div class="confirm-modal" style="max-width:400px;">
+    <div class="confirm-header">
+      <div class="confirm-icon confirm-warn" id="alertIcon">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/></svg>
+      </div>
+      <span class="confirm-title" id="alertTitle"></span>
+    </div>
+    <div class="confirm-body" id="alertBody" style="color:var(--text-secondary);font-size:16.5px;line-height:1.6;"></div>
+    <div id="alertActions" style="display:flex;flex-direction:column;gap:8px;margin-top:16px;"></div>
+    <button onclick="document.getElementById('alertPopup').classList.remove('active')" style="margin-top:12px;width:100%;padding:10px;border:1px solid var(--border);border-radius:var(--radius-sm,8px);background:var(--surface);color:var(--text-secondary);font-size:15.5px;cursor:pointer;">稍后再说</button>
+  </div>
+</div>
+<script>
+(function(){
+  var u = {"ai_api_key":null,"ai_key_id":null,"alive_ip":0,"auto_renewal":1,"avatar_url":"https://cravatar.cn/avatar/e61cb21fc9210ffce4edeedd2f6f7d82?s=64\u0026d=identicon","balance":0,"banned":0,"commission_balance":0,"commission_rate":null,"created_at":1788939287,"d":0,"device_limit":5,"discount":null,"email":"211268240@qq.com","expired_at":1820482634,"github_id":null,"google_id":null,"last_login_at":1789523805,"online_ips":null,"password_login_disabled":0,"plan_id":66,"remind_expire":1,"remind_traffic":1,"reset_traffic_method":1,"telegram_id":null,"traffic_reset":{"anchor_at":1788946634,"cycle_start_at":1788946634,"days_left":23,"method":1,"next_reset_at":1791475200,"schedule":"每月9日","status":"scheduled"},"transfer_enable":107374182400,"u":0,"uuid":"9da770ec-2b7e-7bd7-86c3-5f1ad6309d5b"};
+  if (!u) return;
+  var now = Math.floor(Date.now() / 1000);
+  var expAt = u.expired_at || 0;
+  var daysLeft = expAt > 0 ? Math.floor((expAt - now) / 86400) : 999;
+  var upload = u.u || 0, download = u.d || 0;
+  var totalUsed = upload + download;
+  var transferEnable = u.transfer_enable || 0;
+  var usagePct = transferEnable > 0 ? (totalUsed / transferEnable * 100) : 0;
+  var planId = u.plan_id;
+
+  var needExpiry = daysLeft >= 0 && daysLeft < 5 && !sessionStorage.getItem('_alert_expiry');
+  var needTraffic = usagePct > 95 && !sessionStorage.getItem('_alert_traffic');
+
+  if (!needExpiry && !needTraffic) return;
+
+  function showAlert(title, body, actions) {
+    document.getElementById('alertTitle').textContent = title;
+    document.getElementById('alertBody').innerHTML = body;
+    var actDiv = document.getElementById('alertActions');
+    actDiv.innerHTML = '';
+    for (var i = 0; i < actions.length; i++) {
+      var a = actions[i];
+      var btn = document.createElement('a');
+      btn.href = a.href;
+      btn.textContent = a.label;
+      btn.style.cssText = 'display:block;width:100%;padding:10px;border-radius:var(--radius-sm,8px);font-size:16.5px;font-weight:600;text-align:center;text-decoration:none;' + (i === 0 ? 'background:var(--accent);color:#fff;' : 'background:var(--surface);color:var(--accent);border:1px solid var(--border);');
+      actDiv.appendChild(btn);
+    }
+    document.getElementById('alertPopup').classList.add('active');
+  }
+
+  if (needExpiry) {
+    sessionStorage.setItem('_alert_expiry', '1');
+    var msg = daysLeft <= 0 ? '您的套餐已到期，请续费以继续使用服务。' : '您的套餐将在 ' + daysLeft + ' 天后到期，请及时续费。';
+    showAlert('套餐即将到期', msg, [
+      { label: '立即续费', href: '/checkout?plan_id=' + planId + '&period=quarter_price' },
+      { label: '更换套餐', href: '/store' }
+    ]);
+    return;
+  }
+
+  if (needTraffic) {
+    sessionStorage.setItem('_alert_traffic', '1');
+    fetch('/api/sub/info').then(function(r){return r.json()}).then(function(resp){
+      if (!resp || !resp.data) return;
+      var plan = resp.data.plan;
+      if (!plan) return;
+      var actions = [];
+      if (plan.reset_price && plan.reset_price > 0) {
+        actions.push({ label: '购买流量重置包 (¥' + (plan.reset_price / 100) + ')', href: '/checkout?plan_id=' + planId + '&period=reset_price' });
+      }
+      actions.push({ label: '升级套餐', href: '/store' });
+      var pct = Math.round(usagePct);
+      showAlert('流量即将用完', '您的流量已使用 ' + pct + '%，建议尽快处理以免影响使用。', actions);
+    }).catch(function(){});
+  }
+})();
+</script>
+
+
+<script>
+
+(function(){
+  var cache = {};
+  var TTL = 10000;
+
+  function prefetch(url) {
+    
+    
+    if (url === "/") return;
+    if (url === "/subscription") return;
+    if (cache[url] && Date.now() - cache[url].time < TTL) return;
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", url);
+    xhr.setRequestHeader("HX-Request", "true");
+    xhr.setRequestHeader("HX-Boosted", "true");
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        cache[url] = { html: xhr.responseText, time: Date.now() };
+      }
+    };
+    xhr.send();
+  }
+
+  
+  document.querySelectorAll("#sidebar-nav a").forEach(function(a) {
+    a.addEventListener("mouseenter", function() {
+      var href = a.getAttribute("href");
+      if (href && href !== window.location.pathname) prefetch(href);
+    });
+  });
+
+  
+  var idlePages = ["/store", "/orders", "/docs", "/invite"];
+  function idlePrefetch() {
+    var cur = window.location.pathname;
+    idlePages.forEach(function(u) {
+      if (u !== cur) setTimeout(function(){ prefetch(u); }, 0);
+    });
+  }
+  if (window.requestIdleCallback) {
+    requestIdleCallback(idlePrefetch);
+  } else {
+    setTimeout(idlePrefetch, 1000);
+  }
+
+  
+  document.addEventListener("htmx:beforeRequest", function(e) {
+    var detail = e.detail;
+    if (!detail.boosted) return;
+    var url = detail.pathInfo ? detail.pathInfo.requestPath : null;
+    if (!url) return;
+    if (url === "/") return;
+    if (url === "/subscription") return;
+    
+    if (window.location.pathname === "/subscription") return;
+    var c = cache[url];
+    if (!c || Date.now() - c.time >= TTL) return;
+
+    e.preventDefault();
+    delete cache[url];
+
+    
+    var tmp = document.createElement("div");
+    tmp.innerHTML = c.html;
+
+    
+    var oobs = tmp.querySelectorAll("[hx-swap-oob]");
+    for (var i = 0; i < oobs.length; i++) {
+      var el = oobs[i];
+      var id = el.id;
+      el.removeAttribute("hx-swap-oob");
+      if (id) {
+        var target = document.getElementById(id);
+        if (target) target.outerHTML = el.outerHTML;
+      }
+      el.parentNode.removeChild(el);
+    }
+    
+    var titles = tmp.querySelectorAll("title");
+    for (var j = 0; j < titles.length; j++) {
+      document.title = titles[j].textContent;
+      titles[j].parentNode.removeChild(titles[j]);
+    }
+
+    
+    if (window._pageCleanup) { window._pageCleanup(); window._pageCleanup = null; }
+    var main = document.getElementById("main-content");
+    main.innerHTML = tmp.innerHTML;
+    window.scrollTo(0, 0);
+
+    
+    var scripts = main.querySelectorAll("script");
+    for (var si = 0; si < scripts.length; si++) {
+      var ns = document.createElement("script");
+      ns.textContent = scripts[si].textContent;
+      scripts[si].parentNode.replaceChild(ns, scripts[si]);
+    }
+
+    
+    history.pushState({}, "", url);
+
+    
+    htmx.process(main);
+    htmx.process(document.getElementById("sidebar-nav"));
+    if (window.SubscriptionProtection) window.SubscriptionProtection.refreshWatch();
+  });
+
+  
+  document.addEventListener("htmx:afterRequest", function(e) {
+    if (e.detail.verb && e.detail.verb !== "get") cache = {};
+  });
+  document.addEventListener("visibilitychange", function() {
+    if (!document.hidden) cache = {};
+  });
+  window.addEventListener("focus", function() { cache = {}; });
+  var _fetch = window.fetch;
+  window.fetch = function() {
+    var o = arguments[1] || {};
+    if (o.method && o.method.toUpperCase() !== "GET") cache = {};
+    return _fetch.apply(this, arguments);
+  };
+})();
+</script>
+
+<script src="/static/js/marked.min.js"></script>
+
+
+<div class="notice-modal-overlay" id="noticeModal" onclick="if(event.target===this)closeNoticeModal()">
+  <div class="notice-modal">
+    <div class="notice-modal-header">
+      <span class="notice-modal-title" id="noticeModalTitle"></span>
+      <button class="notice-modal-close" onclick="closeNoticeModal()">&times;</button>
+    </div>
+    <div class="notice-modal-date" id="noticeModalDate"></div>
+    <div class="notice-modal-body" id="noticeModalBody"></div>
+    <div class="notice-modal-footer">
+      <button class="notice-modal-btn" onclick="closeNoticeModal()">确定</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="notice-panel" id="noticePanel">
+  <div class="notice-panel-header">系统公告</div>
+  <div class="notice-panel-list" id="noticePanelList"></div>
+</div>
+
+<style>
+ 
+.notice-modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:10000;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}
+.notice-modal-overlay.active{display:flex}
+.notice-modal{background:var(--surface,#fff);border-radius:12px;width:100%;max-width:720px;max-height:80vh;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+.notice-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 0;gap:12px}
+.notice-modal-title{font-size:18px;font-weight:700;color:var(--text-primary);flex:1}
+.notice-modal-close{background:none;border:none;font-size:24px;color:var(--text-tertiary);cursor:pointer;padding:0;line-height:1}
+.notice-modal-date{padding:4px 24px 16px;font-size:13px;color:var(--text-tertiary);border-bottom:1px solid var(--border-light,#eee)}
+.notice-modal-body{padding:20px 24px;overflow-y:auto;flex:1;font-size:15px;line-height:1.7;color:var(--text-secondary)}
+.notice-modal-body h1,.notice-modal-body h2,.notice-modal-body h3{color:var(--text-primary);margin:16px 0 8px}
+.notice-modal-body h1{font-size:20px}.notice-modal-body h2{font-size:18px}.notice-modal-body h3{font-size:16px}
+.notice-modal-body p{margin:8px 0}.notice-modal-body a{color:var(--accent)}
+.notice-modal-body code{background:var(--bg-secondary,#f5f5f5);padding:2px 6px;border-radius:4px;font-size:14px}
+.notice-modal-body pre{background:var(--bg-secondary,#f5f5f5);padding:12px;border-radius:8px;overflow-x:auto}
+.notice-modal-body pre code{background:none;padding:0}
+.notice-modal-body img{max-width:100%;border-radius:8px}
+.notice-modal-body ul,.notice-modal-body ol{padding-left:20px}
+.notice-modal-body blockquote{border-left:3px solid var(--accent);margin:12px 0;padding:8px 16px;color:var(--text-tertiary)}
+.notice-modal-body table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+.notice-modal-body th,.notice-modal-body td{padding:8px 12px;border-bottom:1px solid var(--border-light,#eee);text-align:left;white-space:nowrap}
+.notice-modal-body th{font-weight:600;color:var(--text-primary);background:var(--bg-secondary,#f5f5f5)}
+.notice-modal-body td{color:var(--text-secondary)}
+.notice-modal-footer{padding:16px 24px;border-top:1px solid var(--border-light,#eee);text-align:right}
+.notice-modal-btn{padding:8px 32px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background .15s}
+.notice-modal-btn:hover{background:var(--accent-hover,#4f46e5)}
+
+ 
+.notice-panel{display:none;position:fixed;top:56px;right:16px;width:320px;max-height:400px;background:var(--surface,#fff);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.12);z-index:9999;overflow:hidden}
+.notice-panel.active{display:block}
+.notice-panel-header{padding:14px 16px;font-size:15px;font-weight:700;color:var(--text-primary);border-bottom:1px solid var(--border-light,#eee)}
+.notice-panel-list{overflow-y:auto;max-height:340px}
+.notice-panel-item{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;transition:background .15s;border-bottom:1px solid var(--border-light,#f0f0f0)}
+.notice-panel-item:last-child{border-bottom:none}
+.notice-panel-item:hover{background:var(--bg-secondary,#f8f8f8)}
+.notice-panel-item.unread .npi-title{font-weight:700}
+.npi-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0}
+.npi-dot.read{background:transparent}
+.npi-info{flex:1;min-width:0}
+.npi-title{font-size:14px;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.npi-date{font-size:12px;color:var(--text-tertiary);margin-top:2px}
+.notice-panel-empty{padding:32px 16px;text-align:center;color:var(--text-tertiary);font-size:14px}
+
+ 
+@media(max-width:768px){
+  .notice-modal{max-width:100%;max-height:90vh;border-radius:12px 12px 0 0;margin-top:auto}
+  .notice-modal-overlay{align-items:flex-end;padding:0}
+  .notice-modal-overlay.active{display:flex}
+  .notice-panel{position:fixed;top:auto;bottom:0;left:0;right:0;width:100%;max-height:70vh;border-radius:12px 12px 0 0}
+}
+</style>
+
+<script>
+
+var _notices = [];
+var _readIds = [];
+var _noticesLoaded = false;
+
+function isNoticeRead(id) {
+  return _readIds.indexOf(id) !== -1;
+}
+
+function markNoticeRead(id) {
+  if (_readIds.indexOf(id) === -1) {
+    _readIds.push(id);
+  }
+  
+  localStorage.setItem('notice_popup_' + id, '1');
+  updateBadge();
+  
+  fetch('/api/notice/read', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({notice_id: id})
+  }).catch(function(){});
+}
+
+function updateBadge() {
+  var count = 0;
+  for (var i = 0; i < _notices.length; i++) {
+    if (!isNoticeRead(_notices[i].id)) count++;
+  }
+  var badge = document.getElementById('noticeBadge');
+  if (badge) {
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : count;
+      badge.style.display = '';
+    } else {
+      badge.style.display = 'none';
+    }
+  }
+}
+
+function formatNoticeDate(ts) {
+  return BusinessTime.format(ts, 'YYYY-MM-DD HH:mm');
+}
+
+function formatNoticeDateShort(ts) {
+  return BusinessTime.format(ts, 'MM/DD');
+}
+
+function _showNoticeModal(notice) {
+  document.getElementById('noticeModalTitle').textContent = notice.title || '';
+  document.getElementById('noticeModalDate').textContent = formatNoticeDate(notice.created_at);
+  var body = document.getElementById('noticeModalBody');
+  if (window.marked && notice.content) {
+    body.innerHTML = sanitizeHTML(marked.parse(notice.content));
+  } else {
+    body.textContent = notice.content || '';
+  }
+  document.getElementById('noticeModal').classList.add('active');
+  markNoticeRead(notice.id);
+}
+
+function openNoticeDetail(id) {
+  id = Number(id);
+  closeNoticePanel();
+  var notice = null;
+  for (var i = 0; i < _notices.length; i++) {
+    if (_notices[i].id === id) { notice = _notices[i]; break; }
+  }
+  if (notice) {
+    _showNoticeModal(notice);
+  } else {
+    fetch('/api/notice/list?pageSize=50').then(function(r){return r.json()}).then(function(resp) {
+      if (resp && resp.data) {
+        _notices = resp.data;
+        for (var i = 0; i < _notices.length; i++) {
+          if (_notices[i].id === id) { _showNoticeModal(_notices[i]); return; }
+        }
+      }
+    }).catch(function(){});
+  }
+}
+
+function closeNoticeModal() {
+  document.getElementById('noticeModal').classList.remove('active');
+}
+
+function renderNoticePanel() {
+  var list = document.getElementById('noticePanelList');
+  if (!list) return;
+  if (_notices.length === 0) {
+    list.innerHTML = '<div class="notice-panel-empty">暂无公告</div>';
+    return;
+  }
+  var html = '';
+  var unreadCount = 0;
+  for (var i = 0; i < _notices.length; i++) {
+    var n = _notices[i];
+    if (isNoticeRead(n.id)) continue;
+    unreadCount++;
+    html += '<div class="notice-panel-item unread" data-id="' + n.id + '" onclick="openNoticeDetail(' + n.id + ')">';
+    html += '<div class="npi-dot"></div>';
+    html += '<div class="npi-info">';
+    html += '<div class="npi-title">' + (n.title||'').replace(/</g,'&lt;') + '</div>';
+    html += '<div class="npi-date">' + formatNoticeDateShort(n.created_at) + '</div>';
+    html += '</div></div>';
+  }
+  if (unreadCount === 0) {
+    list.innerHTML = '<div class="notice-panel-empty">\u6682\u65e0\u672a\u8bfb\u516c\u544a</div>';
+  } else {
+    list.innerHTML = html;
+  }
+}
+
+function toggleNoticePanel() {
+  var panel = document.getElementById('noticePanel');
+  if (panel.classList.contains('active')) {
+    closeNoticePanel();
+  } else {
+    renderNoticePanel();
+    panel.classList.add('active');
+    setTimeout(function(){
+      document.addEventListener('click', _closePanelOutside);
+    }, 10);
+  }
+}
+
+function closeNoticePanel() {
+  var panel = document.getElementById('noticePanel');
+  if (panel) panel.classList.remove('active');
+  document.removeEventListener('click', _closePanelOutside);
+}
+
+function _closePanelOutside(e) {
+  var panel = document.getElementById('noticePanel');
+  var bell = document.getElementById('noticeBell');
+  if (panel && bell && !panel.contains(e.target) && !bell.contains(e.target)) {
+    closeNoticePanel();
+  }
+}
+
+function checkPopupNotices() {
+  for (var i = 0; i < _notices.length; i++) {
+    var n = _notices[i];
+    if (isNoticeRead(n.id)) continue;
+    var tags = [];
+    if (n.tags) {
+      try { tags = typeof n.tags === 'string' ? JSON.parse(n.tags) : n.tags; } catch(e){}
+    }
+    var hasPopup = false;
+    for (var j = 0; j < tags.length; j++) {
+      if (tags[j] === '\u5f39\u7a97') { hasPopup = true; break; }
+    }
+    if (hasPopup && !localStorage.getItem('notice_popup_' + n.id)) {
+      localStorage.setItem('notice_popup_' + n.id, '1');
+      openNoticeDetail(n.id);
+      break;
+    }
+  }
+}
+
+function loadNotices() {
+  
+  var noticesReady = false, readReady = false;
+  function tryFinish() {
+    if (noticesReady && readReady) {
+      _noticesLoaded = true;
+      updateBadge();
+      checkPopupNotices();
+    }
+  }
+  fetch('/api/notice/list?pageSize=50').then(function(r){return r.json()}).then(function(resp) {
+    if (resp && resp.data) _notices = resp.data;
+    noticesReady = true;
+    tryFinish();
+  }).catch(function(){ noticesReady = true; tryFinish(); });
+
+  fetch('/api/notice/read-ids').then(function(r){return r.json()}).then(function(resp) {
+    if (resp && resp.data) _readIds = resp.data;
+    readReady = true;
+    tryFinish();
+  }).catch(function(){ readReady = true; tryFinish(); });
+}
+
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', loadNotices);
+} else {
+  loadNotices();
+}
+</script>
+
+<div id="byg-native-support"><template shadowrootmode="open"><style>:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:#28243a;background:#f6f5fa;font-synthesis:none;font-size:14px}*{box-sizing:border-box}body{margin:0}button,textarea,select{font:inherit}button{cursor:pointer}button:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid #c9b6ff;outline-offset:3px}[hidden]{display:none!important}main{max-width:1352px;margin:0 auto;padding:50px 38px 28px}.page-header{text-align:center}.eyebrow{color:#795da7;font-size:12px;letter-spacing:3px;font-weight:600}.page-header h1{font-size:30px;letter-spacing:-1px;margin:14px 0 10px;font-weight:650}.page-header p{margin:0;color:#797489;font-size:14px}.preview-info{display:inline-block;margin:18px 0 0;font-size:12px;color:#8a8594}.preview-toolbar{display:flex;justify-content:space-between;gap:16px;align-items:center;margin:30px 0 34px;flex-wrap:wrap}.view-buttons{display:flex;gap:6px;flex-wrap:wrap}.view-buttons button{padding:9px 12px;border:1px solid transparent;border-radius:9px;background:transparent;color:#787186;font-size:12px}.view-buttons button.selected{background:#fff;color:#673ec1;border-color:#e6ddf5;box-shadow:0 3px 7px #5c407108}.preview-toolbar label{font-size:12px;color:#82758d;display:flex;gap:8px;align-items:center}.preview-toolbar select{border:1px solid #ded8e8;border-radius:8px;padding:8px;background:#fff;color:#5b4b6c;font-size:12px}.designs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:28px;align-items:start}.design-title{display:flex;align-items:center;gap:10px}.design-letter{width:26px;height:26px;display:grid;place-items:center;background:#eae3f7;border-radius:8px;font-size:12px;color:#745495;font-weight:650}.design-description h2{font-size:17px;font-weight:650;margin:0}.design-description p{font-size:12px;line-height:1.8;color:#8a8394;margin:8px 0 18px}.chat{height:650px;display:flex;flex-direction:column;background:#fff;overflow:hidden;border:1px solid #e9e5ef;border-radius:22px;box-shadow:0 16px 38px #3420500b;position:relative;--accent:#7851da;--soft:#f6f2ff;--message:#7953d9}.chat-header{display:flex;align-items:center;gap:10px;padding:20px 17px 18px;border-bottom:1px solid #f0edf6;flex-shrink:0}.brand-mark{display:grid;place-items:center;width:40px;height:40px;border-radius:13px;background:linear-gradient(135deg,#9465ff,#7055e6);color:#fff;font-size:23px;flex:none;box-shadow:0 5px 12px #8358e327}.brand-copy{flex:1;min-width:0}.brand-copy h3{font-size:16px;font-weight:650;margin:0 0 4px}.brand-copy p{font-size:11px;color:#92879f;margin:0}.icon-button{width:30px;height:34px;border:0;background:transparent;color:#9b90a8;display:inline-flex;align-items:center;justify-content:center;border-radius:8px;padding:5px;flex:none}.icon-button:hover{color:var(--accent);background:var(--soft)}.icon-button svg{width:20px;height:20px;display:block}.chat-header>.icon-button{width:24px;padding:2px}.hours{display:flex;align-items:center;gap:6px;margin:0;padding:10px 18px;font-size:10px;line-height:1.6;color:#97879f;background:#fbf9fe;flex:none}.hours strong{color:#7e6399;font-size:10px;font-weight:500;white-space:nowrap}.clock-icon{font-size:16px;line-height:1}.hours-tail{margin-left:auto;white-space:nowrap}.transcript{padding:22px 18px 14px;overflow-y:auto;flex:1;min-height:0;scrollbar-width:thin;scrollbar-color:#eee7f5 transparent;overscroll-behavior:contain}.welcome{text-align:center;padding:3px 0 20px}.welcome-spark{display:none}.welcome h4{font-size:13px;font-weight:550;color:#675975;margin:0 0 7px}.welcome p{font-size:11px;color:#a49aa9;margin:0;line-height:1.6}.date-separator{text-align:center;font-size:10px;color:#b0a7b9;margin:1px 0 21px}.message{display:flex;flex-direction:column;align-items:flex-start;margin-bottom:18px;gap:6px}.message.customer{align-items:flex-end}.bubble{max-width:93%;padding:11px 13px;background:#f4f2f7;color:#51475f;border-radius:4px 15px 15px 15px;font-size:12px;line-height:1.8;overflow-wrap:anywhere;white-space:pre-wrap}.customer .bubble{background:var(--message);color:#fff;border-radius:15px 4px 15px 15px}.operator-name{display:flex;align-items:center;gap:6px;color:#8b8096;font-size:10px}.mini-avatar{width:17px;height:17px;border-radius:6px;background:#eee6fb;display:grid;place-items:center;color:var(--accent);font-size:11px}.message-meta{display:flex;align-items:center;gap:7px;font-size:10px;color:#a79db1}.customer .message-meta{padding-right:3px}.delivery{color:#aaa0b5}.composer{margin:0 14px;padding:11px 10px 8px;border:1px solid #e8e0f2;border-radius:14px;background:#fff;flex:none;box-shadow:0 3px 12px #744c8d04}.composer:focus-within{border-color:#bda4ee}.composer label.sr-only{display:block;position:static;width:auto;height:auto;overflow:visible;clip:auto;font-size:0}.composer textarea{resize:none;width:100%;min-height:36px;max-height:112px;display:block;border:0;background:transparent;outline:none;color:#4d405c;font-size:13px;line-height:1.6;padding:2px 3px}.composer textarea::placeholder{color:#afa4ba}.composer-tools{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-top:2px}.composer-tools>div{display:flex;align-items:center;min-width:0;gap:5px}.composer-hint{color:#b2a6ba;font-size:10px;white-space:nowrap}.send{border:0;display:flex;gap:6px;align-items:center;justify-content:center;padding:8px 11px;border-radius:10px;background:var(--accent);color:#fff;font-size:11px;flex:none}.send svg{height:16px;width:16px}.send:hover{filter:brightness(.95)}.composer-caption{text-align:center;font-size:10px;color:#b9afc2;padding:12px 8px 15px;flex:none}.design-benefit{font-size:12px;line-height:1.8;color:#8b8195;padding:16px 4px 0}.connection-notice{padding:8px 15px;background:#fff7e7;color:#8b6e36;font-size:12px;line-height:1.6;flex:none}.service-details{position:absolute;left:12px;right:12px;top:80px;border:1px solid #e8e0f3;border-radius:14px;background:#fff;box-shadow:0 10px 32px #38234729;z-index:2;padding:17px;color:#71647f;font-size:12px;line-height:1.7}.service-details strong{color:#493b5a}.service-details p{margin:8px 0 0}.attachment-draft{margin:0 15px 8px;padding:8px;display:flex;gap:9px;align-items:center;background:#f6f2fb;border-radius:11px}.attachment-draft img{width:42px;height:42px;object-fit:cover;border-radius:7px}.attachment-draft>div{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}.attachment-draft strong{font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;font-weight:500}.attachment-draft span{font-size:10px;color:#9888a7}.image-message{padding:5px;max-width:210px;cursor:zoom-in}.image-message img{display:block;width:100%;max-height:220px;object-fit:contain;border-radius:10px}.retry-message{color:#b25739;background:transparent;border:0;padding:2px 0;font-size:11px}.reopen{display:block;margin:20px auto;border:0;background:#7851da;color:#fff;border-radius:22px;padding:14px 20px}.page-footer{text-align:center;color:#9d93a6;font-size:12px;line-height:1.8;margin:34px 0 0}dialog{border:0;padding:16px;border-radius:18px;max-width:90vw;max-height:90dvh;background:#fff}dialog::backdrop{background:#231c35bb}dialog img{display:block;max-width:80vw;max-height:80dvh;object-fit:contain}.lightbox-close{position:absolute;right:7px;top:7px;border:0;border-radius:50%;background:#fff;color:#57465f;width:30px;height:30px;font-size:22px}.theme-b .chat{--accent:#8153e9;--soft:#f4efff;--message:#8153e9;border-radius:25px;background:#fdfcff}.theme-b .chat-header{background:linear-gradient(135deg,#8455ec,#a57cee);color:#fff;padding:23px 17px 22px;border:0}.theme-b .brand-mark{background:#ffffff25;border:1px solid #ffffff40;box-shadow:none;border-radius:12px}.theme-b .brand-copy p{color:#eee0ff}.theme-b .chat-header .icon-button{color:#f4e9ff}.theme-b .chat-header .icon-button:hover{background:#ffffff20;color:#fff}.theme-b .hours{background:#f2ecfd;color:#9881b1;padding:10px 18px}.theme-b .hours strong{color:#75559c}.theme-b .transcript{padding-top:16px}.theme-b .welcome{text-align:left;border:1px solid #eee5fc;background:#fff;box-shadow:0 5px 15px #7654b50a;border-radius:16px;padding:15px 15px 14px;margin-bottom:20px}.theme-b .welcome-spark{display:block;color:#9d79dc;margin-bottom:9px;font-size:17px}.theme-b .welcome h4{font-size:14px;color:#604c7c}.theme-b .welcome p{font-size:11px;color:#a193b0}.theme-b .date-separator{margin-bottom:17px}.theme-b .bubble{background:#f0eaf8;color:#615073;border-radius:15px 15px 15px 5px}.theme-b .customer .bubble{background:var(--message);color:#fff;border-radius:15px 15px 5px 15px}.theme-b .composer{border-radius:16px;background:#fff}.theme-b .composer-caption{color:#b8a8c8}.theme-c .chat{--accent:#514165;--soft:#f2eff6;--message:#eee8f8;border-radius:17px;border-color:#e2dfe7;background:#fff}.theme-c .chat-header{padding:18px 17px;border-bottom:1px solid #e9e4ef}.theme-c .brand-mark{height:35px;width:35px;border-radius:10px;font-size:21px;background:#eee8f8;color:#77578f;box-shadow:none}.theme-c .brand-copy h3{font-size:15px}.theme-c .brand-copy p{font-size:10px}.theme-c .hours{background:#fff;border-bottom:1px solid #f0ecf4;padding:10px 18px}.theme-c .welcome{padding:0 0 15px;text-align:left;border-bottom:1px solid #efebf4;margin-bottom:17px}.theme-c .welcome h4{font-size:13px;font-weight:500;color:#756383}.theme-c .welcome p{font-size:11px}.theme-c .date-separator{font-size:10px;display:flex;align-items:center;gap:10px}.theme-c .date-separator:before,.theme-c .date-separator:after{content:"";height:1px;background:#f0ecf4;flex:1}.theme-c .bubble{background:#f6f5f8;border:1px solid #eeebf2;color:#564960;border-radius:4px 11px 11px 11px;font-size:12px}.theme-c .customer .bubble{background:#ede7f7;border-color:#e8e0f2;color:#665076;border-radius:11px 4px 11px 11px}.theme-c .operator-name{color:#6d5b7f;font-size:11px}.theme-c .message{margin-bottom:20px}.theme-c .message-meta{font-size:10px}.theme-c .composer{border-radius:11px;border-color:#dbd3e5}.theme-c .send{border-radius:7px;background:#675078}.theme-c .composer-caption{color:#a497ae}.single-view .designs{display:block;max-width:390px;margin:auto}.single-view .chat{height:670px}.screenshot-mode main{padding-top:26px}.screenshot-mode .preview-toolbar,.screenshot-mode .page-footer{display:none}.screenshot-mode .page-header{margin-bottom:34px}.screenshot-mode .preview-info{margin-top:12px}@media(min-width:1400px){.chat{height:680px}}@media(max-width:1050px){.designs{grid-template-columns:repeat(3,360px);gap:24px;overflow-x:auto;padding:0 0 20px;scroll-snap-type:x proximity}.design{scroll-snap-align:center}.single-view .designs{display:block;overflow:visible}.page-header h1{font-size:27px}main{padding:30px 20px 20px}}@media(max-width:600px){main{padding:24px 16px}.page-header h1{font-size:24px}.page-header p{font-size:12px}.preview-toolbar{margin:22px 0;gap:12px}.view-buttons{gap:3px}.view-buttons button{font-size:11px;padding:8px 9px}.designs{display:flex;flex-direction:column;gap:32px;overflow:visible}.design{width:100%}.chat{height:660px}.chat-header{padding-left:15px;padding-right:15px}.composer textarea{font-size:16px}.composer .icon-button{height:40px;width:40px}.send{min-width:66px;min-height:38px}.composer-hint{font-size:10px}.single-view .chat{height:min(680px,calc(100dvh - 44px));min-height:470px}.page-footer{font-size:11px}.preview-info{font-size:10px}.screenshot-mode main{padding:20px 16px}.screenshot-mode .page-header{display:none}.screenshot-mode .design-description{margin-bottom:14px}.screenshot-mode .chat{height:650px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+/* The own-origin conversation surface has no third-party assets or fonts. */
+.native-chat-page{background:#f6f3fb}.native-chat-page main{padding:0;max-width:430px;margin:auto}.native-chat-page .chat{height:100dvh;border-radius:0;max-height:900px}.native-chat-page .bubble{font-size:14px;line-height:1.7}.native-chat-page .brand-copy p,.native-chat-page .welcome p{font-size:12px;color:#7b7087}.native-chat-page .hours,.native-chat-page .hours strong{font-size:11px;color:#755893}.native-chat-page .composer-caption{color:#91839f}.native-chat-page .message-meta{color:#887a95;font-size:11px}.native-chat-page .delivery{color:#887a95}.native-chat-page .welcome{padding:4px 0 24px}.native-chat-page #older{display:block;margin:0 auto 20px;background:#f5f0fc;border:0;color:#7551a3;font-size:12px;padding:8px 14px;border-radius:16px}.native-chat-page .bubble img{max-width:100%;min-width:80px}.native-chat-page .theme-b .brand-copy p{color:white}.native-chat-page .composer{padding-bottom:max(8px,env(safe-area-inset-bottom))}.native-chat-page .connection-notice button{color:inherit;border:0;background:none;text-decoration:underline;margin-left:10px}.native-chat-page .pending .bubble{opacity:.75}@media(min-width:601px){.native-chat-page main{padding:20px 0}.native-chat-page .chat{height:min(760px,calc(100dvh - 40px));border-radius:22px}}
+
+/* Selected design A: small in-chat previews, full-viewport image viewer. */
+.native-chat-page .bubble.image-message{width:220px;max-width:88%;padding:5px;cursor:default}
+.image-thumbnail{display:block;position:relative;width:100%;min-height:92px;padding:0;overflow:hidden;border:0;border-radius:11px;background:#ebe7f2;color:#62516f;cursor:zoom-in}
+.native-chat-page .image-thumbnail img{display:block;width:100%;height:180px;min-width:0;max-height:none;border-radius:0;object-fit:contain}
+.image-thumbnail-hint{display:block;padding:5px 4px 1px;font-size:11px;line-height:17px;font-weight:400;text-align:center;color:#80758d;cursor:default}
+.customer .image-thumbnail-hint{color:#ede5fb}
+.image-message .message-body{padding:7px 8px 4px}
+#lightbox{position:fixed;inset:0;box-sizing:border-box;width:100%;height:100%;width:100dvw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;border-radius:0;overflow:hidden;background:rgb(20 17 29 / 94%);color:#fff;overscroll-behavior:contain}
+#lightbox[open]{display:flex;flex-direction:column}
+#lightbox::backdrop{background:rgb(20 17 29 / 65%)}
+#lightbox .lightbox-close{position:absolute;z-index:2;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));display:grid;place-items:center;width:44px;height:44px;border:1px solid #ffffff42;border-radius:50%;padding:0;background:#3a3449;color:#fff;font-size:31px;line-height:1}
+#lightbox .lightbox-close:hover{background:#524760}
+.lightbox-stage{display:flex;flex:1;flex-direction:column;align-items:center;justify-content:center;gap:18px;min-height:0;padding:calc(76px + env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) 12px max(20px,env(safe-area-inset-left))}
+#lightbox img{display:block;flex:0 1 auto;width:auto;height:auto;max-width:100%;max-height:100%;min-height:0;object-fit:contain;border-radius:3px;box-shadow:0 6px 32px #0003;user-select:none}
+#lightbox .lightbox-status{margin:0;color:#e0dbe9;font-size:14px;text-align:center}
+#lightbox .lightbox-retry{padding:10px 18px;border:1px solid #ffffff4a;border-radius:10px;background:#ffffff17;color:#fff}
+#lightbox-hint{flex:none;margin:0;padding:12px 16px max(22px,env(safe-area-inset-bottom));color:#bfb5cf;font-size:12px;text-align:center;line-height:1.6}
+#lightbox button:focus-visible{outline:3px solid #bba0ff;outline-offset:4px}
+@media(max-width:600px){.lightbox-stage{padding-left:12px;padding-right:12px}}
+
+/* Availability is set by authorized staff, independently of opening hours. */
+.presence-badge{display:inline-flex;vertical-align:middle;align-items:center;gap:4px;margin-left:5px;padding:2px 7px;border-radius:12px;font-size:11px;font-weight:500;line-height:1.4;letter-spacing:0;color:#667085;background:#f2f4f7;border:1px solid #e4e7ec;white-space:nowrap}.presence-badge::before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}.presence-badge[data-online="true"]{color:#07805c;background:#ecfdf3;border-color:#abefc6}.presence-badge[hidden]{display:none}
+
+.native-chat-page .message-failure{max-width:88%;margin:5px 2px 0;padding:7px 10px;border-radius:8px;background:#fff4f1;border:1px solid #f3d9d0;color:#9b4736;font-size:11px;line-height:1.6;overflow-wrap:anywhere}.native-chat-page .customer .message-failure{align-self:flex-end}
+
+:host{all:initial;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;font-size:14px;color:#28243a;font-synthesis:none}
+ .widget-launcher{position:fixed;right:24px;bottom:max(22px,env(safe-area-inset-bottom));z-index:2147483000;display:flex;align-items:center;justify-content:center;gap:9px;min-height:50px;padding:12px 20px;border:0;border-radius:28px;background:#7851da;color:white;font-size:14px;box-shadow:0 6px 22px #5534a038}
+ .widget-launcher>span[aria-hidden]{font-size:21px;line-height:1}
+ .widget-panel{position:fixed;right:24px;bottom:86px;z-index:2147483001;width:min(400px,calc(100vw - 32px));height:min(700px,calc(100dvh - 110px));border-radius:22px;background:#fff;box-shadow:0 16px 64px #3420502b}
+ .widget-panel.native-chat-page main{width:100%;height:100%;max-width:none;padding:0;margin:0}
+ .widget-panel.native-chat-page .chat{width:100%;height:100%;max-height:none;border-radius:22px}
+ .widget-panel.native-chat-page .bubble{font-size:14px}
+ @media(max-width:600px){.widget-launcher{right:16px;bottom:max(16px,env(safe-area-inset-bottom))}.widget-panel{inset:0;width:100%;height:100%;height:100dvh;border-radius:0}.widget-panel.native-chat-page .chat{border-radius:0;border:0;padding-top:env(safe-area-inset-top)}.widget-panel .composer-caption{padding-bottom:max(12px,env(safe-area-inset-bottom))}}
+</style><button type="button" class="widget-launcher" aria-label="打开在线客服" aria-expanded="false" aria-controls="widget-panel"><span aria-hidden="true">✦</span><span class="widget-label">在线客服</span></button><div id="widget-panel" class="widget-panel native-chat-page" hidden><main id="native-chat" class="theme-a">      <section class="chat" aria-label="白月光客服">
+        <header class="chat-header">
+          <div class="brand-mark" aria-hidden="true">✦</div>
+          <div class="brand-copy"><h3>白月光客服 <span class="presence-badge" hidden></span></h3><p class="header-subtitle">有问题，随时联系我们</p></div>
+          <button class="icon-button information" aria-label="查看服务信息"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="9"/><path d="M12 10v7m0-10v1"/></svg></button>
+          <button class="icon-button minimize" aria-label="收起客服窗口"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="m6 9 6 6 6-6"/></svg></button>
+        </header>
+        <div class="service-details" hidden><strong>人工客服工作时间</strong><p>北京时间 · 中午12:00～次日凌晨2:00</p><p>非工作时间也可以留言，我们会在上班后回复。</p><p>请勿发送密码、验证码或完整支付信息。</p></div>
+        <div class="hours"><span class="clock-icon" aria-hidden="true">◷</span><span>北京时间</span><strong>12:00—次日02:00</strong><span class="hours-tail">人工客服</span></div>
+        <div class="connection-notice" role="status" hidden></div>
+        <div class="transcript" role="log" aria-label="聊天记录" aria-live="polite">
+          <button id="older" type="button" hidden>查看更早的消息</button>
+          <div class="welcome"><span class="welcome-spark">✦</span><h4>你好，很高兴为你服务</h4><p>留下遇到的问题，我们一起解决。</p></div>
+          <div id="messages"></div>
+        </div>
+        <div class="attachment-draft" hidden><img alt="待发送图片"><div><strong></strong><span>发送前可移除</span></div><button class="icon-button remove-attachment" aria-label="移除图片">×</button></div>
+        <form class="composer">
+          <label class="sr-only">消息内容<textarea rows="1" placeholder="输入消息…" maxlength="5000"></textarea></label>
+          <div class="composer-tools">
+            <div><button class="icon-button upload" type="button" aria-label="添加图片"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.5"/><path d="m3 16 5-5 4 4 3-3 6 6"/></svg></button><input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,image/avif,.heic,.heif,.avif" hidden><span class="composer-hint">支持文字和图片</span></div>
+            <button class="send" type="submit" aria-label="发送消息"><span>发送</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 12 14-7-5 14-2-6-7-1Z"/><path d="m12 13 7-8"/></svg></button>
+          </div>
+        </form>
+        <div class="composer-caption">白月光 · 每一条消息都认真对待</div>
+      </section>
+<button class="reopen" hidden>✦ 打开白月光客服</button></main>
+<dialog id="lightbox" aria-label="聊天图片大图预览" aria-describedby="lightbox-hint">
+  <button type="button" aria-label="关闭图片" class="lightbox-close" autofocus>×</button>
+  <div class="lightbox-stage">
+    <img alt="聊天图片完整预览" hidden>
+    <p class="lightbox-status" role="status">正在加载图片…</p>
+    <button type="button" class="lightbox-retry" hidden>重新加载图片</button>
+  </div>
+  <p id="lightbox-hint">点击空白处或右上角 × 关闭</p>
+</dialog></div></template></div><script>/* Optional network hints; never used as proof of account identity. */
+(() => {
+ 'use strict';
+ const endpoints=[
+  {provider:'netease-cn',url:'https://necaptcha.nosdn.127.net/ab7f4275c1744aa28e0a8f3a1c58c532.png',header:'cdn-user-ip'},
+  {provider:'speedtest-cn',url:'https://api-v3.speedtest.cn/ip',json:true},
+  {provider:'ipip-cn',url:'https://myip.ipip.net/json',json:true}
+ ];
+ let cached=null;
+ window.BygSupportNetworkProbe=async signal=>{
+  if(signal.aborted)return [];
+  if(cached&&Date.now()-cached.at<(cached.probes.length?300000:30000))return cached.probes;
+  const results=await Promise.all(endpoints.map(async endpoint=>{
+   const controller=new AbortController(),abort=()=>controller.abort();
+   signal.addEventListener('abort',abort,{once:true});
+   const timer=setTimeout(abort,3500);
+   try{
+    const url=new URL(endpoint.url);url.searchParams.set('_byg_probe',crypto.randomUUID());
+    const response=await fetch(url,{mode:'cors',credentials:'omit',referrerPolicy:'no-referrer',cache:'no-store',signal:controller.signal});
+    if(!response.ok)return null;
+    let value;
+    if(endpoint.json){const data=await response.json(),ok=endpoint.provider==='speedtest-cn'?data.code===0:data.ret==='ok';value=ok?data.data?.ip:''}
+    else value=response.headers.get(endpoint.header);
+    const ip=typeof value==='string'?value.trim():'';
+    // Only return a single address, never arbitrary header/HTML contents.
+    if(!response.ok||!ip||ip.length>45||!/^[0-9a-fA-F:.]+$/.test(ip))return null;
+    return {provider:endpoint.provider,ip};
+   }catch{return null}finally{clearTimeout(timer);signal.removeEventListener('abort',abort)}
+  }));
+  if(signal.aborted)return [];
+  const probes=results.filter(Boolean);cached={at:Date.now(),probes};return probes;
+ };
+ window.BygSupportNetworkProbe.invalidate=()=>{cached=null};
+ // A connection change invalidates the short cache without starting a probe.
+ navigator.connection?.addEventListener('change',()=>{cached=null});
+})();
+
+/* The approved reply voice is served by this website, never a third-party player. */
+(() => {
+ 'use strict';
+ window.BygSupportReplySound=()=>{
+  const mp3='/static/audio/support-reply-b-bda90aac2d16.mp3',opus='/static/audio/support-reply-b-45c01ae1eb2e.opus';
+  const urls=document.createElement('audio').canPlayType('audio/ogg; codecs="opus"')?[opus,mp3]:[mp3];
+  let context=null,buffer=null,loading=null,source=null,retryAt=0,lastPlayed=-Infinity;
+  function load(){
+   if(buffer||loading||Date.now()<retryAt)return;
+   loading=(async()=>{
+    for(const url of urls){
+     try{
+      const response=await fetch(url,{credentials:'omit',cache:'force-cache',signal:AbortSignal.timeout(6000)});
+      if(!response.ok)throw new Error('reply sound unavailable');
+      const bytes=await response.arrayBuffer();if(bytes.byteLength>131072)throw new Error('reply sound too large');
+      buffer=await context.decodeAudioData(bytes);return;
+     }catch{} // Codec/container support differs on older Safari; try the MP3.
+    }
+    throw new Error('reply sound unavailable');
+   })().catch(()=>{retryAt=Date.now()+30000}).finally(()=>{loading=null});
+  }
+  function unlock(){
+   // Called synchronously from a real support click/key press, before any await.
+   if(navigator.userActivation?.isActive===false)return;
+   try{
+    const AudioContext=window.AudioContext||window.webkitAudioContext;if(!AudioContext)return;
+    if(!context||context.state==='closed'){context=new AudioContext();buffer=null}
+    if(context.state==='suspended')context.resume().catch(()=>{});
+    load();
+   }catch{} // Audio permissions or a missing device must never interrupt chat.
+  }
+  function play(){
+   // Never replay a late download, overlap voices, or create a permission prompt.
+   if(!buffer||context?.state!=='running'||source||Date.now()-lastPlayed<8000)return false;
+   try{
+    const next=context.createBufferSource();next.buffer=buffer;next.connect(context.destination);
+    next.onended=()=>{next.disconnect();if(source===next)source=null};
+    next.start();source=next;lastPlayed=Date.now();return true;
+   }catch{return false}
+  }
+  function pause(){
+   if(source){try{source.stop()}catch{}source=null}
+   if(context?.state==='running')context.suspend().catch(()=>{});
+  }
+  return {unlock,play,pause};
+ };
+})();
+
+/* First-party support. All identity and file authorization remain server-side. */
+(() => {
+ 'use strict';
+ function mount(scope,options={}){
+ const root=scope.querySelector('#native-chat');if(!root)return;
+ const $=selector=>root.querySelector(selector),input=$('textarea'),transcript=$('.transcript'),list=$('#messages'),fileInput=$('input[type=file]'),draft=$('.attachment-draft'),lightbox=scope.querySelector('#lightbox');
+ const labels={queued:'待转交',forwarded:'已转交',saved:'已保存',failed:'未完整转交',attention:'发送结果待核对'};
+ let opened=!options.embedded,active=opened,generation=0,conversation='',revision=-1,messages=new Map(),pending=new Map(),attachment=null,attachmentURL='',busy=false,openPromise=null,pollController=null,refreshAt=0,retryTimer=null;
+ let imageTrigger=null,imageSource='',imageScrollLock=null,networkController=null,networkReported='',networkAt=0;
+ let imageGeneration=0,imagePreparing=false,imageController=null,inputWarning='';
+ let latestReply=0,eventController=null,eventTimer=null,pagePresent=true;
+ const replySound=window.BygSupportReplySound?.();
+ function unlockAudio(){replySound?.unlock()}
+ root.addEventListener('pointerdown',unlockAudio,{capture:true});
+ root.addEventListener('keydown',unlockAudio,{capture:true});
+ const fullImage=lightbox.querySelector('img'),imageStatus=lightbox.querySelector('.lightbox-status'),imageRetry=lightbox.querySelector('.lightbox-retry');
+ function closeImage(restoreFocus=true){
+  const trigger=imageTrigger;imageTrigger=null;imageSource='';
+  fullImage.onload=null;fullImage.onerror=null;fullImage.removeAttribute('src');fullImage.hidden=true;
+  if(lightbox.open)lightbox.close();
+  if(imageScrollLock!==null){document.documentElement.style.overflow=imageScrollLock;imageScrollLock=null}
+  if(restoreFocus&&active&&!$('.chat').hidden)(trigger?.isConnected?trigger:input).focus({preventScroll:true});
+ }
+ function loadImage(){
+  fullImage.hidden=true;imageStatus.hidden=false;imageStatus.textContent='正在加载图片…';imageRetry.hidden=true;
+  fullImage.onload=()=>{if(lightbox.open){fullImage.hidden=false;imageStatus.hidden=true;imageRetry.hidden=true}};
+  fullImage.onerror=()=>{if(lightbox.open){imageStatus.textContent='图片暂时无法加载，请重试';imageRetry.hidden=false}};
+  fullImage.removeAttribute('src');fullImage.src=imageSource;
+ }
+ function showImage(button,src,description){
+  imageTrigger=button;imageSource=src;fullImage.alt=description+'，完整大图';
+  lightbox.showModal();imageScrollLock=document.documentElement.style.overflow;document.documentElement.style.overflow='hidden';loadImage();
+ }
+ const memory={get(key){try{return sessionStorage.getItem(key)||''}catch{return ''}},put(key,value){try{sessionStorage.setItem(key,value)}catch{}},remove(key){try{sessionStorage.removeItem(key)}catch{}}};
+ const preferred=()=>memory.get('byg-support-conversation');
+ function device(){const ua=navigator.userAgent;let os=/Windows/i.test(ua)?'Windows':/Android/i.test(ua)?'Android':/iPhone|iPad|iPod/i.test(ua)||navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1?'iOS':/Macintosh|Mac OS/i.test(ua)?'macOS':/Linux/i.test(ua)?'Linux':'其他设备';let browser=/Edg\//.test(ua)?'Edge':/Firefox|FxiOS/.test(ua)?'Firefox':/Chrome|CriOS/.test(ua)?'Chrome':/Safari/.test(ua)?'Safari':'浏览器';return os+' · '+browser}
+ function notice(text,retry=false){const node=$('.connection-notice');text=text||inputWarning||(imagePreparing?'正在处理图片，请稍候…':'');node.hidden=!text;node.textContent=text;if(retry){const b=document.createElement('button');b.textContent='重新连接';b.onclick=()=>connect();node.append(b)}}
+ async function request(path,{method='GET',body,signal,wait=false,binary=false}={}){
+  const timeout=AbortSignal.timeout(wait||binary?26000:12000),signals=signal?[signal,timeout]:[timeout];
+  const response=await fetch('/api/support/native/'+path,{method,credentials:'same-origin',cache:'no-store',headers:body&&!(body instanceof FormData)?{'Content-Type':'application/json'}:{},body:body instanceof FormData?body:body?JSON.stringify(body):undefined,signal:AbortSignal.any(signals)});
+  if(!response.ok){let message='暂时无法处理，请稍后重试';if([400,429,503].includes(response.status)){try{const data=await response.json();if(typeof data.error==='string'&&data.error.length<240)message=data.error}catch{}}const e=new Error(message);e.status=response.status;throw e}return binary?response.blob():response.json();
+ }
+ function updateNetwork(){
+  if(!active||!conversation||networkController||!window.BygSupportNetworkProbe||(networkReported===conversation&&Date.now()-networkAt<300000))return;
+  const controller=new AbortController(),gen=generation,id=conversation;networkController=controller;
+  (async()=>{
+   try{
+    const probes=await window.BygSupportNetworkProbe(controller.signal);
+    if(!active||gen!==generation||id!==conversation||controller.signal.aborted)return;
+    if(probes.length)await request('conversations/'+id+'/network',{method:'POST',body:{probes},signal:controller.signal});
+    if(active&&gen===generation){networkReported=id;networkAt=Date.now()}
+   }catch{}finally{if(networkController===controller)networkController=null}
+  })();
+ }
+ function clearFile(){imageGeneration++;imageController?.abort();imageController=null;imagePreparing=false;attachment=null;if(attachmentURL)URL.revokeObjectURL(attachmentURL);attachmentURL='';fileInput.value='';draft.hidden=true}
+ function savePending(){if(conversation)memory.put('byg-support-pending:'+conversation,JSON.stringify([...pending.values()].map(({client_key,body,attachment_id,created_at})=>({client_key,body,attachment_id,created_at}))))}
+ function loadPending(){pending.clear();try{const saved=JSON.parse(memory.get('byg-support-pending:'+conversation)||'[]');for(const m of saved.slice(-30)){if(typeof m.client_key==='string'&&typeof m.body==='string')pending.set(m.client_key,{...m,author:'visitor',local:true,failed:true})}}catch{}}
+ function imageURL(id){return '/api/support/native/conversations/'+conversation+'/images/'+id}
+ function render(){
+  const nearBottom=transcript.scrollHeight-transcript.scrollTop-transcript.clientHeight<90,oldHeight=transcript.scrollHeight,oldTop=transcript.scrollTop;
+  const fragment=document.createDocumentFragment(),all=[...messages.values(),...pending.values()].sort((a,b)=>(a.sequence||Infinity)-(b.sequence||Infinity)||a.created_at-b.created_at);
+  for(const m of all){
+   const row=document.createElement('div');row.className='message '+(m.author==='visitor'?'customer':'operator')+(m.local&&!m.failed?' pending':'');row.dataset.key=m.client_key;
+   if(m.author!=='visitor'){const name=document.createElement('div');name.className='operator-name';name.textContent='✦ 白月光客服';row.append(name)}
+   const bubble=document.createElement('div');bubble.className='bubble';
+   if(m.attachment_id){
+    const description=m.author==='visitor'?'我发送的图片':'客服发送的图片',button=document.createElement('button'),img=document.createElement('img'),hint=document.createElement('span');
+    button.type='button';button.className='image-thumbnail';button.setAttribute('aria-label','查看'+description+'大图');button.setAttribute('aria-haspopup','dialog');
+    img.src=imageURL(m.attachment_id);img.alt=description;img.loading='lazy';img.decoding='async';hint.className='image-thumbnail-hint';hint.textContent='点击图片放大';
+    img.onerror=()=>{img.hidden=true;hint.textContent='图片暂未加载，点击上方图片区域重试'};
+    button.append(img);button.onclick=()=>showImage(button,img.src,description);bubble.classList.add('image-message');bubble.append(button,hint);
+   }
+   if(m.body){const text=document.createElement('div');text.className='message-body';text.textContent=m.body;bubble.append(text)}row.append(bubble);
+   const meta=document.createElement('div');meta.className='message-meta';const time=document.createElement('span');time.textContent=new Intl.DateTimeFormat('zh-CN',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'Asia/Shanghai'}).format(m.created_at);meta.append(time);
+   if(m.author==='visitor'){const state=document.createElement('span');state.className='delivery';state.textContent=m.local?(m.failed?'尚未确认':'发送中'):(labels[m.delivery]||'已保存');meta.append(state);if(m.local&&m.failed){const retry=document.createElement('button');retry.type='button';retry.className='retry-message';retry.textContent='重试';retry.onclick=()=>transmit(m);meta.append(retry)}}
+   row.append(meta);if(m.delivery==='failed'){const failure=document.createElement('div');failure.className='message-failure';failure.setAttribute('role','status');failure.textContent='发送失败：'+(m.failure_reason||'本条未完整转交，请调整内容后重新发送');row.append(failure)}fragment.append(row);
+  }
+  list.replaceChildren(fragment);$('.welcome').hidden=all.length>0;
+  if(nearBottom)transcript.scrollTop=transcript.scrollHeight;else transcript.scrollTop=oldTop+Math.max(0,transcript.scrollHeight-oldHeight);
+ }
+ function showPresence(presence){const badge=$('.presence-badge');if(!badge||typeof presence?.online!=='boolean')return;badge.hidden=false;badge.dataset.online=String(presence.online);badge.textContent=presence.online?'在线':'离线';badge.setAttribute('aria-label',presence.online?'客服在线':'客服离线')}
+ function ingest(history,older=false){for(const m of history.messages){messages.set(m.id,m);pending.delete(m.client_key);if(m.author==='operator')latestReply=Math.max(latestReply,m.sequence||0)}if(!older){revision=history.conversation.revision;showPresence(history.presence)}$('#older').hidden=!history.has_more||[...messages.values()].some(m=>m.sequence===1);savePending();render()}
+ function setConversation(id,mergedFrom=''){
+  if(conversation===id)return;
+  const previous=conversation||preferred(),continued=!!previous&&mergedFrom===previous;
+  // Preserve drafts only when the authenticated backend confirms this exact
+  // conversation was merged. An account switch must still clear private input.
+  let retained=[];if(continued){try{retained=JSON.parse(memory.get('byg-support-pending:'+previous)||'[]')}catch{}if(!Array.isArray(retained))retained=[];retained=[...retained,...pending.values()]}
+  stopEvents();networkController?.abort();networkController=null;closeImage(false);const changed=!!previous&&previous!==id;generation++;pollController?.abort();if(previous)memory.remove('byg-support-pending:'+previous);conversation=id;revision=-1;latestReply=0;messages.clear();if(changed&&!continued){input.value='';clearFile()}memory.put('byg-support-conversation',id);loadPending();
+  for(const m of retained.slice(-60)){if(typeof m.client_key==='string'&&typeof m.body==='string')pending.set(m.client_key,{...m,author:'visitor',local:true,failed:true})}
+  savePending();render();
+ }
+ async function open(){
+  if(openPromise)return openPromise;
+  const gen=generation;
+  openPromise=(async()=>{const result=await request('open',{method:'POST',body:{conversation_id:conversation||preferred(),device:device()}});if(!active||gen!==generation)return;setConversation(result.id,result.merged_from);const current=generation;const history=await request('conversations/'+conversation);if(!active||current!==generation)return;ingest(history);notice('');refreshAt=Date.now()+60000;updateNetwork()})();
+  try{await openPromise}finally{openPromise=null}
+ }
+ async function connect(){clearTimeout(retryTimer);retryTimer=null;if(!active)return;notice('正在连接，可以先输入您的问题。');try{await open();if(active)poll()}catch{if(active){notice('暂时无法连接，输入内容会保留。',true);retryTimer=setTimeout(connect,5000)}}}
+ async function poll(){
+  if(!active||!conversation||pollController)return;const gen=generation,controller=new AbortController();pollController=controller;
+  try{
+   while(active&&gen===generation&&!controller.signal.aborted){
+    if(Date.now()>=refreshAt){await open();if(gen!==generation)break}
+    const online=$('.presence-badge')?.dataset.online,seen=online==='true'||online==='false'?'&online='+online:'';
+    const h=await request('conversations/'+conversation+'?wait=1&revision='+revision+seen,{signal:controller.signal,wait:true});
+    if(!active||gen!==generation)break;showPresence(h.presence);if(h.conversation.revision!==revision)ingest(h);notice('');
+   }
+  }catch(e){if(active&&gen===generation&&!controller.signal.aborted){if(e.status===403){closeImage(false);generation++;messages.clear();pending.clear();list.replaceChildren();conversation='';revision=-1;notice('登录状态已改变，正在重新打开客服。')}else notice('连接暂时中断，输入内容会保留。',true);retryTimer=setTimeout(connect,2000)}}
+  finally{if(pollController===controller)pollController=null;if(active&&gen!==generation&&!retryTimer)retryTimer=setTimeout(connect,0)}
+ }
+ async function transmit(m){
+  if(!active||!conversation)return;const gen=generation,id=conversation;m.failed=false;pending.set(m.client_key,m);savePending();render();
+  try{const saved=await request('conversations/'+id+'/messages',{method:'POST',body:{client_key:m.client_key,body:m.body,attachment_id:m.attachment_id||''}});if(gen!==generation||id!==conversation)return;pending.delete(m.client_key);messages.set(saved.id,saved);savePending();render()}
+  catch(e){if(gen!==generation)return;if(e.status===400){pending.delete(m.client_key);savePending();render();if(!input.value)input.value=m.body;inputWarning=e.message;notice('');return}m.failed=true;savePending();render();if(e.status===403){notice('登录状态已改变，请重新打开客服。',true)}else if(e.status===409){notice('消息状态需要重新核对，请重新连接。',true)}}
+ }
+ $('.composer').onsubmit=async event=>{
+  event.preventDefault();if(busy)return;if(imagePreparing){notice('正在检查图片，请稍候');return}
+  const body=input.value.replace(/\r\n?/g,'\n').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F\u00AD\u200B\uFEFF\uFFF9-\uFFFC\uFFFE\uFFFF]/gu,'').trim();
+  if(!body.replace(/[\s\p{Cf}\p{Mn}\p{Me}]/gu,'')&&!attachment){if(input.value){inputWarning='请输入可见文字或上传图片';notice('')}return}
+  if([...body].length>5000){inputWarning='文字不能超过 5000 字，请分开发送';notice('');return}inputWarning='';busy=true;
+  try{if(!conversation)await open();if(!conversation)return;const id=conversation,gen=generation;let image='';if(attachment){const form=new FormData();form.append('image',attachment);notice('图片上传中…');const uploaded=await request('conversations/'+id+'/images',{method:'POST',body:form});if(gen!==generation)return;image=uploaded.id;notice('')}
+   const m={client_key:crypto.randomUUID(),body,attachment_id:image,created_at:Date.now(),author:'visitor',local:true};input.value='';input.style.height='auto';clearFile();await transmit(m);
+  }catch(e){if(e.status===400){inputWarning=e.message;notice('')}else notice('暂时未能发送，输入内容会保留。',true)}finally{busy=false}
+ };
+ input.oninput=()=>{inputWarning='';notice('');input.style.height='auto';input.style.height=Math.min(112,input.scrollHeight)+'px'};
+ input.onkeydown=event=>{if(event.key==='Enter'&&!event.shiftKey&&!event.isComposing&&matchMedia('(pointer:fine)').matches){event.preventDefault();$('.composer').requestSubmit()}};
+ $('.upload').onclick=()=>fileInput.click();$('.remove-attachment').onclick=clearFile;
+ async function prepareImage(file){
+  clearFile();const ticket=++imageGeneration,controller=new AbortController();imageController=controller;imagePreparing=true;inputWarning='';notice('');let url='';
+  const invalid='请选择 10 MB 以内且完整的 JPG、PNG、GIF、WebP、HEIC 或 AVIF 图片';
+  try{
+   if(!file.size||file.size>10*1024*1024)throw new Error(invalid);
+   const h=new Uint8Array(await file.slice(0,4096).arrayBuffer()),ascii=(a,b)=>String.fromCharCode(...h.slice(a,b));
+   let format=h[0]===255&&h[1]===216&&h[2]===255?'jpeg':h[0]===137&&ascii(1,4)==='PNG'?'png':ascii(0,6)==='GIF87a'||ascii(0,6)==='GIF89a'?'gif':ascii(0,4)==='RIFF'&&ascii(8,12)==='WEBP'?'webp':'';
+   if(!format&&h.length>=16&&ascii(4,8)==='ftyp'){
+    const n=new DataView(h.buffer).getUint32(0),brands=[];
+    if(n>=16&&n<=h.length&&n%4===0){for(let i=8;i<n;i+=4)if(i!==12)brands.push(ascii(i,i+4));
+     if(!brands.some(b=>['hevc','hevx','msf1'].includes(b)))format=brands.some(b=>['avif','avis'].includes(b))?'avif':brands.some(b=>['heic','heix','mif1'].includes(b))?'heic':'';
+    }
+   }
+   if(!format)throw new Error(invalid);
+   let prepared=file;
+   if(['jpeg','heic','avif'].includes(format)){
+    if(!conversation)await open();if(!conversation)throw new Error('请连接客服后重新选择图片');
+    if(ticket!==imageGeneration)return;
+    const form=new FormData();form.append('image',file);
+    for(let attempt=0;;attempt++){
+     try{prepared=await request('conversations/'+conversation+'/images/prepare',{method:'POST',body:form,signal:controller.signal,binary:true});break}
+     catch(e){if(controller.signal.aborted||ticket!==imageGeneration)return;if(![429,503].includes(e.status)||attempt>=2)throw e;
+      await new Promise(resolve=>{const timer=setTimeout(resolve,2000+Math.random()*1000);controller.signal.addEventListener('abort',()=>{clearTimeout(timer);resolve()},{once:true})});
+      if(controller.signal.aborted||ticket!==imageGeneration)return;
+     }
+    }
+    format='jpeg';
+   }
+   if(ticket!==imageGeneration)return;
+   url=URL.createObjectURL(prepared);const preview=new Image();
+   await new Promise((resolve,reject)=>{preview.onload=resolve;preview.onerror=()=>reject(new Error('图片无法打开或已损坏，请重新选择'));preview.src=url});
+   if(!preview.naturalWidth||!preview.naturalHeight||preview.naturalWidth*preview.naturalHeight>40000000)throw new Error('图片尺寸过大，请选择 4000 万像素以内的图片');
+   if(ticket!==imageGeneration)return;
+   const ext=format==='jpeg'?'jpg':format,name=(file.name||'图片').replace(/\.[^.]*$/,'')+'.'+ext;
+   if(attachmentURL)URL.revokeObjectURL(attachmentURL);
+   attachment=new File([prepared],name,{type:'image/'+format});attachmentURL=url;url='';
+   draft.querySelector('img').src=attachmentURL;draft.querySelector('strong').textContent=name;draft.hidden=false;inputWarning='';notice('');
+  }catch(e){if(ticket===imageGeneration){inputWarning=e.message;notice('');fileInput.value=''}}
+  finally{if(url)URL.revokeObjectURL(url);if(ticket===imageGeneration){imagePreparing=false;imageController=null;notice('')}}
+ }
+ fileInput.onchange=()=>{const f=fileInput.files[0];if(f)prepareImage(f)};
+ input.addEventListener('paste',event=>{
+  const files=Array.from(event.clipboardData?.files||[]);if(!files.length)return;
+  event.preventDefault();if(files.length!==1){inputWarning='一次可发送一张图片，请分开发送';notice('');return}prepareImage(files[0]);
+ });
+ $('#older').onclick=async()=>{const first=Math.min(...[...messages.values()].map(m=>m.sequence)),gen=generation;try{const h=await request('conversations/'+conversation+'?before='+first);if(gen===generation)ingest(h,true)}catch{notice('更早的消息暂时未能加载，请稍后重试。')}};
+ $('.information').onclick=()=>{$('.service-details').hidden=!$('.service-details').hidden};
+ function stopEvents(){eventController?.abort();eventController=null;clearTimeout(eventTimer);eventTimer=null}
+ async function waitForReply(){
+  if(!pagePresent||opened||!conversation||eventController||(!pending.size&&![...messages.values()].some(m=>m.author==='visitor')))return;
+  const controller=new AbortController(),id=conversation,gen=generation;eventController=controller;
+  try{
+   const event=await request('conversations/'+id+'/events?after='+latestReply,{signal:controller.signal,wait:true});
+   if(controller.signal.aborted||!pagePresent||opened||id!==conversation||gen!==generation)return;
+   if(Number.isSafeInteger(event.latest_reply)&&event.latest_reply>latestReply){latestReply=event.latest_reply;replySound?.play();options.onIncoming?.();openChat();return}
+   eventTimer=setTimeout(waitForReply,500);
+  }catch(e){if(!controller.signal.aborted&&!opened&&gen===generation&&e.status!==403)eventTimer=setTimeout(waitForReply,5000)}
+  finally{if(eventController===controller)eventController=null}
+ }
+ function stop(){if(imagePreparing)clearFile();active=false;stopEvents();networkController?.abort();networkController=null;closeImage(false);generation++;pollController?.abort();pollController=null;clearTimeout(retryTimer);retryTimer=null;notice('')}
+ function resume(){stopEvents();if(active)return;active=true;connect()}
+ function invalidateNetwork(){networkReported='';networkAt=0;networkController?.abort();networkController=null;window.BygSupportNetworkProbe?.invalidate?.()}
+ function openChat(){if(!opened)invalidateNetwork();opened=true;$('.chat').hidden=false;$('.reopen').hidden=true;if(pagePresent&&!document.hidden)resume()}
+ function closeChat(){opened=false;stop();$('.chat').hidden=true;$('.reopen').hidden=!!options.embedded;options.onClose?.();waitForReply()}
+ $('.minimize').onclick=closeChat;
+ $('.reopen').onclick=()=>{unlockAudio();openChat()};
+ // Collapsed chat keeps its lightweight reply wait in background tabs. Browsers
+ // may still suspend the whole page; foregrounding resumes from the last reply.
+ document.addEventListener('visibilitychange',()=>{if(document.hidden){if(opened)stop()}else if(opened)resume();else waitForReply()});
+ window.addEventListener('pagehide',()=>{pagePresent=false;stop();replySound?.pause()});
+ window.addEventListener('pageshow',()=>{pagePresent=true;if(!document.hidden&&opened)resume();else if(!opened)waitForReply()});
+ navigator.connection?.addEventListener('change',()=>{invalidateNetwork();if(active)updateNetwork()});
+ lightbox.querySelector('.lightbox-close').onclick=()=>closeImage();
+ lightbox.oncancel=event=>{event.preventDefault();closeImage()};
+ // A drag that starts on the image must not dismiss it when released outside.
+ let imageBackdropDown=false;
+ const isImageBackdrop=target=>target===lightbox||target===lightbox.querySelector('.lightbox-stage')||target===scope.querySelector('#lightbox-hint');
+ lightbox.onpointerdown=event=>{imageBackdropDown=isImageBackdrop(event.target)};
+ lightbox.onclick=event=>{if(imageBackdropDown&&isImageBackdrop(event.target))closeImage();imageBackdropDown=false};
+ imageRetry.onclick=loadImage;
+ if(active)connect();
+ return {open:openChat,close:closeChat,unlockAudio};
+ }
+ window.BygSupportNativeMount=mount;
+ if(document.querySelector('#native-chat'))mount(document);
+})();
+
+/* Bind the conversation already rendered in the website HTML. */
+(() => {
+ 'use strict';
+ const host=document.querySelector('#byg-native-support');
+ if(!host||window.BygSupportChat)return;
+ window.BygSupportChat=true;
+ // Older browsers may leave declarative shadow markup in its template.
+ if(!host.shadowRoot){const content=host.querySelector('template');if(!content)return;host.attachShadow({mode:'open'}).append(content.content);content.remove()}
+ const shadow=host.shadowRoot,button=shadow.querySelector('.widget-launcher'),panel=shadow.querySelector('.widget-panel');
+ function buttonState(open){button.setAttribute('aria-expanded',String(open));button.setAttribute('aria-label',open?'关闭在线客服':'打开在线客服');button.querySelector('.widget-label').textContent=open?'关闭客服':'在线客服'}
+ function collapsed(){panel.hidden=true;buttonState(false);button.focus({preventScroll:true})}
+ const chat=window.BygSupportNativeMount(shadow,{embedded:true,onClose:collapsed,onIncoming:()=>{panel.hidden=false;buttonState(true)}});
+ button.onclick=()=>{chat.unlockAudio();if(!panel.hidden){chat.close();return}panel.hidden=false;buttonState(true);chat.open();panel.querySelector('.minimize').focus({preventScroll:true})};
+})();
+</script>
+
+<link rel="stylesheet" href="/static/css/subscription-protection.css?v=20260913live1">
+<dialog id="subscription-protection-dialog" class="protection-dialog" aria-labelledby="protection-dialog-title" aria-describedby="protection-description">
+  <div class="protection-dialog-heading">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3 3 7v6c0 5 9 8 9 8s9-3 9-8V7l-9-4Z"/><path d="M12 8v5m0 3h.01"/></svg>
+    <h2 id="protection-dialog-title">订阅已自动重置</h2>
+  </div>
+  <p id="protection-description">检测到您的订阅在多个地区使用，系统已为您重置订阅链接，旧订阅链接和旧配置已失效。</p>
+  <p>请前往「订阅管理」获取新订阅并重新导入，即可继续使用。</p>
+  <p id="protection-warning"></p>
+  <div id="protection-reset-time" class="protection-time"></div>
+  <div class="protection-dialog-actions">
+    <button type="button" class="btn-outline" id="protection-dismiss">知道了</button>
+    <a href="/subscription" class="btn-primary" id="protection-subscription-link" hx-boost="true" hx-target="#main-content" hx-swap="innerHTML show:window:top">获取新订阅</a>
+  </div>
+</dialog>
+<script src="/static/js/dashboard-live.js?v=20260913live2"></script>
+<script src="/static/js/subscription-protection.js?v=20260913live2"></script>
+
+<script src="/static/js/public-origin-202607291958.js"></script>
+</body>
+</html>

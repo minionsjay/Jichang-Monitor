@@ -1,0 +1,15 @@
+{
+ "sub_response": {},
+ "node_array": {},
+ "routing_rules": {
+  "\"route_reason\":\"router_selected\",\"target_host\":\"149.154.167.41\",\"target_port\":80,\"timeline\":[{\"elapsed_ms\":0,\"kind\":\"started\",\"sequence\":0},{\"elapsed_ms\":0,\"kind\":\"admission_accepted\",\"sequence\":1},{\"elapsed_ms\":0,\"kind\":\"route_selected\",\"sequence\":2},{\"elapsed_ms\":0,\"kind\":\"egress_generation_selected\",\"sequence\"": 5,
+  "\"routing\":{\"hot_reload_file_supported\":true,\"hot_reload_supported\":true,\"ip_if_non_match_supported\":true,\"regex_supported\":true,\"schema_version\":1,\"tun_rule_routing_supported\":true},\"routing_regex_supported\":true,\"runtime_flags\":{\"udp_fail_loud\":false},\"rust_only\":true,\"schema_version\":\"1.0\",\"streaming_probe": 4,
+  "\"route_reason\":\"router_selected\",\"target_host\":\"149.154.175.60\",\"target_port\":443,\"timeline\":[{\"elapsed_ms\":0,\"kind\":\"started\",\"sequence\":0},{\"elapsed_ms\":0,\"kind\":\"admission_accepted\",\"sequence\":1},{\"elapsed_ms\":0,\"kind\":\"route_selected\",\"sequence\":2},{\"elapsed_ms\":0,\"kind\":\"egress_generation_selected\",\"sequence": 3,
+  "\"route_reason\":\"router_selected\",\"target_host\":\"optimizationguide-pa.googleapis.com\",\"target_port\":443,\"timeline\":[{\"elapsed_ms\":0,\"kind\":\"started\",\"sequence\":0},{\"elapsed_ms\":0,\"kind\":\"admission_accepted\",\"sequence\":1},{\"elapsed_ms\":0,\"kind\":\"route_selected\",\"sequence\":2},{\"elapsed_ms\":0,\"kind\":\"egress_generatio": 2,
+  "\"route_reason\":\"router_selected\",\"target_host\":\"main.vscode-cdn.net\",\"target_port\":443,\"timeline\":[{\"elapsed_ms\":0,\"kind\":\"started\",\"sequence\":0},{\"elapsed_ms\":0,\"kind\":\"admission_accepted\",\"sequence\":1},{\"elapsed_ms\":0,\"kind\":\"route_selected\",\"sequence\":2},{\"elapsed_ms\":0,\"kind\":\"egress_generation_selected\",\"seq": 2,
+  "\"route_reason\":\"router_selected\",\"target_host\":\"www.google.com\",\"target_port\":443,\"timeline\":[{\"elapsed_ms\":0,\"kind\":\"started\",\"sequence\":0},{\"elapsed_ms\":0,\"kind\":\"admission_accepted\",\"sequence\":1},{\"elapsed_ms\":0,\"kind\":\"route_selected\",\"sequence\":2},{\"elapsed_ms\":0,\"kind\":\"egress_generation_selected\",\"sequence": 2
+ },
+ "a01_names": {},
+ "sub_url": {},
+ "login_resp": {}
+}

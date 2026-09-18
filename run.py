@@ -253,8 +253,23 @@ def _get_client_config(slug: str) -> dict | None:
         return None
 
 
+def _get_ui_password(slug: str) -> str | None:
+    """取 UI 自动登录密码：机场专属 password → defaults.password。"""
+    try:
+        creds = load_credentials()
+        acct = creds.get(slug, {})
+        return acct.get("password") or creds.get("defaults", {}).get("password")
+    except Exception:
+        return None
+
+
 def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
-    """自动启动客户端 → 等待 → scan-memory → 关闭。"""
+    """自动启动客户端 → 等待 → scan-memory → 关闭。
+
+    支持两类增强配置（airports.yaml / credentials.yaml 的 client 段）：
+      ui_login: qqt        登录页卡死的客户端，先 UI 自动登录再扫描
+      connect_click: true  登录后自动点"连接"按钮(QQT auto_connect 不触发)
+    """
     import subprocess as _sp
     import time as _time
     core_process = client_cfg.get("core_process", "")
@@ -302,20 +317,57 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     # 等待客户端自动登录+拉订阅+连接代理
     # 每10秒扫一次，直到节点数稳定（连续3轮与上一轮相差≤2）或达到上限180秒
     print(f"    [{slug}] 等待客户端{'自动登录+' if auto_started else ''}连接代理（最多180秒）...", flush=True)
+
+    # UI 自动登录（QQT 等停在登录页的客户端）：输密码 → 点登录 → 点连接
+    ui_login_kind = client_cfg.get("ui_login")
+    if ui_login_kind:
+        try:
+            from airmon import uiauto
+            cred_pw = _get_ui_password(slug)
+            if not cred_pw:
+                print(f"    [{slug}] ui_login: 无密码(credentials.yaml)，跳过")
+            else:
+                gui_name = client_cfg.get("package", slug)
+                install_dir2 = client_cfg.get("install_dir", "")
+                exe_path2 = os.path.join(install_dir2, gui_name + ".exe") if install_dir2 else None
+                uiauto.qqt_login_and_connect(password=cred_pw, exe_path=exe_path2,
+                                             connect=bool(client_cfg.get("connect_click", True)))
+        except Exception as e:
+            print(f"    [{slug}] ui_login 异常: {e}")
+
     from airmon.memsan import collect_memory_scan
     best_snap = None
     last_n = None
     stable_count = 0
+    connect_retry_done = False
+    login_attempts_left = [6]   # 扫描循环内的 UI 登录重试预算
+    connect_after_login = [False]  # 观察到 未登录→已登录 跃迁后点一次"连接"
     for wait_round in range(18):
         _time.sleep(10)
         try:
             snap = collect_memory_scan(slug, client_name=core_process,
                                         pid=pid, detector=detector)
             n = len(snap.nodes)
+            servers_now = [x.server or "" for x in snap.nodes]
+            logged_out_sig = (0 < n <= 6 and
+                              all(("backendapi" in s or "trafficmanager" in s)
+                                  for s in servers_now))
             if n > 0:
                 if best_snap is None or n > len(best_snap.nodes):
                     best_snap = snap
-                if last_n is not None and abs(n - last_n) <= 2:
+                # 未登录→已登录 跃迁: 点一次"启动安全连接"(QQT 登录后不会自动连)
+                if (ui_login_kind and last_n is not None and last_n <= 6 and n > 6
+                        and not connect_after_login[0]):
+                    try:
+                        from airmon import uiauto
+                        if uiauto.click_connect_button():
+                            connect_after_login[0] = True
+                            print(f"    [{slug}] 检测到登录成功(节点{last_n}→{n})，已点击'连接'", flush=True)
+                    except Exception:
+                        pass
+                if logged_out_sig:
+                    stable_count = 0   # 未登录签名不算稳定，让UI登录重试继续跑
+                elif last_n is not None and abs(n - last_n) <= 2:
                     stable_count += 1
                 else:
                     stable_count = 0
@@ -323,6 +375,26 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
                 print(f"    [{slug}] scan-memory 第{wait_round+1}轮: {n}节点（稳定{stable_count}/3）", flush=True)
                 if stable_count >= 3:
                     break
+                # QQT 未登录签名（内存里只有 backendapi 域名）→ 盲试一次 UI 登录
+                if (ui_login_kind and logged_out_sig and login_attempts_left[0] > 0):
+                    try:
+                        from airmon import uiauto
+                        pw = _get_ui_password(slug)
+                        if pw and uiauto.blind_login_once(pw):
+                            login_attempts_left[0] -= 1
+                            print(f"    [{slug}] 检测到未登录签名，重试UI登录（剩余{login_attempts_left[0]}次）", flush=True)
+                    except Exception:
+                        pass
+            else:
+                if (ui_login_kind and not connect_retry_done and wait_round >= 1):
+                    try:
+                        from airmon import uiauto
+                        if uiauto.click_connect_button():
+                            print(f"    [{slug}] 0节点，已点击'连接'按钮兜底", flush=True)
+                            connect_retry_done = True
+                    except Exception:
+                        pass
+                print(f"    [{slug}] scan-memory 第{wait_round+1}轮: {n}节点", flush=True)
         except Exception:
             pass
     if best_snap is not None:
@@ -331,15 +403,27 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     else:
         print(f"    [{slug}] scan-memory: 0节点（客户端可能未连接代理）", flush=True)
 
-    # 关闭客户端
-    try:
-        _sp.run(["taskkill", "/F", "/IM", f"{core_process}.exe"],
-                 capture_output=True, timeout=10)
-        gui_name = client_cfg.get("package", slug)
-        _sp.run(["taskkill", "/F", "/IM", f"{gui_name}.exe"],
-                 capture_output=True, timeout=10)
-    except Exception:
-        pass
+    # 关闭客户端 — 可通过 YAML 配置 keep_alive: true 保持客户端运行
+    # 适用场景: QQT等需要保持登录态的客户端, 扫描后不关闭, 下次直接读内存
+    if client_cfg.get("keep_alive"):
+        print(f"    [{slug}] keep_alive=true, 保持客户端运行(不关闭)", flush=True)
+    else:
+        # ui_login 型客户端优雅关闭：先断开连接再 WM_CLOSE，避免
+        # 强杀"已连接"的客户端导致下次启动白屏/状态悬挂 —— 2026-09-16 QQT 实测教训)
+        try:
+            if client_cfg.get("ui_login"):
+                from airmon import uiauto
+                uiauto.graceful_shutdown(
+                    core_process=core_process,
+                    gui_process=client_cfg.get("package", slug))
+            else:
+                _sp.run(["taskkill", "/F", "/IM", f"{core_process}.exe"],
+                         capture_output=True, timeout=10)
+                gui_name = client_cfg.get("package", slug)
+                _sp.run(["taskkill", "/F", "/IM", f"{gui_name}.exe"],
+                         capture_output=True, timeout=10)
+        except Exception:
+            pass
 
 
 def _finish(slug: str, snap, kind: str):
@@ -371,6 +455,55 @@ def _finish(slug: str, snap, kind: str):
     emit(slug, snap.findings, store.diff_latest(slug))
 
 def _pull_one(slug: str, cred: dict, detector: Detector):
+    # 优先级 -2: Velochron 无客户端 API 路线 (2026-09-17 逆向: 登录→getSubscribe→AES-GCM解密)
+    # 完全复刻客户端协议, 无需启动客户端/DPAPI/内存扫描
+    if cred.get("type") == "velochron-api" or slug == "velochron":
+        try:
+            from airmon.velo_api import collect_velo_api
+            email = cred.get("email") or load_credentials().get("defaults", {}).get("email")
+            password = cred.get("password") or load_credentials().get("defaults", {}).get("password")
+            if email and password:
+                print(f"    [{slug}] 尝试无客户端API路线 (velo_api)...", flush=True)
+                snap = collect_velo_api(slug, email, password, detector)
+                if snap.nodes:
+                    print(f"    [{slug}] ✓ 无客户端API: {len(snap.nodes)}节点")
+                    _finish(slug, snap, "velo-api")
+                    return
+                print(f"    [{slug}] velo_api 0 节点, 继续其他方式")
+        except Exception as e:
+            print(f"    [{slug}] velo_api 失败({str(e)[:60]}), 继续其他方式")
+
+    # 优先级 -1.5: QQT持久化扫描(客户端常驻时直接读内存, 不启动/不关闭)
+    if slug == 'quqiuquan':
+        try:
+            from airmon.persistent import find_qqt_pid, scan_persistent
+            if find_qqt_pid():
+                snap = scan_persistent(slug, detector)
+                if snap and snap.nodes:
+                    _finish(slug, snap, 'persistent-scan')
+                    return
+        except Exception:
+            pass
+
+    # 优先级 -1: DPAPI 订阅缓存解密（Velochron 等设备认证锁订阅的客户端）
+    # server/fetch 只给节点元数据、subscribe_url 对非认证客户端 404，
+    # 但客户端本机 DPAPI 缓存里有完整节点配置，同用户可直接解密。
+    dpapi_cfg = (cred.get("client") or {}).get("dpapi_file") or \
+                (_get_client_config(slug) or {}).get("dpapi_file")
+    if dpapi_cfg:
+        try:
+            from airmon.dpapi import collect_dpapi
+            client_cfg = cred.get("client") or _get_client_config(slug)
+            print(f"    [{slug}] 尝试 DPAPI 订阅缓存: {dpapi_cfg} ...", flush=True)
+            snap = collect_dpapi(slug, client_cfg, detector)
+            if snap.nodes:
+                print(f"    [{slug}] ✓ DPAPI 缓存: {len(snap.nodes)}节点")
+                _finish(slug, snap, "dpapi-cache")
+                return
+            print(f"    [{slug}] DPAPI 缓存 0 节点，继续其他方式")
+        except Exception as e:
+            print(f"    [{slug}] DPAPI 缓存失败({str(e)[:60]})，继续其他方式")
+
     # 优先级 0: v2board server/fetch（仅对v2board/auto类型，跳过sspanel/whmcs）
     cred_type = cred.get("type", "auto")
     if cred_type in ("v2board", "auto", None):
@@ -605,6 +738,21 @@ def cmd_scan_win_client(args):
             print("  有订阅链接但抓取失败，可能被反爬，建议：")
             print(f"  python3 run.py collect --airport {args.airport}")
         store.save(snap)
+
+def cmd_scan_persistent(args):
+    """持久化扫描: qqt.exe常驻运行, 只读内存不启动/不关闭客户端。
+    适用于部署到监控机: 手动登录一次QQT, 之后全自动。"""
+    from airmon.persistent import scan_persistent
+    detector = Detector()
+    snap = scan_persistent(args.airport, detector)
+    if snap and snap.nodes:
+        path = store.save(snap)
+        print(f"[成功] {args.airport} (persistent): {len(snap.nodes)} 节点 → {path}")
+        emit(args.airport, snap.findings, store.diff_latest(args.airport))
+    else:
+        print(f"[提示] {args.airport}: 持久化扫描未获取到节点")
+        print("  确认: 1)qqt.exe正在运行  2)已登录  3)已连接任意节点")
+
 
 def cmd_scan_clients(args):
     """只扫有客户端配置的机场（scan-memory），跳过pull登录。需管理员权限。"""
@@ -1227,6 +1375,10 @@ def main():
     s = sub.add_parser("scan-clients", help="只扫所有有客户端配置的机场（需管理员权限）")
     s.add_argument("--airport", default=None, help="只扫指定机场（逗号分隔），不填=全部客户端型")
     s.set_defaults(func=cmd_scan_clients)
+
+    s = sub.add_parser("scan-persistent", help="QQT持久化扫描：客户端常驻运行,只读内存,不启动/不关闭")
+    s.add_argument("--airport", default="quqiuquan", help="机场slug（默认quqiuquan）")
+    s.set_defaults(func=cmd_scan_persistent)
 
     s = sub.add_parser("scan-memory", help="从Clash内核进程内存提取节点（需管理员权限）")
     s.add_argument("--airport", required=True)

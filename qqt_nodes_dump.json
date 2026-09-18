@@ -1,0 +1,40 @@
+{
+ "nodes": [
+  {
+   "address": "iepl.qqt.wgnmdgfw.com",
+   "password": "28a65268-644c-3135-9ac4-b2b392977f83",
+   "port": 32814,
+   "serverName": "www.baidu.com",
+   "templateId": "chrome-151-windows-11"
+  },
+  {
+   "address": "iepl.qqt.wgnmdgfw.com",
+   "password": "28a65268-644c-3135-9ac4-b2b392977f83",
+   "port": 32830,
+   "serverName": "www.baidu.com",
+   "templateId": "chrome-151-windows-11"
+  },
+  {
+   "address": "iepl.qqt.wgnmdgfw.com",
+   "password": "28a65268-644c-3135-9ac4-b2b392977f83",
+   "port": 32815,
+   "serverName": "www.baidu.com",
+   "templateId": "chrome-151-windows-11"
+  },
+  {
+   "address": "iepl.qqt.wgnmdgfw.com",
+   "password": "28a65268-644c-3135-9ac4-b2b392977f83",
+   "port": 32835,
+   "serverName": "www.baidu.com",
+   "templateId": "chrome-151-windows-11"
+  },
+  {
+   "address": "iepl.qqt.wgnmdgfw.com",
+   "password": "28a65268-644c-3135-9ac4-b2b392977f83",
+   "port": 32711,
+   "serverName": "www.baidu.com",
+   "templateId": "chrome-151-windows-11"
+  }
+ ],
+ "names": []
+}
