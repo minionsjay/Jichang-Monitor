@@ -396,21 +396,25 @@ def _pull_one(slug: str, cred: dict, detector: Detector):
         except Exception as e:
             print(f"    [{slug}] velo_api 失败({str(e)[:60]}), 继续其他方式")
 
-    # 优先级 -1.5: QQT持久化扫描 — 客户端必须常驻运行, 不走其他路径
-    if slug == 'quqiuquan':
-        try:
-            from airmon.persistent import find_qqt_pid, scan_persistent
-            if find_qqt_pid():
-                snap = scan_persistent(slug, detector)
-                if snap and snap.nodes:
-                    _finish(slug, snap, 'persistent-scan')
+    # 优先级 -1.5: 持久化扫描 — 客户端常驻运行, 直接读内存(不启动/不关闭)
+    # YAML配置: client.persistent: true + client.core_process: 进程名
+    client_cfg = cred.get("client") or _get_client_config(slug) or {}
+    if client_cfg.get("persistent"):
+        proc = client_cfg.get("core_process", "")
+        if proc:
+            try:
+                from airmon.persistent import find_process_pid, scan_persistent
+                if find_process_pid(proc):
+                    snap = scan_persistent(slug, detector, process_name=proc)
+                    if snap and snap.nodes:
+                        _finish(slug, snap, 'persistent-scan')
+                        return
+                else:
+                    print(f"    [{slug}] {proc}.exe未运行 — 请手动启动", flush=True)
                     return
-            else:
-                print(f"    [{slug}] qqt.exe未运行 — 请手动启动QQT客户端并登录", flush=True)
-                return  # 直接跳过, 不走scan-memory(没有登录态扫了也没用)
-        except Exception as e:
-            print(f"    [{slug}] persistent异常: {e}")
-            return
+            except Exception as e:
+                print(f"    [{slug}] persistent异常: {e}")
+                return
 
     # 优先级 -1: DPAPI 订阅缓存解密（Velochron 等设备认证锁订阅的客户端）
     # server/fetch 只给节点元数据、subscribe_url 对非认证客户端 404，

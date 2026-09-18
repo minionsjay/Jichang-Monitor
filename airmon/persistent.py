@@ -1,76 +1,63 @@
-"""QQT 持久化监控模式 — 客户端常驻 + 定期内存扫描
+"""持久化监控模式 — 客户端常驻 + 定期内存扫描(通用版)
 
-适用场景: 部署到监控机上, qqt.exe 一直开着(手动登录一次),
+适用场景: 部署到监控机上, 客户端一直开着(手动登录/连接一次),
 定时任务只做内存扫描提取节点, 不启动/不关闭客户端。
 
+支持任意客户端: QQT / LetsVPN / 未来的其他客户端。
+进程名从 YAML 的 client.core_process 读取。
+
 优势:
-  - 只需手动登录一次, 之后客户端自己维护会话(心跳/token刷新)
-  - 完全避开"自动登录"问题(不需要UI自动化)
-  - 完全避开签名算法(只需要读内存)
+  - 只需手动操作一次, 之后客户端自己维护会话
+  - 完全避开"自动登录"问题
   - 客户端断线自动重连, 不需要人工干预
 
-用法:
-  首次部署(手动, 一次性):
-    1. 安装QQT客户端
-    2. 启动 qqt.exe, 手动登录
-    3. 确认连接成功(有节点可选)
-
-  之后(自动化):
-    python run.py scan-persistent --airport quqiuquan
-    (加入定时任务, 每3小时跑一次)
-
-  或者直接用现有的 all 命令(已集成):
-    python run.py all
+用法(已集成到 run.py all):
+  YAML配置:
+    client:
+      core_process: QQT          # 进程名(必填)
+      persistent: true            # 启用持久化模式(必填)
+      keep_alive: true            # 扫完不关闭(推荐)
 """
 from __future__ import annotations
-
-import subprocess
-import time
-import os
 
 from .models import Node, Snapshot
 from . import store
 from .memsan import find_pids, scan_process_memory, extract_nodes
 
 
-def find_qqt_pid() -> int | None:
-    """查找正在运行的qqt.exe进程, 返回PID。"""
-    pids = find_pids(["QQT"])
+def find_process_pid(process_name: str) -> int | None:
+    """按进程名查找PID。"""
+    pids = find_pids([process_name])
     for name, pid in pids:
-        if name.lower() == "qqt.exe":
+        if name.lower() == f"{process_name}.exe".lower():
             return pid
     return None
 
 
-def is_qqt_logged_in(pid: int) -> bool:
-    """检查qqt.exe是否已登录(内存中有真实节点而非只有backendapi域名)。"""
+def is_connected(pid: int) -> bool:
+    """检查进程是否已连接VPN(内存条目多=有真实流量)。"""
     result = scan_process_memory(pid)
     if "error" in result:
         return False
     items = result.get("found_items", [])
-    # 未登录时只有4个backendapi域名(约13个items)
-    # 登录后节点+伪装域名大量出现(2000+ items)
+    # 未连接时只有少量API/DNS条目(<50)
+    # 连接后节点+流量数据大量出现(500+)
     return len(items) > 100
 
 
-def scan_persistent(slug: str = "quqiuquan", detector=None) -> Snapshot | None:
-    """持久化扫描: 假设客户端已运行且已登录, 直接扫内存提取节点。
+def scan_persistent(slug: str, detector=None,
+                    process_name: str = "QQT") -> Snapshot | None:
+    """持久化扫描: 客户端已运行且已连接, 直接扫内存提取节点。
 
     不启动/不关闭客户端。
-    返回Snapshot或None(如果客户端未运行或未登录)。
+    返回Snapshot或None。
     """
-    pid = find_qqt_pid()
+    pid = find_process_pid(process_name)
     if not pid:
-        print("  [persistent] qqt.exe 未运行 — 请手动启动并登录")
+        print(f"  [persistent] {process_name}.exe 未运行 — 请手动启动")
         return None
 
-    # 快速检查是否已登录
-    if not is_qqt_logged_in(pid):
-        print("  [persistent] qqt.exe 在运行但似乎未登录(内存条目过少)")
-        print("  [persistent] 请手动在QQT客户端中登录一次")
-        return None
-
-    print(f"  [persistent] qqt.exe PID={pid}, 已登录, 开始扫描...")
+    print(f"  [persistent] {process_name}.exe PID={pid}, 开始扫描...")
     result = scan_process_memory(pid)
     if "error" in result:
         print(f"  [persistent] 扫描失败: {result['error']}")
@@ -88,16 +75,16 @@ def scan_persistent(slug: str = "quqiuquan", detector=None) -> Snapshot | None:
     nodes = list(seen.values())
 
     if not nodes:
-        print("  [persistent] 内存中未提取到节点(可能未连接)")
+        print(f"  [persistent] 内存中未提取到节点(可能未连接VPN)")
         return None
 
     snap = Snapshot(
         airport=slug,
         ts=store.now_iso(),
-        source=f"persistent_scan:pid{pid}",
+        source=f"persistent_scan:{process_name}:pid{pid}",
         nodes=nodes,
         meta={"pid": pid, "items": len(items),
-              "process": "qqt.exe",
+              "process": f"{process_name}.exe",
               "mode": "persistent"},
     )
 

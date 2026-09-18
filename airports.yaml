@@ -201,6 +201,7 @@ airports:
     install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\QQT
     package: qqt
     keep_alive: true
+    persistent: true
   notes: 'QQT客户端。qqt.exe单进程+nfxcore.dll内嵌核心。数据ENCv3加密。采集: scan-memory。
 
     登录页只记邮箱不记密码 → ui_login: qqt 用 airmon/uiauto.py 自动输密码+登录+点连接
@@ -239,3 +240,16 @@ airports:
     客户端打不开问题: app signature not trusted → 从velochronnet.com重装后已恢复
 
     (win_bundle_sig_cache_v1 正常, app_signature_policy windows:false)。'
+- name: letsvpn
+  display: 快连VPN(LetsVPN)
+  type: client
+  enabled: true
+  homepage: https://letsvpn.world
+  domains:
+  - letsvpn.world
+  client:
+    core_process: LetsPRO
+    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\letsvpn
+    persistent: true
+    keep_alive: true
+  notes: 快连VPN. .NET WPF. 需管理员权限. 约12个外网节点+4个国内中转.
