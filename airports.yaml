@@ -200,8 +200,6 @@ airports:
     data_dir: C:\Users\minions\AppData\Roaming\QQT\QQT
     install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\QQT
     package: qqt
-    ui_login: qqt
-    connect_click: true
     keep_alive: true
   notes: 'QQT客户端。qqt.exe单进程+nfxcore.dll内嵌核心。数据ENCv3加密。采集: scan-memory。
 
