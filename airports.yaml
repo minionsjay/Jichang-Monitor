@@ -176,11 +176,68 @@ airports:
   enabled: true
   homepage: https://dog.ssrdog.com
   name: ssrdog
-  notes: 'Flutter 客户端，sing-box 内核以 libcore.dll 内嵌在 SSRDOG.exe 单进程（无独立 Core 进程）。
-    API: https://comsla-1.dog-sla01.store/api/v1 (v2board+图标验证码，已破解可自动登录)。
-    订阅 URL 被服务端客户端指纹校验拦截(403)，所有 UA 均失败。
-    server/fetch 只返回36个节点名，无 server/port。数据目录无明文节点，app.log 加密。
-    采集方式: scan-memory(管理员, 扫 SSRDOG.exe 主进程) + monitor-net。
-    '
+  notes: 'Flutter 客户端，sing-box 内核以 libcore.dll 内嵌在 SSRDOG.exe 单进程（无独立 Core 进程）。 API:
+    https://comsla-1.dog-sla01.store/api/v1 (v2board+图标验证码，已破解可自动登录)。 订阅 URL 被服务端客户端指纹校验拦截(403)，所有
+    UA 均失败。 server/fetch 只返回36个节点名，无 server/port。数据目录无明文节点，app.log 加密。 采集方式: scan-memory(管理员,
+    扫 SSRDOG.exe 主进程) + monitor-net。 '
   panel: https://comsla-1.dog-sla01.store
   type: client
+- name: quqiuquan
+  display: 全球通(QQT)
+  type: client
+  enabled: true
+  homepage: https://9988qqt.com
+  panel: https://backendapi.cniw4-dcc3vq.com
+  domains:
+  - 9988qqt.com
+  - vpn8.vip
+  - m.ip168.vip
+  - fixunlink.com
+  - cniw4-dcc3vq.com
+  - trafficmanager.net
+  client:
+    core_process: QQT
+    data_dir: C:\Users\minions\AppData\Roaming\QQT\QQT
+    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\QQT
+    package: qqt
+    ui_login: qqt
+    connect_click: true
+    keep_alive: true
+  notes: 'QQT客户端。qqt.exe单进程+nfxcore.dll内嵌核心。数据ENCv3加密。采集: scan-memory。
+
+    登录页只记邮箱不记密码 → ui_login: qqt 用 airmon/uiauto.py 自动输密码+登录+点连接
+
+    (2026-09-16 实测打通: 46节点, iepl.qqt.wgnmdgfw.com:32707)。后端API: FastAPI
+
+    /api/v2/bootstrap, 需 X-Airport-ID: AIRPORT_3596D3D5323B (多租户), /api/v2/query
+
+    为RSA密钥+签名加密通道(key/register注册设备公钥), 逆向成本高, UI路线已够用。'
+- name: velochron
+  display: Velochron
+  type: client
+  enabled: true
+  homepage: https://www.velochronnet.com
+  panel: https://api.9aero.com
+  domains:
+  - velochronnet.com
+  - 9aero.com
+  - velochron.com
+  client:
+    core_process: nanocore
+    install_dir: C:\Program Files\Velochron
+    package: Velochron
+    dpapi_file: C:\Users\minions\AppData\Local\Velochron\secure_store\secure_sub_config_active_a_v2.bin
+    dpapi_stale_hours: 48
+  notes: 'Velochron.exe+nanocore.exe双进程(nanocore是常驻服务)。v2board API+硬件设备认证
+
+    (device/attest: server/fetch只给元数据, subscribe_url对非认证客户端404)。
+
+    解决: 客户端刷新订阅后缓存完整aero_v2节点配置到 secure_store/*.bin, 仅DPAPI
+
+    (CurrentUser)加密 → airmon/dpapi.py 同用户直接解密(2026-09-16实测33节点全量,
+
+    含psk/aead_key/transport)。无需启动客户端、无需管理员。
+
+    客户端打不开问题: app signature not trusted → 从velochronnet.com重装后已恢复
+
+    (win_bundle_sig_cache_v1 正常, app_signature_policy windows:false)。'
