@@ -1,0 +1,47 @@
+# 免费机场/白菜价候选监控名单（2026-10-18，来源：jichangtuijian1.com 信息库）
+# 说明：只探测官网/面板域名可达性，不含任何账号、订阅地址、token。
+# tier: free=注册/试用即送流量；cheap=超低价白菜价（非免费但接近零成本）
+- name: glados
+  url: https://glados.rocks/
+  tier: free
+  note: GLaDOS 白嫖试用+教育邮箱免费1年
+- name: ikuuu
+  url: https://ikuuu.art/
+  tier: free
+  note: iKuuu 注册/签到送流量，域名发布页(2026-09-11 更新)
+- name: bitznet
+  url: https://bak.webitz.net/
+  tier: free
+  note: Bitz Net 24小时免费试用
+- name: falemon
+  url: https://falemon.com/
+  tier: free
+  note: 快柠檬 免费10G(实际3G)
+- name: zjs2025
+  url: https://qq.zjs2025.com/
+  tier: free
+  note: 掌中世界 小众中转，先免费试用
+- name: kuajingcloud
+  url: https://ikuajing.xyz/
+  tier: free
+  note: 跨境Cloud 注册送+兑换码
+- name: baipiao
+  url: https://baipiaoyes.top/
+  tier: cheap
+  note: 白嫖机场(名不副实，9元/月，95折码)
+- name: sanmao
+  url: https://b.smjcgw.com/
+  tier: cheap
+  note: 三毛机场 ¥3/年 超低价
+- name: dukadi
+  url: https://dukadi.one/
+  tier: cheap
+  note: 杜卡迪 ¥0.005/GB 全站最低，有跑路举报史
+- name: peiqian
+  url: https://dash.xn--mes358aby2apfg.site/
+  tier: cheap
+  note: 赔钱机场 ¥1.5 起，优惠码按节日发
+- name: weiyunyun
+  url: https://58.77vy.xyz/
+  tier: cheap
+  note: 维云云 ¥0.015/GB，多品牌共用后端

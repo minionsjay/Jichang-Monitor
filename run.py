@@ -899,26 +899,52 @@ def cmd_report(args):
     path = report_mod.generate(args.out)
     print(f"报告已生成 → {path}")
 
+def _latest_snap_name(slug: str):
+    """该机场最新快照文件名（判「本轮是否落地新数据」用）；无快照返回 None。"""
+    snaps = sorted(glob.glob(os.path.join(store.DATA_DIR, slug, "*.json")))
+    return os.path.basename(snaps[-1]) if snaps else None
+
+
+def _pull_one_safe(slug: str, cred: dict, detector: Detector, box: dict):
+    """线程目标包装：异常落 box 而不是被 threading 吞掉（统计失真修复的一半）。"""
+    try:
+        _pull_one(slug, cred, detector)
+    except Exception as e:
+        box["err"] = f"{type(e).__name__}: {e}"
+
+
 def cmd_all(args):
     global VERBOSE
     VERBOSE = getattr(args, "verbose", False)
-    import threading, glob, json
+    import threading, glob, json, time as _time
     from collections import Counter
+    started_iso = store.now_iso()
+    t0 = _time.time()
     creds = load_credentials()
     detector = Detector()
     total = len(creds)
     print(f"=== 1/5 拉取所有机场 (共{total}个) ===")
     ok, fail = 0, 0
+    failed: list[tuple[str, str]] = []
     for i, (slug, cred) in enumerate(creds.items(), 1):
         print(f"[{i}/{total}] 正在拉取 {slug} ...", flush=True)
-        t = threading.Thread(target=_pull_one, args=(slug, cred, detector), daemon=True)
+        before = _latest_snap_name(slug)
+        box: dict = {}
+        t = threading.Thread(target=_pull_one_safe, args=(slug, cred, detector, box), daemon=True)
         t.start(); t.join(300)
+        after = _latest_snap_name(slug)
         if t.is_alive():
             print(f"[跳过] {slug}: 超时")
-            fail += 1
-        else:
+            fail += 1; failed.append((slug, "timeout(300s)"))
+        elif box.get("err"):
+            print(f"[失败] {slug}: {box['err']}")
+            fail += 1; failed.append((slug, str(box['err'])[:120]))
+        elif after and after != before:
             ok += 1
-    print(f"\n  拉取完成: {ok}成功 / {fail}超时")
+        else:
+            print(f"[失败] {slug}: 无新快照落地")
+            fail += 1; failed.append((slug, "no-new-snapshot"))
+    print(f"\n  拉取完成: {ok}成功 / {fail}失败")
 
     # 2/5: 客户端型机场 — 自动启动客户端 → 等待连接 → scan-memory → 关闭
     print("\n=== 2/5 客户端型机场内存扫描 ===")
@@ -957,7 +983,8 @@ def cmd_all(args):
     print("\n=== 3/5 补全落地IP归属 (rescan) ===")
     for slug in [os.path.basename(d.rstrip("/").rstrip("\\")) for d in
                  glob.glob(os.path.join(store.DATA_DIR, "*/"))
-                 if os.path.basename(d.rstrip("/").rstrip("\\"))]:
+                 if os.path.basename(d.rstrip("/").rstrip("\\"))
+                 and not os.path.basename(d.rstrip("/").rstrip("\\")).startswith(("_", "."))]:
         snap = rescan_airport(slug, detector)
         if snap:
             store.save(snap)
@@ -992,6 +1019,70 @@ def cmd_all(args):
                 print(f"  [{slug}] {f.dimension}={f.rule} | {f.evidence} | {f.context}")
     else:
         print("\n华为关联命中：0 条")
+
+    # 5.4/5 套餐数据刷新（离线收割新快照的 subscription-userinfo；数据>7天旧才在线补拉。best-effort）
+    try:
+        from airmon.quota import main as _quota_main
+        _quota_main([])
+    except Exception as _e:
+        print(f"[套餐数据刷新失败，忽略] {_e}")
+
+    # 5.5/5 仪表盘（best-effort，失败不影响主流程与退出码）
+    try:
+        from airmon.dashboard import generate
+        print(f"仪表盘 → {generate()}")
+    except Exception as _e:
+        print(f"[仪表盘生成失败，忽略] {_e}")
+
+    # 5.6/5 机场分析预计算（增量缓存，日常增量很快；best-effort）
+    try:
+        from airmon.analyze import build as _analyze_build
+        _analyze_build()
+        print("分析数据 → data\\analysis.json")
+    except Exception as _e:
+        print(f"[分析预计算失败，忽略] {_e}")
+
+    # 5.7/5 陈旧度告警 + 运行台账 last_run.json（假绿修复：退出码+台账让调度器/面板都能看见失败）
+    stale: list[str] = []
+    try:
+        from airmon.alert import stale_report
+        stale = stale_report(6.0)
+    except Exception as _e:
+        print(f"[陈旧度巡检失败，忽略] {_e}")
+    try:
+        last = {
+            "started_at": started_iso,
+            "ended_at": store.now_iso(),
+            "duration_s": round(_time.time() - t0, 1),
+            "pull_ok": ok, "pull_fail": fail,
+            "failed": [{"slug": s, "reason": r} for s, r in failed],
+            "client_scanned": client_scanned,
+            "airports_active": aps, "nodes_total": tot,
+            "hw_findings": len(hw_findings),
+            "stale_over_6h": stale,
+        }
+        with open(os.path.join(store.DATA_DIR, "last_run.json"), "w", encoding="utf-8") as f:
+            json.dump(last, f, ensure_ascii=False, indent=2)
+        print(f"运行台账 → data\\last_run.json（成功{ok}/失败{fail}，陈旧{len(stale)}）")
+    except Exception as _e:
+        print(f"[last_run.json 写入失败，忽略] {_e}")
+
+    # 5.8/5 节点抽样探活（TCP 握手测延迟；best-effort，结果进 data/probe.json）
+    try:
+        from airmon.probe import probe as _probe
+        _r = _probe()
+        _s = _r["summary"]
+        print(f"探活 → data\\probe.json（{_s['airports']} 机场 {_s['probes']} 探针，通 {_s['ok_probes']}）")
+    except Exception as _e:
+        print(f"[节点探活失败，忽略] {_e}")
+
+    # 5.9/5 基建画像（纯离线四指标；结果进 data/idc_profile.json）
+    try:
+        from airmon.idc_profile import main as _idc_main
+        _idc_main([])
+    except Exception as _e:
+        print(f"[基建画像失败，忽略] {_e}")
+    return 1 if (fail or stale) else 0
 
 def cmd_export(args):
     import glob
@@ -1392,7 +1483,9 @@ def main():
     s.set_defaults(func=cmd_set_client)
 
     args = p.parse_args()
-    args.func(args)
+    rc = args.func(args)
+    if isinstance(rc, int) and rc:
+        sys.exit(rc)
 
 
 if __name__ == "__main__":

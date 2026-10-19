@@ -85,9 +85,9 @@ airports:
 - display: 强大集团
   domains:
   - 5x.强大集团.net
-  enabled: false
+  enabled: true
   name: qiangda
-  notes: 电信四川落地；与快鸟123 共用节点 IP 114.80.8.206
+  notes: 电信四川落地；与快鸟123 共用节点 IP 114.80.8.206；2026-10-17 恢复启用（订阅 12 轮全活）
   subscription:
     url: null
     user_agent: clash.meta
@@ -95,9 +95,9 @@ airports:
 - display: 快鸟123
   domains:
   - wwwwa.快鸟123.com
-  enabled: false
+  enabled: true
   name: kuainiao
-  notes: 已被墙
+  notes: 原面板被墙；2026-10-17 恢复启用（订阅 12 轮全活）
   subscription:
     url: null
     user_agent: clash.meta

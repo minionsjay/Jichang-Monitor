@@ -3,13 +3,16 @@ from __future__ import annotations
 
 import json
 import socket
+import threading
+import time
+import urllib.error
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 
 def resolve(host: str, timeout: float = 5.0) -> list[str]:
     """域名 → IP 列表；本身是 IP 则原样返回；解析不到返回 []。
-    
+
     socket.getaddrinfo 无原生超时，用 ThreadPoolExecutor+future timeout 防止卡死。"""
     if not host:
         return []
@@ -21,7 +24,7 @@ def resolve(host: str, timeout: float = 5.0) -> list[str]:
             fut = ex.submit(socket.getaddrinfo, host, None)
             infos = fut.result(timeout=timeout)
         return sorted({i[4][0] for i in infos})
-    except (socket.gaierror, concurrent.futures.TimeoutError, Exception):
+    except Exception:
         return []
 
 
@@ -31,16 +34,18 @@ def _is_ip(s: str) -> bool:
 
 
 _RDAP_CACHE: dict[str, tuple[str, str, str, str]] = {}   # 只缓存成功结果
+_RDAP_LOCK = threading.Lock()   # 12 线程并发查缓存/写盘的互斥锁（P0 修复）
 
 
 def rdap(ip: str) -> tuple[str, str, str, str]:
     """返回 (netname, owner, country, asn)。失败返回占位且**不缓存**（可重试）。
-    429/503 限流时退避重试。先试 rdap.org，失败回退 ip-api.com。"""
-    import time
-    if ip in _RDAP_CACHE:
-        return _RDAP_CACHE[ip]
-    
-    # 方法1: rdap.org
+    429/503 限流时退避重试一次；其他失败直接回退 ip-api.com。
+    只更新内存缓存，落盘由 rdap_many 收尾统一 _flush_disk_cache() 原子写。"""
+    with _RDAP_LOCK:
+        if ip in _RDAP_CACHE:
+            return _RDAP_CACHE[ip]
+
+    # 方法1: rdap.org（429/503 退避重试一次）
     d = None
     for attempt in range(2):
         try:
@@ -48,6 +53,11 @@ def rdap(ip: str) -> tuple[str, str, str, str]:
                                          headers={"User-Agent": "airmon-rdap"})
             with urllib.request.urlopen(req, timeout=8) as r:
                 d = json.load(r)
+            break
+        except urllib.error.HTTPError as e:
+            if e.code in (429, 503) and attempt == 0:
+                time.sleep(1.5)
+                continue
             break
         except Exception:
             break
@@ -71,9 +81,10 @@ def rdap(ip: str) -> tuple[str, str, str, str]:
                 if "AS" in str(t):
                     asn = asn or str(t)
         result = (netname, owner or netname, country, asn)
-        _RDAP_CACHE[ip] = result
+        with _RDAP_LOCK:
+            _RDAP_CACHE[ip] = result
         return result
-    
+
     # 方法2: ip-api.com 回退 (不支持 rdap.org 时的备选)
     try:
         req = urllib.request.Request(
@@ -87,8 +98,8 @@ def rdap(ip: str) -> tuple[str, str, str, str]:
             country = d2.get("country", "")
             asn = d2.get("as", "")
             result = (isp, org, country, asn)
-            _RDAP_CACHE[ip] = result
-            _save_disk_cache(ip, result)
+            with _RDAP_LOCK:
+                _RDAP_CACHE[ip] = result
             return result
     except Exception as e:
         return ("n/a", f"n/a({e})", "", "")
@@ -121,15 +132,33 @@ def _load_disk_cache() -> None:
 
 
 def _save_disk_cache(ip: str, result: tuple) -> None:
+    """单条入内存缓存（兼容旧签名）；实际落盘交给 _flush_disk_cache()。"""
     global _DISK_PATH
     if _DISK_PATH is None:
         _DISK_PATH = _disk_cache_path()
-    _DISK_CACHE[ip] = result
+    with _RDAP_LOCK:
+        _DISK_CACHE[ip] = result
+        _RDAP_CACHE[ip] = result
+
+
+def _flush_disk_cache() -> None:
+    """把内存缓存整体原子落盘（tmp + os.replace），供 rdap_many 收尾调用一次。"""
+    import os
+    global _DISK_PATH
+    if _DISK_PATH is None:
+        _DISK_PATH = _disk_cache_path()
+    with _RDAP_LOCK:
+        snapshot = {k: list(v) for k, v in _DISK_CACHE.items()}
+    tmp = _DISK_PATH + ".tmp"
     try:
-        with open(_DISK_PATH, "w", encoding="utf-8") as f:
-            json.dump({k: list(v) for k, v in _DISK_CACHE.items()}, f, ensure_ascii=False)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(snapshot, f, ensure_ascii=False)
+        os.replace(tmp, _DISK_PATH)
     except Exception:
-        pass
+        try:
+            os.remove(tmp)
+        except Exception:
+            pass
 
 
 def rdap_many(ips, workers: int = 12) -> dict[str, tuple[str, str, str, str]]:
@@ -140,16 +169,19 @@ def rdap_many(ips, workers: int = 12) -> dict[str, tuple[str, str, str, str]]:
     if not _DISK_CACHE:
         _load_disk_cache()
     # 合并内存缓存
-    for ip, result in _DISK_CACHE.items():
-        if ip not in _RDAP_CACHE:
-            _RDAP_CACHE[ip] = result
+    with _RDAP_LOCK:
+        for ip, result in _DISK_CACHE.items():
+            if ip not in _RDAP_CACHE:
+                _RDAP_CACHE[ip] = result
     # 只查未缓存的
     todo = [ip for ip in ips if ip not in _RDAP_CACHE]
     if todo:
         with ThreadPoolExecutor(max_workers=workers) as ex:
             results = dict(zip(todo, ex.map(rdap, todo)))
-        # 持久化新结果
-        for ip, result in results.items():
-            if result[0] != "n/a":
-                _save_disk_cache(ip, result)
+        # 统一持久化（一次原子写，替代每线程并发写整文件）
+        with _RDAP_LOCK:
+            for ip, result in results.items():
+                if result[0] != "n/a":
+                    _DISK_CACHE[ip] = result
+        _flush_disk_cache()
     return {ip: _RDAP_CACHE.get(ip, ("n/a", "n/a", "", "")) for ip in ips}

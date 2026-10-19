@@ -25,3 +25,21 @@ jichang-ruanjian/
 # Bat scripts with local paths
 run_admin.bat
 auto_run.bat
+
+# One-shot reverse-engineering artifacts (2026-10 added)
+lets_admin_result.json
+lets_result.txt
+lets_scan.json
+lets_test.txt
+scan_lets.py
+scan_lets2.py
+scan_lets_admin.py
+scan_ssrdog_20261012.json
+.agent-teams/
+release/
+dashboard/
+_emb_payload.json
+docs/08-原型/plugin/data.json
+*_sub.yaml
+velo_*
+seeds.txt

@@ -17,12 +17,17 @@ def now_iso() -> str:
 
 
 def save(snap: Snapshot) -> str:
+    """原子写：先写 .tmp 再 os.replace，避免写一半崩溃/并发读到半份 JSON。"""
     d = os.path.join(DATA_DIR, snap.airport)
     os.makedirs(d, exist_ok=True)
     ts = snap.ts.replace(":", "").replace("-", "")
     path = os.path.join(d, f"{ts}.json")
-    with open(path, "w", encoding="utf-8") as f:
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
         json.dump(snap.to_dict(), f, ensure_ascii=False, indent=2)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
     return path
 
 
@@ -38,17 +43,49 @@ def load(path: str) -> dict:
         return json.load(f)
 
 
-def diff_latest(airport: str) -> dict | None:
-    """对比最近两次快照，返回 {added, removed, changed}（按 node key）。"""
+def _ts_of(path: str) -> float | None:
+    """从快照文件名 YYYYMMDDTHHMMSSZ.json 解析 epoch；非法名返回 None。"""
+    base = os.path.basename(path)
+    try:
+        dt = datetime.strptime(base.split(".")[0], "%Y%m%dT%H%M%SZ")
+        return dt.replace(tzinfo=timezone.utc).timestamp()
+    except Exception:
+        return None
+
+
+def diff_latest(airport: str, min_gap_hours: float = 2.0) -> dict | None:
+    """对比最近两次**跨轮**快照，返回 {added, removed, prev, cur}。
+
+    修复两个历史问题：
+    1. 同轮 pull+rescan 双写会让「最近两份」是同一轮的两份数据（假 diff）——
+       现在只和间隔 ≥min_gap_hours（默认 2h，轮询周期 3h）的最近一份比较；
+    2. 无变化时返回 None（此前恒返回 dict，配合 alert 判空不严产生了海量空告警块）。"""
     snaps = list_snapshots(airport)
     if len(snaps) < 2:
         return None
-    prev, cur = load(snaps[-2]), load(snaps[-1])
+    cur_path = snaps[-1]
+    cur_ts = _ts_of(cur_path)
+    if cur_ts is None:
+        return None
+    prev_path = None
+    for p in reversed(snaps[:-1]):
+        pts = _ts_of(p)
+        if pts is not None and cur_ts - pts >= min_gap_hours * 3600:
+            prev_path = p
+            break
+    if prev_path is None:
+        return None
+    try:
+        prev, cur = load(prev_path), load(cur_path)
+    except Exception:
+        return None
     pk = {_key(n): n for n in prev["nodes"]}
     ck = {_key(n): n for n in cur["nodes"]}
     added = [ck[k] for k in ck.keys() - pk.keys()]
     removed = [pk[k] for k in pk.keys() - ck.keys()]
-    return {"prev": snaps[-2], "cur": snaps[-1],
+    if not added and not removed:
+        return None
+    return {"prev": prev_path, "cur": cur_path,
             "added": added, "removed": removed,
             "prev_findings": prev.get("findings", []),
             "cur_findings": cur.get("findings", [])}

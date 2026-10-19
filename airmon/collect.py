@@ -18,17 +18,22 @@ from .models import Snapshot, Node, Finding
 from .parse import parse_subscription, parse_clash_yaml
 
 
-_PLACEHOLDER_IPS = {"1.1.1.1", "7.7.7.7", "0.0.0.0", "127.0.0.1", "8.8.8.8", "8.8.4.4"}
-_PLACEHOLDER_PORTS = {1, 0}
+_PLACEHOLDER_IPS = {"1.1.1.1", "7.7.7.7", "0.0.0.0", "127.0.0.1", "8.8.8.8", "8.8.4.4",
+                    "239.255.255.250"}   # SSDP 组播地址（探活实测出现的假节点）
+_PLACEHOLDER_HOSTS = {"time.apple.com", "time.windows.com", "time.asia.apple.com",
+                      "ntp.aliyun.com", "trace.go"}   # NTP/追踪占位域名
+_PLACEHOLDER_PORTS = {1, 0, 123, 1900}   # 123=NTP 1900=SSDP
 
 
 def _filter_placeholders(nodes: list[Node]) -> list[Node]:
     """过滤占位节点：订阅服务器对非官方客户端返回的假节点。
-    特征：server是1.1.1.1/7.7.7.7等，或port=1/0。"""
+    特征：server是1.1.1.1/7.7.7.7等，或port=1/0，或 NTP/SSDP/追踪占位。"""
     real = []
     for n in nodes:
         srv = (n.server or "").strip()
         port = n.port or 0
+        if srv.lower() in _PLACEHOLDER_HOSTS:
+            continue
         if srv in _PLACEHOLDER_IPS:
             continue
         if port in _PLACEHOLDER_PORTS:
@@ -52,16 +57,28 @@ def _enrich_and_detect(airport: str, nodes: list[Node], detector: Detector):
     # 如果节点已有预填的 _resolved_ips（如 v2board server/fetch 的 listen_ip），跳过DNS
     hosts = [(i, n.server) for i, n in enumerate(nodes)
              if not n.raw.get("_resolved_ips")]
+    # P0 修复：as_completed 的总超时只作死锁兜底（原 30s 会把大订阅正常富化
+    # 500域名×5s/16线程≈156s 判成超时炸掉整个机场）；未完成项统一标空，
+    # 单域名失败已被 fut.result(timeout=5) 隔离，不再连坐全批。
+    fut_map = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
-        future_to_idx = {ex.submit(resolve, h): i for i, h in hosts}
-        for fut in concurrent.futures.as_completed(future_to_idx, timeout=30):
-            idx = future_to_idx[fut]
-            try:
-                ips = fut.result(timeout=5)
-            except Exception:
-                ips = []
-            nodes[idx].raw["_resolved_ips"] = ips
-            all_ips.update(ips)
+        for i, h in hosts:
+            fut_map[ex.submit(resolve, h)] = i
+        pending = set(fut_map)
+        try:
+            for fut in concurrent.futures.as_completed(fut_map, timeout=600):
+                idx = fut_map[fut]
+                try:
+                    ips = fut.result(timeout=5)
+                except Exception:
+                    ips = []
+                nodes[idx].raw["_resolved_ips"] = ips
+                all_ips.update(ips)
+                pending.discard(fut)
+        except concurrent.futures.TimeoutError:
+            pass
+        for fut in pending:
+            nodes[fut_map[fut]].raw["_resolved_ips"] = []
 
     # 收集所有IP（包括预填的）
     for n in nodes:

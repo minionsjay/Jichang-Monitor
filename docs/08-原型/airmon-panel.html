@@ -1,0 +1,3908 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>机场监控 · 侧边栏面板</title>
+<style>
+/* ============================================================
+   机场监控侧边栏面板 —— DSW 主题 token 版
+   规则：所有颜色经 var(--dsw-*, 回退值) 声明。
+   在 DSW 内吃真实 token；双击独立打开时吃 neutral-bluish 回退值。
+   禁止渐变；主按钮=黑 #0f1115 / hover #43454a；业务蓝 #4176e6 仅作强调。
+   ============================================================ */
+:root{
+  --font: -apple-system,"Segoe UI",system-ui,"PingFang SC","Microsoft YaHei",sans-serif;
+  --bg:        var(--dsw-alias-bg-base, #ffffff);
+  --layer1:    var(--dsw-alias-bg-layer-1, #f9fafb);
+  --layer2:    var(--dsw-alias-bg-layer-2, #f1f3f5);
+  --border:    var(--dsw-alias-border-l1, #ebeef2);
+  --tx:        var(--dsw-alias-label-primary, #0f1115);
+  --tx-2:      var(--dsw-alias-label-secondary, #61666b);
+  --tx-3:      var(--dsw-alias-label-tertiary, #81858c);
+  --brand:     var(--dsw-alias-brand-primary, #4176e6);
+  --btn:       var(--dsw-alias-button-primary-fill, #0f1115);
+  --btn-hover: var(--dsw-alias-button-primary-hover, #43454a);
+  --ok:        var(--dsw-alias-state-success-primary, #178a50);
+  --warn:      var(--dsw-alias-state-warn-primary, #b7791f);
+  --err:       var(--dsw-alias-state-error-primary, #d64545);
+  --ring:      var(--dsw-focus-ring-color, #4176e6);
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font:13px/1.5 var(--font);
+  -webkit-font-smoothing:antialiased}
+#app{display:flex;flex-direction:column;min-height:100vh}
+
+/* ---------- 头部 ---------- */
+.hd{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:10px 12px;border-bottom:1px solid var(--border);position:sticky;top:0;
+  background:var(--bg);z-index:5}
+.hd-t{display:flex;align-items:center;gap:7px;font-size:14px;font-weight:600;min-width:0}
+.hd-t .name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none}
+.dot.err{background:var(--err)}.dot.warn{background:var(--warn)}
+.btn{appearance:none;border:0;border-radius:7px;padding:5px 14px;font-size:12px;
+  font-weight:500;cursor:pointer;font-family:inherit;color:#fff;background:var(--btn);
+  transition:background .15s}
+.btn:hover{background:var(--btn-hover)}
+.btn:focus-visible{outline:2px solid var(--ring);outline-offset:2px}
+.btn[disabled]{opacity:.55;cursor:default}
+
+/* ---------- KPI 条 ---------- */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:6px;
+  padding:10px 12px 4px}
+.kpi{background:var(--layer1);border:1px solid var(--border);border-radius:8px;
+  padding:6px 9px;min-width:0}
+.kpi b{display:block;font-size:16px;line-height:1.25;font-weight:600}
+.kpi small{display:block;color:var(--tx-3);font-size:11px}
+.kpi.warn b{color:var(--warn)}.kpi.err b{color:var(--err)}.kpi.acc b{color:var(--brand)}
+
+/* ---------- Tabs ---------- */
+.tabs{display:flex;gap:2px;padding:6px 12px 0;border-bottom:1px solid var(--border);
+  position:sticky;top:41px;background:var(--bg);z-index:4}
+.tab{appearance:none;border:0;background:none;cursor:pointer;font:inherit;font-size:12.5px;
+  color:var(--tx-3);padding:5px 9px 7px;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab:hover{color:var(--tx-2)}
+.tab.on{color:var(--tx);border-bottom-color:var(--brand);font-weight:600}
+.tab:focus-visible{outline:2px solid var(--ring);outline-offset:-2px;border-radius:4px}
+.tab .n{font-size:11px;color:var(--tx-3);margin-left:3px}
+main{flex:1;padding:10px 12px 16px}
+section[hidden]{display:none}
+
+/* ---------- 工具条 ---------- */
+.tools{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.search{flex:1;min-width:120px;border:1px solid var(--border);border-radius:7px;
+  padding:5px 9px;font:12px var(--font);color:var(--tx);background:var(--layer1)}
+.search:focus{outline:2px solid var(--ring);outline-offset:-1px;background:var(--bg)}
+select{border:1px solid var(--border);border-radius:7px;padding:5px 6px;font:12px var(--font);
+  color:var(--tx);background:var(--layer1)}
+.chipbar{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px}
+.fchip{appearance:none;border:1px solid var(--border);background:var(--layer1);
+  border-radius:999px;padding:2px 10px;font:11.5px var(--font);color:var(--tx-2);cursor:pointer}
+.fchip:hover{color:var(--tx)}
+.fchip.on{background:var(--btn);border-color:var(--btn);color:#fff;font-weight:500}
+
+/* ---------- 卡片网格 ---------- */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:8px}
+.card{border:1px solid var(--border);border-left:3px solid var(--ok);border-radius:9px;
+  background:var(--bg);padding:8px 10px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.card.st-warn{border-left-color:var(--warn)}
+.card.st-err{border-left-color:var(--err)}
+.card:hover{border-color:var(--brand);border-left-color:var(--brand)}
+.c-h{display:flex;align-items:center;gap:6px;min-width:0}
+.c-slug{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-badge{margin-left:auto;flex:none;font-size:11px;color:var(--tx-2);background:var(--layer2);
+  border-radius:5px;padding:1px 6px}
+.c-meta{font-size:11px;color:var(--tx-3);display:flex;gap:8px;flex-wrap:wrap}
+.tags{display:flex;gap:4px;flex-wrap:wrap}
+.tag{font-size:10.5px;border:1px solid var(--border);color:var(--tx-2);border-radius:999px;
+  padding:0 7px;line-height:17px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag.up{color:var(--ok);border-color:var(--ok)}
+.tag.dn{color:var(--err);border-color:var(--err)}
+.tag.wn{color:var(--warn);border-color:var(--warn)}
+.tag.er{color:var(--err);border-color:var(--err)}
+.tag.acc{color:var(--brand);border-color:var(--brand)}
+.bar{height:4px;border-radius:2px;background:var(--layer2);overflow:hidden;position:relative}
+.bar i{position:absolute;inset:0 auto 0 0;background:var(--brand);border-radius:2px}
+.bar i.w{background:var(--warn)}.bar i.e{background:var(--err)}
+.u-row{display:flex;justify-content:space-between;font-size:10.5px;color:var(--tx-3)}
+
+/* ---------- 列表区（到期/告警/华为/运行） ---------- */
+.panel-box{border:1px solid var(--border);border-radius:9px;background:var(--bg);
+  margin-bottom:10px;overflow:hidden}
+.pb-h{padding:7px 11px;font-size:12px;font-weight:600;color:var(--tx-2);
+  background:var(--layer1);border-bottom:1px solid var(--border)}
+.pb-b{padding:8px 11px}
+.row{display:flex;align-items:baseline;gap:8px;padding:5px 0;border-bottom:1px dashed var(--border);
+  font-size:12px;min-width:0}
+.row:last-child{border-bottom:0}
+.row .k{flex:none;font-weight:600;min-width:74px}
+.row .v{color:var(--tx-2);min-width:0;overflow:hidden;text-overflow:ellipsis}
+.row .r{margin-left:auto;flex:none}
+.exp-table{width:100%;border-collapse:collapse;font-size:12px}
+.exp-table th{color:var(--tx-3);font-weight:500;text-align:left;padding:3px 6px;
+  border-bottom:1px solid var(--border);font-size:11px;white-space:nowrap}
+.exp-table td{padding:5px 6px;border-bottom:1px solid var(--border);vertical-align:middle}
+.exp-table tr:last-child td{border-bottom:0}
+.exp-table .num{text-align:right;white-space:nowrap}
+.mini-bar{width:64px;height:4px;border-radius:2px;background:var(--layer2);position:relative;
+  display:inline-block;vertical-align:middle;margin-right:6px;overflow:hidden}
+.mini-bar i{position:absolute;inset:0 auto 0 0;background:var(--brand);border-radius:2px}
+.mini-bar i.w{background:var(--warn)}.mini-bar i.e{background:var(--err)}
+.muted{color:var(--tx-3)}
+.note{font-size:11px;color:var(--tx-3);background:var(--layer1);border:1px dashed var(--border);
+  border-radius:8px;padding:7px 10px;margin-top:8px}
+.banner{font-size:11.5px;border:1px solid var(--warn);color:var(--warn);border-radius:8px;
+  padding:6px 10px;margin-bottom:10px}
+.empty{color:var(--tx-3);font-size:12px;padding:14px 0;text-align:center}
+
+/* ---------- footer ---------- */
+footer{border-top:1px solid var(--border);padding:7px 12px;font-size:10.5px;color:var(--tx-3);
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.src{border:1px solid var(--border);border-radius:999px;padding:0 8px;line-height:16px}
+.src.live{color:var(--ok);border-color:var(--ok)}
+.src.snap{color:var(--warn);border-color:var(--warn)}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="hd">
+    <div class="hd-t"><span class="dot" id="hd-dot"></span><span class="name">机场监控</span>
+      <span class="muted" style="font-weight:400;font-size:11px" id="hd-base"></span></div>
+    <button class="btn" id="refresh">刷新</button>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+
+  <nav class="tabs" id="tabs">
+    <button class="tab on" data-tab="ov">总览</button>
+    <button class="tab" data-tab="ex">到期<span class="n" id="n-ex"></span></button>
+    <button class="tab" data-tab="al">告警<span class="n" id="n-al"></span></button>
+    <button class="tab" data-tab="hw">华为<span class="n" id="n-hw"></span></button>
+    <button class="tab" data-tab="rn">运行</button>
+  </nav>
+
+  <main>
+    <section id="tab-ov">
+      <div class="tools">
+        <input class="search" id="q" type="search" placeholder="搜索机场 slug…">
+        <select id="sort">
+          <option value="def">默认排序</option>
+          <option value="nodes">按节点数</option>
+          <option value="expire">按到期</option>
+          <option value="usage">按用量</option>
+        </select>
+      </div>
+      <div class="chipbar" id="filters">
+        <button class="fchip on" data-f="all">全部</button>
+        <button class="fchip" data-f="delta">有变更</button>
+        <button class="fchip" data-f="zero">0 拉取</button>
+        <button class="fchip" data-f="expiring">临期/过期</button>
+        <button class="fchip" data-f="hw">华为命中</button>
+      </div>
+      <div class="grid" id="grid"></div>
+      <div class="empty" id="grid-empty" hidden>没有符合条件的机场</div>
+    </section>
+
+    <section id="tab-ex" hidden>
+      <div class="panel-box"><div class="pb-h">套餐到期（按剩余天数升序）</div>
+        <div class="pb-b" style="padding:2px 6px"><table class="exp-table" id="exp-t"></table></div></div>
+      <div class="note">天数取自 quota.days_left；「长期」表示未登记到期日。红色 = 已过期，黄 = 30 天内。</div>
+    </section>
+
+    <section id="tab-al" hidden>
+      <div class="panel-box"><div class="pb-h">告警流（最近在前）</div><div class="pb-b" id="al-list"></div></div>
+    </section>
+
+    <section id="tab-hw" hidden>
+      <div class="panel-box"><div class="pb-h">当前命中</div><div class="pb-b" id="hw-cur"></div></div>
+      <div class="panel-box"><div class="pb-h">命中台账（历史累计）</div><div class="pb-b" id="hw-ledger"></div></div>
+      <div class="note">华为命中区：按 RDAP/ASN 规则识别落在华为云的节点。evidence 为公开注册组织名，不含端点。</div>
+    </section>
+
+    <section id="tab-rn" hidden>
+      <div id="rn-inflight"></div>
+      <div class="panel-box"><div class="pb-h">最近一轮运行</div><div class="pb-b" id="rn-box"></div></div>
+    </section>
+  </main>
+
+  <footer>
+    <span id="ft-gen"></span>
+    <span class="src" id="ft-src">…</span>
+    <span>白名单脱敏数据</span>
+  </footer>
+</div>
+
+<!-- 内嵌快照：file:// 双击打开时的数据源（与 data.json 同源生成，零机密） -->
+<script type="application/json" id="airmon-data">{
+ "generated_at": "2026-10-18 21:01:20",
+ "base_local": "10-18 21:00",
+ "quota_at": "2026-10-18 21:01",
+ "stale_hours": 6.0,
+ "totals": {
+  "airports": 47,
+  "dirs": 47,
+  "with_nodes": 47,
+  "nodes": 2644,
+  "hits": 0,
+  "zero_pull": [
+   "jsqpro",
+   "muniu",
+   "yiyuan"
+  ],
+  "stale": [],
+  "expiring30": [],
+  "expired": [
+   "jsqpro",
+   "muniu",
+   "oixcloud",
+   "qiangda",
+   "yiyuan"
+  ]
+ },
+ "airports": [
+  {
+   "slug": "applegame",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 30,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:07Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "trojan",
+     30
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     30
+    ]
+   ],
+   "node_total": 30
+  },
+  {
+   "slug": "ayucloud",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 141,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:07Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "ss",
+     141
+    ]
+   ],
+   "expire": "2026-11-24",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "TW",
+     141
+    ]
+   ],
+   "node_total": 141,
+   "quota": {
+    "expire_date": "2026-11-24",
+    "days_left": 36,
+    "total_gb": 0.5,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "bygcloud",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 104,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:07Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     104
+    ]
+   ],
+   "expire": "2027-09-09",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "CN",
+     104
+    ]
+   ],
+   "node_total": 104,
+   "quota": {
+    "expire_date": "2027-09-09",
+    "days_left": 325,
+    "total_gb": 100.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "bywave",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 20,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:07Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     20
+    ]
+   ],
+   "expire": "2027-06-30",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     20
+    ]
+   ],
+   "node_total": 20,
+   "quota": {
+    "expire_date": "2027-06-30",
+    "days_left": 254,
+    "total_gb": 200.0,
+    "used_gb": 0.01,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "chaoyue",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 14,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:07Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "hysteria2",
+     14
+    ]
+   ],
+   "expire": "2027-01-16",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     4
+    ],
+    [
+     "泰国",
+     2
+    ],
+    [
+     "新加坡",
+     1
+    ],
+    [
+     "IE",
+     1
+    ],
+    [
+     "KR",
+     1
+    ],
+    [
+     "德国",
+     1
+    ]
+   ],
+   "node_total": 14,
+   "quota": {
+    "expire_date": "2027-01-16",
+    "days_left": 89,
+    "total_gb": 100.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "cherryvpn",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 123,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:07Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     122
+    ],
+    [
+     "hysteria2",
+     1
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     123
+    ]
+   ],
+   "node_total": 123,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 100.1,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "cloudnx",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 27,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:07Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     27
+    ]
+   ],
+   "expire": "2027-01-23",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     27
+    ]
+   ],
+   "node_total": 27,
+   "quota": {
+    "expire_date": "2027-01-23",
+    "days_left": 96,
+    "total_gb": 10.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "dovex",
+   "route": "内存扫描/dove-core (rescan) (",
+   "status": "ok",
+   "nodes": 85,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:08Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     85
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     51
+    ],
+    [
+     "CN",
+     8
+    ],
+    [
+     "中国",
+     6
+    ],
+    [
+     "爱尔兰",
+     5
+    ],
+    [
+     "加拿大",
+     3
+    ],
+    [
+     "美国",
+     3
+    ]
+   ],
+   "node_total": 85
+  },
+  {
+   "slug": "dualnet",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 29,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:08Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     28
+    ],
+    [
+     "vmess",
+     1
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     29
+    ]
+   ],
+   "node_total": 29,
+   "quota": {
+    "expire_date": "2027-01-29",
+    "days_left": 102,
+    "total_gb": 25.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "everlife",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 23,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:08Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     15
+    ],
+    [
+     "ss",
+     8
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "HK",
+     14
+    ],
+    [
+     "US",
+     5
+    ],
+    [
+     "JP",
+     2
+    ],
+    [
+     "未知",
+     1
+    ],
+    [
+     "TW",
+     1
+    ]
+   ],
+   "node_total": 23,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 32.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "fastlink",
+   "route": "内存扫描/FastLinkCore (rescan",
+   "status": "ok",
+   "nodes": 129,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:10Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 25,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     129
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     107
+    ],
+    [
+     "CN",
+     8
+    ],
+    [
+     "中国",
+     5
+    ],
+    [
+     "德国",
+     4
+    ],
+    [
+     "HK",
+     3
+    ],
+    [
+     "加拿大",
+     1
+    ]
+   ],
+   "node_total": 129
+  },
+  {
+   "slug": "feiniao",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 29,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:10Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "hysteria",
+     28
+    ],
+    [
+     "trojan",
+     1
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "TW",
+     8
+    ],
+    [
+     "未知",
+     6
+    ],
+    [
+     "美国",
+     6
+    ],
+    [
+     "日本",
+     6
+    ],
+    [
+     "SG",
+     1
+    ],
+    [
+     "台湾",
+     1
+    ]
+   ],
+   "node_total": 29,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 600.0,
+    "used_gb": 3.14,
+    "used_pct": 0.5,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "feiniao_1",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 34,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:10Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vmess",
+     34
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "HK",
+     10
+    ],
+    [
+     "未知",
+     8
+    ],
+    [
+     "US",
+     4
+    ],
+    [
+     "美国",
+     3
+    ],
+    [
+     "JP",
+     2
+    ],
+    [
+     "KR",
+     2
+    ]
+   ],
+   "node_total": 34,
+   "quota": {
+    "expire_date": "2027-08-26",
+    "days_left": 311,
+    "total_gb": 100.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "feiniao_2",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 25,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:12Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     25
+    ]
+   ],
+   "expire": "2026-11-24",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     19
+    ],
+    [
+     "HK",
+     3
+    ],
+    [
+     "香港",
+     2
+    ],
+    [
+     "US",
+     1
+    ]
+   ],
+   "node_total": 25,
+   "quota": {
+    "expire_date": "2026-11-24",
+    "days_left": 36,
+    "total_gb": 999999.0,
+    "used_gb": 0.0,
+    "used_pct": null,
+    "unlimited": true
+   }
+  },
+  {
+   "slug": "flybar",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 88,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:12Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "mieru",
+     46
+    ],
+    [
+     "vless",
+     42
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     63
+    ],
+    [
+     "CN",
+     24
+    ],
+    [
+     "HK",
+     1
+    ]
+   ],
+   "node_total": 88,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 10.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "flyint",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 59,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:12Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     46
+    ],
+    [
+     "trojan",
+     13
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 44.8,
+   "geo_top": [
+    [
+     "未知",
+     49
+    ],
+    [
+     "台湾",
+     10
+    ]
+   ],
+   "node_total": 59,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 200.0,
+    "used_gb": 89.63,
+    "used_pct": 44.8,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "hhy",
+   "route": "内存扫描/hhycenterCore (resca",
+   "status": "ok",
+   "nodes": 168,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:13Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 25,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     168
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "DE",
+     139
+    ],
+    [
+     "未知",
+     23
+    ],
+    [
+     "CN",
+     3
+    ],
+    [
+     "美国",
+     2
+    ],
+    [
+     "台湾",
+     1
+    ]
+   ],
+   "node_total": 168
+  },
+  {
+   "slug": "hsyun",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 23,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:13Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     17
+    ],
+    [
+     "vless",
+     6
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "CN",
+     21
+    ],
+    [
+     "HK",
+     1
+    ],
+    [
+     "未知",
+     1
+    ]
+   ],
+   "node_total": 23,
+   "quota": {
+    "expire_date": "2026-12-14",
+    "days_left": 56,
+    "total_gb": 999999.0,
+    "used_gb": 0.0,
+    "used_pct": null,
+    "unlimited": true
+   }
+  },
+  {
+   "slug": "jinglingxueyuan",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 49,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:13Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     38
+    ],
+    [
+     "vmess",
+     9
+    ],
+    [
+     "hysteria2",
+     2
+    ]
+   ],
+   "expire": "2027-09-09",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     15
+    ],
+    [
+     "US",
+     14
+    ],
+    [
+     "HK",
+     11
+    ],
+    [
+     "SG",
+     5
+    ],
+    [
+     "日本",
+     2
+    ],
+    [
+     "JP",
+     2
+    ]
+   ],
+   "node_total": 49,
+   "quota": {
+    "expire_date": "2027-09-09",
+    "days_left": 325,
+    "total_gb": 50.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "jsqpro",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 24,
+   "pull_zero": true,
+   "age_h": 0.5,
+   "latest_ts": "2026-10-18T12:30:56Z",
+   "latest_local": "10-18 20:30",
+   "snap24": 8,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     24
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "美国",
+     13
+    ],
+    [
+     "JP",
+     4
+    ],
+    [
+     "未知",
+     3
+    ],
+    [
+     "TW",
+     2
+    ],
+    [
+     "台湾",
+     1
+    ],
+    [
+     "中華民國",
+     1
+    ]
+   ],
+   "node_total": 24,
+   "quota": {
+    "expire_date": "2026-10-01",
+    "days_left": -18,
+    "total_gb": 100.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "ktm",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 52,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:13Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "ss",
+     52
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "HK",
+     52
+    ]
+   ],
+   "node_total": 52,
+   "quota": {
+    "expire_date": "2027-08-26",
+    "days_left": 311,
+    "total_gb": 45.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "kuainiao",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 61,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:13Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     53
+    ],
+    [
+     "hysteria",
+     4
+    ],
+    [
+     "ss",
+     4
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "香港",
+     31
+    ],
+    [
+     "新加坡",
+     28
+    ],
+    [
+     "日本",
+     1
+    ],
+    [
+     "美国",
+     1
+    ]
+   ],
+   "node_total": 61,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 300.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "letsvpn",
+   "route": "persistent_scan",
+   "status": "ok",
+   "nodes": 153,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:14Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     153
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "美国",
+     122
+    ],
+    [
+     "未知",
+     13
+    ],
+    [
+     "DE",
+     4
+    ],
+    [
+     "加拿大",
+     3
+    ],
+    [
+     "CN",
+     3
+    ],
+    [
+     "中国",
+     2
+    ]
+   ],
+   "node_total": 153
+  },
+  {
+   "slug": "liangxin",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 56,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:14Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     36
+    ],
+    [
+     "hysteria2",
+     20
+    ]
+   ],
+   "expire": "2027-08-26",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     36
+    ],
+    [
+     "香港",
+     5
+    ],
+    [
+     "新加坡",
+     4
+    ],
+    [
+     "美国",
+     4
+    ],
+    [
+     "GB",
+     3
+    ],
+    [
+     "HK",
+     2
+    ]
+   ],
+   "node_total": 56,
+   "quota": {
+    "expire_date": "2027-08-26",
+    "days_left": 311,
+    "total_gb": 1024.0,
+    "used_gb": 0.03,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "lingdian",
+   "route": "内存扫描/0dcloudCore (rescan)",
+   "status": "ok",
+   "nodes": 126,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:14Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     126
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "中国",
+     54
+    ],
+    [
+     "未知",
+     50
+    ],
+    [
+     "新加坡",
+     22
+    ]
+   ],
+   "node_total": 126
+  },
+  {
+   "slug": "maxiong",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 99,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:14Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "hysteria2",
+     99
+    ]
+   ],
+   "expire": "2026-12-24",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     99
+    ]
+   ],
+   "node_total": 99,
+   "quota": {
+    "expire_date": "2026-12-24",
+    "days_left": 66,
+    "total_gb": 200.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "mitce",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 57,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:14Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     34
+    ],
+    [
+     "ss",
+     18
+    ],
+    [
+     "hysteria2",
+     5
+    ]
+   ],
+   "expire": "2027-08-26",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     27
+    ],
+    [
+     "TW",
+     10
+    ],
+    [
+     "美国",
+     6
+    ],
+    [
+     "HK",
+     5
+    ],
+    [
+     "香港",
+     4
+    ],
+    [
+     "US",
+     2
+    ]
+   ],
+   "node_total": 57,
+   "quota": {
+    "expire_date": "2027-08-26",
+    "days_left": 311,
+    "total_gb": 1000.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "mojie",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 34,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:14Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vmess",
+     27
+    ],
+    [
+     "hysteria2",
+     7
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 20.1,
+   "geo_top": [
+    [
+     "HK",
+     17
+    ],
+    [
+     "未知",
+     13
+    ],
+    [
+     "日本",
+     4
+    ]
+   ],
+   "node_total": 34,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 130.0,
+    "used_gb": 26.14,
+    "used_pct": 20.1,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "muniu",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 1,
+   "pull_zero": true,
+   "age_h": 0.4,
+   "latest_ts": "2026-10-18T12:34:40Z",
+   "latest_local": "10-18 20:34",
+   "snap24": 8,
+   "added_n": 0,
+   "removed_n": 32,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "ss",
+     1
+    ]
+   ],
+   "expire": "2026-07-17",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "美国",
+     1
+    ]
+   ],
+   "node_total": 1,
+   "quota": {
+    "expire_date": "2026-07-17",
+    "days_left": -94,
+    "total_gb": 2.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "muniu-ninja",
+   "route": "../0701-muniu/standalone",
+   "status": "ok",
+   "nodes": 35,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "ninja",
+     35
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     35
+    ]
+   ],
+   "node_total": 35
+  },
+  {
+   "slug": "neko77",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 68,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "mieru",
+     67
+    ],
+    [
+     "vless",
+     1
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     19
+    ],
+    [
+     "美国",
+     12
+    ],
+    [
+     "日本",
+     11
+    ],
+    [
+     "JP",
+     8
+    ],
+    [
+     "新加坡",
+     4
+    ],
+    [
+     "South Korea",
+     3
+    ]
+   ],
+   "node_total": 68,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 50.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "new-yiyuan",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 18,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     14
+    ],
+    [
+     "trojan",
+     4
+    ]
+   ],
+   "expire": "2027-09-14",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "US",
+     10
+    ],
+    [
+     "未知",
+     8
+    ]
+   ],
+   "node_total": 18,
+   "quota": {
+    "expire_date": "2027-09-14",
+    "days_left": 330,
+    "total_gb": 500.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "no626",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 24,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     24
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "US",
+     11
+    ],
+    [
+     "HK",
+     6
+    ],
+    [
+     "SG",
+     2
+    ],
+    [
+     "日本",
+     2
+    ],
+    [
+     "未知",
+     2
+    ],
+    [
+     "JP",
+     1
+    ]
+   ],
+   "node_total": 24,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 400.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "oixcloud",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 47,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     47
+    ]
+   ],
+   "expire": "2026-09-16",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "日本",
+     5
+    ],
+    [
+     "美国",
+     5
+    ],
+    [
+     "新加坡",
+     4
+    ],
+    [
+     "未知",
+     3
+    ],
+    [
+     "香港",
+     2
+    ],
+    [
+     "HK",
+     2
+    ]
+   ],
+   "node_total": 47,
+   "quota": {
+    "expire_date": "2026-09-16",
+    "days_left": -32,
+    "total_gb": 1250.0,
+    "used_gb": 0.5,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "pkq",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 28,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     28
+    ]
+   ],
+   "expire": "2027-02-14",
+   "usage_pct": 14.1,
+   "geo_top": [
+    [
+     "HK",
+     28
+    ]
+   ],
+   "node_total": 28,
+   "quota": {
+    "expire_date": "2027-02-14",
+    "days_left": 118,
+    "total_gb": 600.0,
+    "used_gb": 84.43,
+    "used_pct": 14.1,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "qiangda",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 86,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "ss",
+     60
+    ],
+    [
+     "anytls",
+     22
+    ],
+    [
+     "hysteria2",
+     4
+    ]
+   ],
+   "expire": "2026-09-26",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "HK",
+     78
+    ],
+    [
+     "未知",
+     7
+    ],
+    [
+     "新加坡",
+     1
+    ]
+   ],
+   "node_total": 86,
+   "quota": {
+    "expire_date": "2026-09-26",
+    "days_left": -23,
+    "total_gb": 80.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "qingyunti",
+   "route": "内存扫描/QingyunLiteCore (res",
+   "status": "ok",
+   "nodes": 4,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:15Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 26,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     4
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     4
+    ]
+   ],
+   "node_total": 4
+  },
+  {
+   "slug": "quqiuquan",
+   "route": "persistent_scan",
+   "status": "ok",
+   "nodes": 57,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:17Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     57
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     33
+    ],
+    [
+     "CN",
+     7
+    ],
+    [
+     "加拿大",
+     6
+    ],
+    [
+     "新加坡",
+     3
+    ],
+    [
+     "美国",
+     3
+    ],
+    [
+     "中国",
+     1
+    ]
+   ],
+   "node_total": 57
+  },
+  {
+   "slug": "selom",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 37,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:17Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     36
+    ],
+    [
+     "ss",
+     1
+    ]
+   ],
+   "expire": null,
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "未知",
+     33
+    ],
+    [
+     "HK",
+     4
+    ]
+   ],
+   "node_total": 37,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 1124.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "speedcat",
+   "route": "内存扫描/SpeedCatCore (rescan",
+   "status": "ok",
+   "nodes": 90,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:17Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 25,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     90
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     85
+    ],
+    [
+     "CN",
+     2
+    ],
+    [
+     "美国",
+     1
+    ],
+    [
+     "中国",
+     1
+    ],
+    [
+     "South Korea",
+     1
+    ]
+   ],
+   "node_total": 90
+  },
+  {
+   "slug": "ss-id",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 15,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:18Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "ss",
+     15
+    ]
+   ],
+   "expire": "2027-09-09",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "HK",
+     15
+    ]
+   ],
+   "node_total": 15,
+   "quota": {
+    "expire_date": "2027-09-09",
+    "days_left": 325,
+    "total_gb": 100.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "ssrdog",
+   "route": "内存扫描/SSRDOG (rescan)",
+   "status": "ok",
+   "nodes": 53,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:18Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 25,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     53
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "HK",
+     40
+    ],
+    [
+     "未知",
+     10
+    ],
+    [
+     "香港",
+     3
+    ]
+   ],
+   "node_total": 53
+  },
+  {
+   "slug": "velochron",
+   "route": "velo-api",
+   "status": "ok",
+   "nodes": 33,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:18Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 17,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "aero_v2",
+     33
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "HK",
+     33
+    ]
+   ],
+   "node_total": 33
+  },
+  {
+   "slug": "wandacloud",
+   "route": "内存扫描/wandacloudCore (resc",
+   "status": "ok",
+   "nodes": 7,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:18Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     7
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     4
+    ],
+    [
+     "台湾",
+     2
+    ],
+    [
+     "CN",
+     1
+    ]
+   ],
+   "node_total": 7
+  },
+  {
+   "slug": "wdy",
+   "route": "内存扫描/wandacloudCore (resc",
+   "status": "ok",
+   "nodes": 7,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:19Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 25,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "unknown",
+     7
+    ]
+   ],
+   "expire": null,
+   "usage_pct": null,
+   "geo_top": [
+    [
+     "未知",
+     3
+    ],
+    [
+     "台湾",
+     2
+    ],
+    [
+     "South Korea",
+     1
+    ],
+    [
+     "CN",
+     1
+    ]
+   ],
+   "node_total": 7,
+   "quota": {
+    "expire_date": null,
+    "days_left": null,
+    "total_gb": 275.0,
+    "used_gb": 7.13,
+    "used_pct": 2.6,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "xm999",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 77,
+   "pull_zero": false,
+   "age_h": 0.0,
+   "latest_ts": "2026-10-18T13:00:19Z",
+   "latest_local": "10-18 21:00",
+   "snap24": 9,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "anytls",
+     70
+    ],
+    [
+     "vless",
+     5
+    ],
+    [
+     "vmess",
+     1
+    ]
+   ],
+   "expire": "2026-12-30",
+   "usage_pct": 0.0,
+   "geo_top": [
+    [
+     "AE",
+     44
+    ],
+    [
+     "未知",
+     30
+    ],
+    [
+     "TW",
+     2
+    ],
+    [
+     "加拿大",
+     1
+    ]
+   ],
+   "node_total": 77,
+   "quota": {
+    "expire_date": "2026-12-30",
+    "days_left": 72,
+    "total_gb": 80.0,
+    "used_gb": 0.0,
+    "used_pct": 0.0,
+    "unlimited": false
+   }
+  },
+  {
+   "slug": "yiyuan",
+   "route": "sub-url",
+   "status": "ok",
+   "nodes": 95,
+   "pull_zero": true,
+   "age_h": 0.3,
+   "latest_ts": "2026-10-18T12:41:41Z",
+   "latest_local": "10-18 20:41",
+   "snap24": 6,
+   "added_n": 0,
+   "removed_n": 0,
+   "no_prev": false,
+   "hit_n": 0,
+   "proto_top": [
+    [
+     "vless",
+     54
+    ],
+    [
+     "hysteria2",
+     41
+    ]
+   ],
+   "expire": "2025-10-18",
+   "usage_pct": 100.0,
+   "geo_top": [
+    [
+     "美国",
+     27
+    ],
+    [
+     "未知",
+     8
+    ],
+    [
+     "香港",
+     8
+    ],
+    [
+     "VN",
+     7
+    ],
+    [
+     "HK",
+     6
+    ],
+    [
+     "德国",
+     5
+    ]
+   ],
+   "node_total": 95,
+   "quota": {
+    "expire_date": "2025-10-18",
+    "days_left": -366,
+    "total_gb": 2.0,
+    "used_gb": 2.0,
+    "used_pct": 100.0,
+    "unlimited": false
+   }
+  }
+ ],
+ "alerts": [
+  {
+   "ts": "2026-10-18T12:41:52Z",
+   "ts_local": "10-18 20:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-18T12:36:21Z",
+   "ts_local": "10-18 20:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-18T12:28:25Z",
+   "ts_local": "10-18 20:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-18T09:40:57Z",
+   "ts_local": "10-18 17:40",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-18T09:35:56Z",
+   "ts_local": "10-18 17:35",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 5
+  },
+  {
+   "ts": "2026-10-18T09:30:27Z",
+   "ts_local": "10-18 17:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 4
+  },
+  {
+   "ts": "2026-10-18T09:28:25Z",
+   "ts_local": "10-18 17:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-18T06:36:36Z",
+   "ts_local": "10-18 14:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 8
+  },
+  {
+   "ts": "2026-10-18T06:34:51Z",
+   "ts_local": "10-18 14:34",
+   "airport": "neko77",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-18T06:28:27Z",
+   "ts_local": "10-18 14:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-18T03:41:35Z",
+   "ts_local": "10-18 11:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-18T03:36:32Z",
+   "ts_local": "10-18 11:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-18T03:28:25Z",
+   "ts_local": "10-18 11:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-18T00:41:19Z",
+   "ts_local": "10-18 08:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 3
+  },
+  {
+   "ts": "2026-10-18T00:36:34Z",
+   "ts_local": "10-18 08:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-18T00:30:41Z",
+   "ts_local": "10-18 08:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-18T00:28:24Z",
+   "ts_local": "10-18 08:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T21:43:18Z",
+   "ts_local": "10-18 05:43",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-17T21:35:49Z",
+   "ts_local": "10-18 05:35",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-17T21:28:24Z",
+   "ts_local": "10-18 05:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T18:41:29Z",
+   "ts_local": "10-18 02:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-17T18:36:27Z",
+   "ts_local": "10-18 02:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-17T18:28:25Z",
+   "ts_local": "10-18 02:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T15:44:29Z",
+   "ts_local": "10-17 23:44",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-17T15:28:30Z",
+   "ts_local": "10-17 23:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T12:43:18Z",
+   "ts_local": "10-17 20:43",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-17T12:38:11Z",
+   "ts_local": "10-17 20:38",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 8
+  },
+  {
+   "ts": "2026-10-17T12:28:46Z",
+   "ts_local": "10-17 20:28",
+   "airport": "everlife",
+   "hw_n": 0,
+   "added_n": 4,
+   "removed_n": 4
+  },
+  {
+   "ts": "2026-10-17T12:28:27Z",
+   "ts_local": "10-17 20:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T09:42:31Z",
+   "ts_local": "10-17 17:42",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 3
+  },
+  {
+   "ts": "2026-10-17T09:36:45Z",
+   "ts_local": "10-17 17:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-17T09:28:25Z",
+   "ts_local": "10-17 17:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T06:41:53Z",
+   "ts_local": "10-17 14:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-17T06:36:38Z",
+   "ts_local": "10-17 14:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-17T06:28:25Z",
+   "ts_local": "10-17 14:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T03:40:47Z",
+   "ts_local": "10-17 11:40",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-17T03:36:21Z",
+   "ts_local": "10-17 11:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-17T03:28:26Z",
+   "ts_local": "10-17 11:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-17T00:42:58Z",
+   "ts_local": "10-17 08:42",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-17T00:36:05Z",
+   "ts_local": "10-17 08:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-17T00:30:09Z",
+   "ts_local": "10-17 08:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 3,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-17T00:28:23Z",
+   "ts_local": "10-17 08:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T21:41:27Z",
+   "ts_local": "10-17 05:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 3,
+   "removed_n": 4
+  },
+  {
+   "ts": "2026-10-16T21:35:46Z",
+   "ts_local": "10-17 05:35",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-16T21:28:23Z",
+   "ts_local": "10-17 05:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T18:41:57Z",
+   "ts_local": "10-17 02:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-16T18:38:32Z",
+   "ts_local": "10-17 02:38",
+   "airport": "mitce",
+   "hw_n": 0,
+   "added_n": 5,
+   "removed_n": 5
+  },
+  {
+   "ts": "2026-10-16T18:36:30Z",
+   "ts_local": "10-17 02:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-16T18:30:58Z",
+   "ts_local": "10-17 02:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 3
+  },
+  {
+   "ts": "2026-10-16T18:28:25Z",
+   "ts_local": "10-17 02:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T15:38:37Z",
+   "ts_local": "10-16 23:38",
+   "airport": "mitce",
+   "hw_n": 0,
+   "added_n": 23,
+   "removed_n": 23
+  },
+  {
+   "ts": "2026-10-16T15:36:28Z",
+   "ts_local": "10-16 23:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-16T15:28:27Z",
+   "ts_local": "10-16 23:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T12:41:40Z",
+   "ts_local": "10-16 20:41",
+   "airport": "hsyun",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-16T12:36:38Z",
+   "ts_local": "10-16 20:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-16T12:28:31Z",
+   "ts_local": "10-16 20:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T09:41:55Z",
+   "ts_local": "10-16 17:41",
+   "airport": "hsyun",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-16T09:41:54Z",
+   "ts_local": "10-16 17:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-16T09:36:36Z",
+   "ts_local": "10-16 17:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-16T09:34:55Z",
+   "ts_local": "10-16 17:34",
+   "airport": "neko77",
+   "hw_n": 0,
+   "added_n": 4,
+   "removed_n": 4
+  },
+  {
+   "ts": "2026-10-16T09:28:23Z",
+   "ts_local": "10-16 17:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T06:41:27Z",
+   "ts_local": "10-16 14:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-16T06:36:49Z",
+   "ts_local": "10-16 14:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-16T06:30:52Z",
+   "ts_local": "10-16 14:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 7,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-16T06:28:25Z",
+   "ts_local": "10-16 14:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T03:40:33Z",
+   "ts_local": "10-16 11:40",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-16T03:40:33Z",
+   "ts_local": "10-16 11:40",
+   "airport": "hsyun",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-16T03:35:59Z",
+   "ts_local": "10-16 11:35",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-16T03:34:19Z",
+   "ts_local": "10-16 11:34",
+   "airport": "neko77",
+   "hw_n": 0,
+   "added_n": 21,
+   "removed_n": 21
+  },
+  {
+   "ts": "2026-10-16T03:28:24Z",
+   "ts_local": "10-16 11:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-16T00:40:19Z",
+   "ts_local": "10-16 08:40",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-16T00:35:42Z",
+   "ts_local": "10-16 08:35",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-16T00:30:10Z",
+   "ts_local": "10-16 08:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 9
+  },
+  {
+   "ts": "2026-10-16T00:28:23Z",
+   "ts_local": "10-16 08:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T21:44:23Z",
+   "ts_local": "10-16 05:44",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 8,
+   "removed_n": 4
+  },
+  {
+   "ts": "2026-10-15T21:37:13Z",
+   "ts_local": "10-16 05:37",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-15T21:28:26Z",
+   "ts_local": "10-16 05:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T18:36:39Z",
+   "ts_local": "10-16 02:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 6
+  },
+  {
+   "ts": "2026-10-15T18:28:34Z",
+   "ts_local": "10-16 02:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T15:41:44Z",
+   "ts_local": "10-15 23:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-15T15:38:44Z",
+   "ts_local": "10-15 23:38",
+   "airport": "mitce",
+   "hw_n": 0,
+   "added_n": 12,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T15:36:59Z",
+   "ts_local": "10-15 23:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 8
+  },
+  {
+   "ts": "2026-10-15T15:30:43Z",
+   "ts_local": "10-15 23:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 3,
+   "removed_n": 5
+  },
+  {
+   "ts": "2026-10-15T15:28:34Z",
+   "ts_local": "10-15 23:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T12:41:29Z",
+   "ts_local": "10-15 20:41",
+   "airport": "hsyun",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-15T12:41:27Z",
+   "ts_local": "10-15 20:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-15T12:36:18Z",
+   "ts_local": "10-15 20:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-15T12:28:31Z",
+   "ts_local": "10-15 20:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T09:41:13Z",
+   "ts_local": "10-15 17:41",
+   "airport": "hsyun",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-15T09:41:12Z",
+   "ts_local": "10-15 17:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-15T09:38:05Z",
+   "ts_local": "10-15 17:38",
+   "airport": "mitce",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 5
+  },
+  {
+   "ts": "2026-10-15T09:36:28Z",
+   "ts_local": "10-15 17:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-15T09:28:29Z",
+   "ts_local": "10-15 17:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T06:36:57Z",
+   "ts_local": "10-15 14:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 5
+  },
+  {
+   "ts": "2026-10-15T06:34:43Z",
+   "ts_local": "10-15 14:34",
+   "airport": "neko77",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-15T06:28:26Z",
+   "ts_local": "10-15 14:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T03:41:23Z",
+   "ts_local": "10-15 11:41",
+   "airport": "hsyun",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 3
+  },
+  {
+   "ts": "2026-10-15T03:36:21Z",
+   "ts_local": "10-15 11:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-15T03:34:33Z",
+   "ts_local": "10-15 11:34",
+   "airport": "neko77",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T03:30:15Z",
+   "ts_local": "10-15 11:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 3,
+   "removed_n": 3
+  },
+  {
+   "ts": "2026-10-15T03:28:23Z",
+   "ts_local": "10-15 11:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-15T00:35:40Z",
+   "ts_local": "10-15 08:35",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-15T00:30:11Z",
+   "ts_local": "10-15 08:30",
+   "airport": "feiniao",
+   "hw_n": 0,
+   "added_n": 3,
+   "removed_n": 11
+  },
+  {
+   "ts": "2026-10-15T00:28:23Z",
+   "ts_local": "10-15 08:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-14T21:40:43Z",
+   "ts_local": "10-15 05:40",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-14T21:35:32Z",
+   "ts_local": "10-15 05:35",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-14T21:28:24Z",
+   "ts_local": "10-15 05:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-14T18:38:02Z",
+   "ts_local": "10-15 02:38",
+   "airport": "liangxin",
+   "hw_n": 0,
+   "added_n": 4,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-14T18:37:47Z",
+   "ts_local": "10-15 02:37",
+   "airport": "mitce",
+   "hw_n": 0,
+   "added_n": 5,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-14T18:36:07Z",
+   "ts_local": "10-15 02:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 7
+  },
+  {
+   "ts": "2026-10-14T18:28:24Z",
+   "ts_local": "10-15 02:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-14T15:41:08Z",
+   "ts_local": "10-14 23:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 0
+  },
+  {
+   "ts": "2026-10-14T15:36:31Z",
+   "ts_local": "10-14 23:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 8
+  },
+  {
+   "ts": "2026-10-14T15:28:31Z",
+   "ts_local": "10-14 23:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-14T12:40:42Z",
+   "ts_local": "10-14 20:40",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-14T12:36:04Z",
+   "ts_local": "10-14 20:36",
+   "airport": "wdy",
+   "hw_n": 0,
+   "added_n": 0,
+   "removed_n": 8
+  },
+  {
+   "ts": "2026-10-14T12:28:27Z",
+   "ts_local": "10-14 20:28",
+   "airport": "chaoyue",
+   "hw_n": 0,
+   "added_n": 2,
+   "removed_n": 2
+  },
+  {
+   "ts": "2026-10-14T09:41:22Z",
+   "ts_local": "10-14 17:41",
+   "airport": "hsyun",
+   "hw_n": 0,
+   "added_n": 14,
+   "removed_n": 14
+  },
+  {
+   "ts": "2026-10-14T09:41:21Z",
+   "ts_local": "10-14 17:41",
+   "airport": "jinglingxueyuan",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 1
+  },
+  {
+   "ts": "2026-10-14T09:37:57Z",
+   "ts_local": "10-14 17:37",
+   "airport": "feiniao_1",
+   "hw_n": 0,
+   "added_n": 1,
+   "removed_n": 1
+  }
+ ],
+ "hw_ledger": [
+  {
+   "airport": "quqiuquan",
+   "rule": "rdap_name=hwcsnet",
+   "evidence": "HWCSNET/Liu Liqun",
+   "count": 2,
+   "last_ts_local": "09-16 23:35"
+  },
+  {
+   "airport": "quqiuquan",
+   "rule": "rdap_name=huawei",
+   "evidence": "Huawei Cloud Service data center/Huawei Software Technologies Ltd.",
+   "count": 1,
+   "last_ts_local": "09-16 17:07"
+  },
+  {
+   "airport": "quqiuquan",
+   "rule": "asn=AS55990",
+   "evidence": "AS55990 Huawei Cloud Service data center",
+   "count": 1,
+   "last_ts_local": "09-16 17:07"
+  },
+  {
+   "airport": "quqiuquan",
+   "rule": "rdap_name=huawei",
+   "evidence": "Huawei Cloud Service data center/Huawei Cloud Service",
+   "count": 1,
+   "last_ts_local": "09-16 17:07"
+  },
+  {
+   "airport": "speedcat",
+   "rule": "rdap_name=huawei",
+   "evidence": "Huawei Cloud Service data center/Huawei Public Cloud Service",
+   "count": 2,
+   "last_ts_local": "08-27 16:24"
+  },
+  {
+   "airport": "speedcat",
+   "rule": "asn=AS55990",
+   "evidence": "AS55990 Huawei Cloud Service data center",
+   "count": 2,
+   "last_ts_local": "08-27 16:24"
+  },
+  {
+   "airport": "chaoyue",
+   "rule": "asn=AS138915",
+   "evidence": "AS138915 Kaopu Cloud HK Limited",
+   "count": 1,
+   "last_ts_local": "07-27 15:34"
+  },
+  {
+   "airport": "muniu-ninja",
+   "rule": "rdap_name=huawei",
+   "evidence": "Huawei-Cloud-Hongkong/HUAWEI INTERNATIONAL PTE LTD administrator",
+   "count": 1,
+   "last_ts_local": "07-14 15:20"
+  },
+  {
+   "airport": "muniu",
+   "rule": "rdap_name=huawei",
+   "evidence": "Huawei-Cloud-Hongkong/HUAWEI INTERNATIONAL PTE LTD administrator",
+   "count": 2,
+   "last_ts_local": "07-14 15:07"
+  }
+ ],
+ "hw_current": [],
+ "runlog": {
+  "start_local": "10-18 17:28",
+  "done_local": "10-18 17:59",
+  "duration_min": 31.2,
+  "final_aps": 44,
+  "final_nodes": 2560,
+  "ok_n": 30,
+  "ok_nodes": 1304,
+  "ok_top": [
+   {
+    "slug": "ayucloud",
+    "kind": "manual-url",
+    "n": 141
+   },
+   {
+    "slug": "cherryvpn",
+    "kind": "manual-url",
+    "n": 123
+   },
+   {
+    "slug": "bygcloud",
+    "kind": "manual-url",
+    "n": 104
+   },
+   {
+    "slug": "maxiong",
+    "kind": "manual-url",
+    "n": 99
+   },
+   {
+    "slug": "flybar",
+    "kind": "manual-url",
+    "n": 88
+   },
+   {
+    "slug": "neko77",
+    "kind": "manual-url",
+    "n": 68
+   },
+   {
+    "slug": "flyint",
+    "kind": "manual-url",
+    "n": 59
+   },
+   {
+    "slug": "mitce",
+    "kind": "manual-url",
+    "n": 57
+   },
+   {
+    "slug": "liangxin",
+    "kind": "manual-url",
+    "n": 56
+   },
+   {
+    "slug": "ktm",
+    "kind": "server-fetch",
+    "n": 52
+   },
+   {
+    "slug": "jinglingxueyuan",
+    "kind": "manual-url",
+    "n": 49
+   },
+   {
+    "slug": "selom",
+    "kind": "v2board",
+    "n": 37
+   },
+   {
+    "slug": "mojie",
+    "kind": "manual-url",
+    "n": 34
+   },
+   {
+    "slug": "feiniao_1",
+    "kind": "server-fetch",
+    "n": 34
+   },
+   {
+    "slug": "velochron",
+    "kind": "velo-api",
+    "n": 33
+   },
+   {
+    "slug": "applegame",
+    "kind": "manual-url",
+    "n": 30
+   },
+   {
+    "slug": "dualnet",
+    "kind": "server-fetch",
+    "n": 29
+   },
+   {
+    "slug": "feiniao",
+    "kind": "server-fetch",
+    "n": 29
+   },
+   {
+    "slug": "pkq",
+    "kind": "manual-url",
+    "n": 28
+   },
+   {
+    "slug": "cloudnx",
+    "kind": "manual-url",
+    "n": 27
+   },
+   {
+    "slug": "feiniao_2",
+    "kind": "xlcc",
+    "n": 25
+   },
+   {
+    "slug": "no626",
+    "kind": "manual-url",
+    "n": 24
+   },
+   {
+    "slug": "everlife",
+    "kind": "manual-url",
+    "n": 23
+   },
+   {
+    "slug": "hsyun",
+    "kind": "server-fetch",
+    "n": 23
+   },
+   {
+    "slug": "new-yiyuan",
+    "kind": "manual-url",
+    "n": 18
+   },
+   {
+    "slug": "chaoyue",
+    "kind": "manual-url",
+    "n": 14
+   },
+   {
+    "slug": "jsqpro",
+    "kind": "v2board",
+    "n": 0
+   },
+   {
+    "slug": "muniu",
+    "kind": "manual-url",
+    "n": 0
+   },
+   {
+    "slug": "wdy",
+    "kind": "v2board",
+    "n": 0
+   },
+   {
+    "slug": "yiyuan",
+    "kind": "manual-url",
+    "n": 0
+   }
+  ],
+  "skipped": [],
+  "zero": [
+   "jsqpro",
+   "muniu",
+   "wdy",
+   "yiyuan"
+  ],
+  "auth": [
+   "bywave",
+   "fastlink",
+   "kuainiao",
+   "lingdian",
+   "oixcloud",
+   "qiangda",
+   "speedcat",
+   "xm999",
+   "hhy",
+   "ssrdog",
+   "dovex",
+   "ss-id"
+  ],
+  "inflight": true,
+  "note": "此后检测到新一轮开始但无完成标记（进行中或被中断）：10-18 20:28"
+ }
+}</script>
+
+<script>
+'use strict';
+/* ================= 数据装载 =================
+   优先级：内嵌快照（立即渲染）→ postMessage 桥（插件模式，parent 代取
+   /airmon-sidebar/api/data 实时过滤结果）→ fetch('./data.json')（http 静态托管模式）。 */
+const EMBED = JSON.parse(document.getElementById('airmon-data').textContent);
+let DATA = EMBED, SRC = 'embedded';
+
+function loadData(fast) {
+  if (!fast) paint(DATA, SRC);                       // 先按现有数据重绘（按钮反馈）
+  let settled = false;
+  const reqId = 'r' + Date.now();
+  const onMsg = (e) => {
+    const d = e.data;
+    if (!d || d.type !== 'airmon:data' || d.id !== reqId || !d.payload) return;
+    if (e.source !== window.parent) return;      // 只接受父窗口的应答
+    settled = true; window.removeEventListener('message', onMsg);
+    DATA = d.payload; SRC = 'live'; paint(DATA, SRC);
+  };
+  window.addEventListener('message', onMsg);
+  try { window.parent.postMessage({ type: 'airmon:get', id: reqId }, '*'); } catch (_) {}
+  setTimeout(() => {
+    window.removeEventListener('message', onMsg);
+    if (settled) return;
+    if (location.protocol.indexOf('http') === 0) {
+      fetch('data.json', { cache: 'no-cache' })
+        .then(r => r.ok ? r.json() : null)
+        .then(j => { if (j) { DATA = j; SRC = 'fetch'; paint(DATA, SRC); } })
+        .catch(() => {});
+    }
+  }, 1100);
+}
+document.getElementById('refresh').addEventListener('click', () => loadData(false));
+setInterval(() => { if (SRC === 'live') loadData(false); }, 10 * 60 * 1000);
+
+/* ================= 渲染 ================= */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const state = { tab: 'ov', q: '', f: 'all', sort: 'def' };
+
+function daysChip(a) {
+  const q = a.quota; if (!q) return '';
+  if (q.unlimited) return '<span class="tag">不限量</span>';
+  const d = q.days_left;
+  if (d == null) return '<span class="tag">长期</span>';
+  if (d < 0) return `<span class="tag er">已过期 ${-d} 天</span>`;
+  if (d <= 30) return `<span class="tag wn">${d} 天到期</span>`;
+  return `<span class="tag">${d} 天</span>`;
+}
+function usageHtml(a) {
+  const q = a.quota; if (!q || q.used_pct == null || q.total_gb == null) return '';
+  const p = Math.max(0, Math.min(100, q.used_pct));
+  const cls = p > 90 ? 'e' : (p > 70 ? 'w' : '');
+  const used = q.used_gb == null ? '—' : (+q.used_gb).toFixed(1);
+  const tot = q.unlimited ? '∞' : (+q.total_gb).toFixed(0);
+  return `<div class="u-row"><span>用量 ${esc(used)}/${esc(tot)} GB</span><span>${p.toFixed(1)}%</span></div>
+    <div class="bar"><i class="${cls}" style="width:${p}%"></i></div>`;
+}
+function cardHtml(a) {
+  const st = a.status === 'ok' ? '' : (a.status === 'stale' ? 'st-err' : 'st-warn');
+  const tags = [];
+  if (a.added_n > 0) tags.push(`<span class="tag up">+${a.added_n}</span>`);
+  if (a.removed_n > 0) tags.push(`<span class="tag dn">−${a.removed_n}</span>`);
+  if (a.pull_zero) tags.push('<span class="tag wn">0 拉取</span>');
+  if (a.status === 'stale') tags.push('<span class="tag er">数据滞后</span>');
+  if (a.hit_n > 0) tags.push(`<span class="tag acc">华为×${a.hit_n}</span>`);
+  (a.proto_top || []).slice(0, 3).forEach(p =>
+    tags.push(`<span class="tag" title="协议">${esc(p[0])} ${p[1]}</span>`));
+  (a.geo_top || []).slice(0, 3).forEach(g =>
+    tags.push(`<span class="tag" title="地区">${esc(g[0])} ${g[1]}</span>`));
+  tags.push(daysChip(a));
+  const age = a.age_h == null ? '' : (a.age_h < 1 ? `${Math.round(a.age_h * 60)} 分钟前` : `${(+a.age_h).toFixed(1)} 小时前`);
+  return `<div class="card ${st}">
+    <div class="c-h"><span class="c-slug">${esc(a.slug)}</span>
+      <span class="c-badge">${a.nodes} 节点</span></div>
+    <div class="c-meta"><span>更新 ${esc(a.latest_local || '—')}</span><span>${esc(age)}</span></div>
+    ${usageHtml(a)}
+    <div class="tags">${tags.join('')}</div></div>`;
+}
+function paintKpi(d) {
+  const t = d.totals || {};
+  const k = [
+    ['机场', t.airports, ''],
+    ['节点', t.nodes, ''],
+    ['0 拉取', (t.zero_pull || []).length, (t.zero_pull || []).length ? 'warn' : ''],
+    ['已过期', (t.expired || []).length, (t.expired || []).length ? 'err' : ''],
+    ['30 天内到期', (t.expiring30 || []).length, (t.expiring30 || []).length ? 'warn' : ''],
+    ['华为命中', t.hits, t.hits ? 'err' : ''],
+    ['数据滞后', (t.stale || []).length, (t.stale || []).length ? 'err' : ''],
+  ];
+  $('kpis').innerHTML = k.map(x =>
+    `<div class="kpi ${x[2]}"><b>${x[1] == null ? '—' : x[1]}</b><small>${x[0]}</small></div>`).join('');
+}
+function paintOverview(d) {
+  let list = (d.airports || []).slice();
+  const q = state.q.trim().toLowerCase();
+  if (q) list = list.filter(a => a.slug.toLowerCase().includes(q));
+  const t = d.totals || {};
+  const inSet = (s, arr) => (arr || []).includes(s);
+  if (state.f === 'delta') list = list.filter(a => a.added_n > 0 || a.removed_n > 0);
+  if (state.f === 'zero') list = list.filter(a => a.pull_zero || inSet(a.slug, t.zero_pull));
+  if (state.f === 'expiring') list = list.filter(a =>
+    a.quota && a.quota.days_left != null && a.quota.days_left <= 30);
+  if (state.f === 'hw') list = list.filter(a => a.hit_n > 0);
+  if (state.sort === 'nodes') list.sort((a, b) => b.nodes - a.nodes);
+  if (state.sort === 'expire') list.sort((a, b) =>
+    (a.quota && a.quota.days_left != null ? a.quota.days_left : 1e9) -
+    (b.quota && b.quota.days_left != null ? b.quota.days_left : 1e9));
+  if (state.sort === 'usage') list.sort((a, b) =>
+    ((b.quota && b.quota.used_pct) || 0) - ((a.quota && a.quota.used_pct) || 0));
+  $('grid').innerHTML = list.map(cardHtml).join('');
+  $('grid-empty').hidden = list.length > 0;
+}
+function paintExpire(d) {
+  const rows = (d.airports || []).filter(a => a.quota).sort((a, b) =>
+    (a.quota.days_left == null ? 1e9 : a.quota.days_left) -
+    (b.quota.days_left == null ? 1e9 : b.quota.days_left));
+  const cell = a => {
+    const q = a.quota, d = q.days_left;
+    let badge = '<span class="muted">长期</span>';
+    if (q.unlimited) badge = '<span class="muted">不限量</span>';
+    else if (d != null && d < 0) badge = `<span class="tag er">过期 ${-d} 天</span>`;
+    else if (d != null && d <= 30) badge = `<span class="tag wn">${d} 天</span>`;
+    else if (d != null) badge = `<span class="muted">${d} 天</span>`;
+    const p = Math.max(0, Math.min(100, q.used_pct || 0));
+    const cls = p > 90 ? 'e' : (p > 70 ? 'w' : '');
+    return `<tr><td style="font-weight:600">${esc(a.slug)}</td>
+      <td class="muted">${esc(q.expire_date || '—')}</td><td>${badge}</td>
+      <td class="num"><span class="mini-bar"><i class="${cls}" style="width:${p}%"></i></span><span class="muted">${p.toFixed(0)}%</span></td>
+      <td class="num muted">${(+q.used_gb || 0).toFixed(1)} / ${q.unlimited ? '∞' : (+q.total_gb || 0).toFixed(0)} GB</td></tr>`;
+  };
+  $('exp-t').innerHTML = '<tr><th>机场</th><th>到期日</th><th>剩余</th><th>用量</th><th>已用/总量</th></tr>'
+    + rows.map(cell).join('');
+  $('n-ex').textContent = rows.length ? String(rows.length) : '';
+}
+function paintAlerts(d) {
+  const list = (d.alerts || []).slice(0, 60);
+  $('al-list').innerHTML = list.length ? list.map(a =>
+    `<div class="row"><span class="k">${esc(a.ts_local || '')}</span>
+     <span class="v" style="font-weight:600;color:var(--tx)">${esc(a.airport)}</span>
+     ${a.added_n ? `<span class="tag up">+${a.added_n}</span>` : ''}
+     ${a.removed_n ? `<span class="tag dn">−${a.removed_n}</span>` : ''}
+     ${a.hw_n ? `<span class="tag acc">华为×${a.hw_n}</span>` : ''}
+     <span class="r muted">HW ${a.hw_n || 0}</span></div>`).join('')
+    : '<div class="empty">暂无告警</div>';
+  $('n-al').textContent = (d.alerts || []).length ? String(d.alerts.length) : '';
+}
+function paintHw(d) {
+  const cur = d.hw_current || [];
+  $('hw-cur').innerHTML = cur.length ? cur.map(f =>
+    `<div class="row"><span class="k">${esc(f.airport)}</span>
+     <span class="v">${esc(f.rule || '')}</span><span class="r muted">×${f.count || 1}</span></div>`).join('')
+    : '<div class="empty">当前无命中 ✓</div>';
+  const led = d.hw_ledger || [];
+  $('hw-ledger').innerHTML = led.length ? led.map(h =>
+    `<div class="row"><span class="k">${esc(h.airport)}</span>
+     <span class="v">${esc(h.rule)}<br><span class="muted" style="font-size:11px">${esc(h.evidence || '')}</span></span>
+     <span class="r muted">×${h.count} · ${esc(h.last_ts_local || '')}</span></div>`).join('')
+    : '<div class="empty">台账为空</div>';
+  $('n-hw').textContent = (led.length || cur.length) ? String(led.length) : '';
+}
+function paintRun(d) {
+  const r = d.runlog || {};
+  $('rn-inflight').innerHTML = r.inflight
+    ? '<div class="banner">新一轮检测进行中或上次未正常收尾（见 runlog.note）</div>' : '';
+  const chip = (arr, cls) => (arr || []).map(s => `<span class="tag ${cls || ''}">${esc(s)}</span>`).join('') || '<span class="muted">无</span>';
+  $('rn-box').innerHTML = `
+    <div class="row"><span class="k">时间</span><span class="v">${esc(r.start_local || '—')} → ${esc(r.done_local || '—')}（${r.duration_min == null ? '—' : (+r.duration_min).toFixed(1)} 分钟）</span></div>
+    <div class="row"><span class="k">规模</span><span class="v">机场 ${r.final_aps ?? '—'} · 节点 ${r.final_nodes ?? '—'}</span></div>
+    <div class="row"><span class="k">成功</span><span class="v">${r.ok_n ?? '—'} 个源 · ${r.ok_nodes ?? '—'} 节点</span></div>
+    <div class="row"><span class="k">0 拉取</span><span class="v tags">${chip(r.zero, 'wn')}</span></div>
+    <div class="row"><span class="k">需认证</span><span class="v tags">${chip(r.auth)}</span></div>
+    <div class="row"><span class="k">备注</span><span class="v muted" style="font-size:11px">${esc(r.note || '—')}</span></div>`;
+}
+function paint(d, src) {
+  paintKpi(d);
+  paintOverview(d); paintExpire(d); paintAlerts(d); paintHw(d); paintRun(d);
+  $('hd-base').textContent = '基准 ' + (d.base_local || '');
+  $('ft-gen').textContent = '生成于 ' + (d.generated_at || d.base_local || '—');
+  const s = $('ft-src');
+  s.textContent = src === 'live' ? '实时' : (src === 'fetch' ? 'data.json' : '内嵌快照');
+  s.className = 'src ' + (src === 'live' ? 'live' : (src === 'fetch' ? '' : 'snap'));
+  const t = d.totals || {};
+  const bad = (t.zero_pull || []).length || (t.expired || []).length || (t.stale || []).length || t.hits;
+  $('hd-dot').className = 'dot' + (bad ? (t.hits || (t.stale || []).length ? ' err' : ' warn') : '');
+  paintOverview(d);
+}
+
+/* ================= 交互 ================= */
+$('tabs').addEventListener('click', e => {
+  const b = e.target.closest('.tab'); if (!b) return;
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x === b));
+  state.tab = b.dataset.tab;
+  ['ov', 'ex', 'al', 'hw', 'rn'].forEach(k =>
+    $('tab-' + k).hidden = k !== state.tab);
+});
+$('q').addEventListener('input', e => { state.q = e.target.value; paintOverview(DATA); });
+$('sort').addEventListener('change', e => { state.sort = e.target.value; paintOverview(DATA); });
+$('filters').addEventListener('click', e => {
+  const b = e.target.closest('.fchip'); if (!b) return;
+  document.querySelectorAll('.fchip').forEach(x => x.classList.toggle('on', x === b));
+  state.f = b.dataset.f; paintOverview(DATA);
+});
+
+/* 启动：先内嵌快照立即渲染，再尝试升级到实时数据 */
+paint(EMBED, 'embedded');
+loadData(true);
+</script>
+</body>
+</html>

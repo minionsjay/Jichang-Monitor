@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Airport Monitor",
+    "description": "Sidebar panel for airport node monitoring: KPIs, airport cards, plan expiry, alert feed and Huawei hits"
+  },
+  "panel.title": "Airport Monitor"
+}
