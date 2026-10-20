@@ -23,14 +23,16 @@ from pathlib import Path
 _HERE = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(os.environ.get("AIRMON_DATA", str(_HERE / "data")))
 def _find_src() -> str:
-    """TEMP 会被 DSH 会话改写，依次回退到 Windows 真实 TEMP（MEMORY 教训）。"""
-    for p in (os.path.join(tempfile.gettempdir(), "jctj_knowledge_raw.json"),
+    """优先 repo 内置源（跨机可重建），回退 Windows 真实 TEMP（DSH 会话 TEMP 会被改写）。"""
+    here = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    for p in (os.path.join(here, "data_src", "jctj_knowledge_raw.json"),
+              os.path.join(tempfile.gettempdir(), "jctj_knowledge_raw.json"),
               os.path.join(os.environ.get("SystemRoot", r"C:\Windows"),
                            "Temp", "jctj_knowledge_raw.json"),
               os.path.expandvars(r"%LOCALAPPDATA%\Temp\jctj_knowledge_raw.json")):
         if p and os.path.isfile(p):
             return p
-    return os.path.join(tempfile.gettempdir(), "jctj_knowledge_raw.json")
+    return os.path.join(here, "data_src", "jctj_knowledge_raw.json")
 
 
 DEFAULT_SRC = _find_src()
