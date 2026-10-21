@@ -23,6 +23,7 @@ import argparse
 import sys
 
 import csv
+import glob
 import os
 
 from airmon import store
@@ -920,6 +921,16 @@ def cmd_all(args):
     from collections import Counter
     started_iso = store.now_iso()
     t0 = _time.time()
+    # 起手即刻写 running 心跳：若本轮崩溃/被杀，last_run.json 至少留下 status=running 的指纹，
+    # 不会再出现「任务每 3h 触发、面板数据停在几天前、却无任何失败痕迹」的假绿。
+    _ledger = os.path.join(store.DATA_DIR, "last_run.json")
+    try:
+        with open(_ledger, "w", encoding="utf-8") as _f:
+            json.dump({"status": "running", "started_at": started_iso,
+                       "pid": os.getpid(), "step": "1/5 拉取"}, _f,
+                      ensure_ascii=False, indent=2)
+    except Exception:
+        pass
     creds = load_credentials()
     detector = Detector()
     total = len(creds)
@@ -1051,6 +1062,7 @@ def cmd_all(args):
         print(f"[陈旧度巡检失败，忽略] {_e}")
     try:
         last = {
+            "status": "ok",
             "started_at": started_iso,
             "ended_at": store.now_iso(),
             "duration_s": round(_time.time() - t0, 1),
@@ -1483,7 +1495,24 @@ def main():
     s.set_defaults(func=cmd_set_client)
 
     args = p.parse_args()
-    rc = args.func(args)
+    try:
+        rc = args.func(args)
+    except Exception:
+        import traceback as _tb
+        _err = _tb.format_exc()
+        print(_err, file=sys.stderr)
+        if getattr(args, "func", None) is cmd_all:
+            try:
+                import json as _json
+                with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                       "data", "last_run.json"), "w", encoding="utf-8") as _f:
+                    _json.dump({"status": "crashed", "ended_at": store.now_iso(),
+                                "error": _err.strip().splitlines()[-1][:300],
+                                "traceback": _err[-2000:]}, _f,
+                               ensure_ascii=False, indent=2)
+            except Exception:
+                pass
+        sys.exit(1)
     if isinstance(rc, int) and rc:
         sys.exit(rc)
 
