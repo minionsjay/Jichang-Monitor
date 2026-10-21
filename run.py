@@ -906,6 +906,49 @@ def _latest_snap_name(slug: str):
     return os.path.basename(snaps[-1]) if snaps else None
 
 
+def _pid_alive(pid: int) -> bool:
+    """Windows 安全探活：绝不能用 os.kill(pid, 0)（Windows 语义=TerminateProcess，会把对方杀掉）。"""
+    try:
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        h = k32.OpenProcess(0x1000, False, int(pid))  # PROCESS_QUERY_LIMITED_INFORMATION
+        if not h:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            if k32.GetExitCodeProcess(h, ctypes.byref(code)):
+                return code.value == 259  # STILL_ACTIVE
+            return True
+        finally:
+            k32.CloseHandle(h)
+    except Exception:
+        return False
+
+
+def _acquire_run_lock(lock_path: str, started_iso: str):
+    """单实例锁：调度器每 3h 的 all 与手动/面板触发不得并发（store.save 非原子，双写互相踩）。
+    返回 True=拿到锁，False=已有实例在跑（本轮应直接退出）。"""
+    import json as _json
+    if os.path.exists(lock_path):
+        prev = {}
+        try:
+            with open(lock_path, encoding="utf-8") as f:
+                prev = _json.load(f)
+        except Exception:
+            prev = {}
+        pid = prev.get("pid")
+        if pid and _pid_alive(pid):
+            print(f"[跳过] 已有 run.py all 在跑（pid={pid}，起于 {prev.get('at')}）→ 本轮退出，避免并发写坏快照")
+            return False
+        print(f"[提示] 清理残留锁（pid={pid} 已不在）")
+    try:
+        with open(lock_path, "w", encoding="utf-8") as f:
+            _json.dump({"pid": os.getpid(), "at": started_iso}, f)
+    except Exception as e:
+        print(f"[锁写入失败，忽略] {e}")
+    return True
+
+
 def _pull_one_safe(slug: str, cred: dict, detector: Detector, box: dict):
     """线程目标包装：异常落 box 而不是被 threading 吞掉（统计失真修复的一半）。"""
     try:
@@ -931,6 +974,9 @@ def cmd_all(args):
                       ensure_ascii=False, indent=2)
     except Exception:
         pass
+    _lock = os.path.join(store.DATA_DIR, "run.lock")
+    if not _acquire_run_lock(_lock, started_iso):
+        return 0
     creds = load_credentials()
     detector = Detector()
     total = len(creds)
@@ -1094,6 +1140,20 @@ def cmd_all(args):
         _idc_main([])
     except Exception as _e:
         print(f"[基建画像失败，忽略] {_e}")
+
+    # 5.10/5 节点分文件导出（每机场一个 Clash 订阅 + base64 订阅体；best-effort）
+    # 产物在 nodes/（含真实凭据，已在 .gitignore），随本轮快照一起刷新
+    try:
+        from airmon.nodeset import export as _nodeset_export
+        _nt = _nodeset_export()["totals"]
+        print(f"节点分文件 → nodes\\（{_nt['airports']} 机场 / {_nt['nodes']} 节点，"
+              f"可导出 {_nt['exported']} 个 → {_nt['airports_exported']} 台机场）")
+    except Exception as _e:
+        print(f"[节点分文件导出失败，忽略] {_e}")
+    try:
+        os.remove(_lock)
+    except Exception:
+        pass
     return 1 if (fail or stale) else 0
 
 def cmd_export(args):

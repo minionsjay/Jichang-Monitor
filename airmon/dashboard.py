@@ -393,6 +393,23 @@ def _bat_dt(m: re.Match) -> datetime | None:
         return None
 
 
+def _scrub_log(seg: str) -> str:
+    """run.log 片段脱敏：日志里会打印订阅 URL（含 token）与异常文本。
+
+    window 是把原始日志片段塞进页面，必须逐行过滤后才允许出页：
+    先抹 URL，仍命中敏感规则的整行只保留行首标识。
+    """
+    keep = []
+    for line in seg.splitlines():
+        if any(rx.search(line) for _, rx in SANITIZE_RULES):
+            line = re.sub(r"https?://\S+", "＜URL已隐藏＞", line)
+            if any(rx.search(line) for _, rx in SANITIZE_RULES):
+                head = re.split(r"[:：]", line.strip(), 1)[0][:40]
+                line = (head + " …（该行含凭据，已隐藏）") if head else "（该行含凭据，已隐藏）"
+        keep.append(line)
+    return "\n".join(keep)
+
+
 def parse_run_log(tail: int = 2_000_000) -> dict | None:
     if not RUN_LOG.exists():
         return None
@@ -421,7 +438,7 @@ def parse_run_log(tail: int = 2_000_000) -> dict | None:
             "done_local": None,
             "inflight": True,
             "note": "检测到开始锚点但未见完成标记（进行中或被中断），以下为该轮片段",
-            "window": text[s.start():],
+            "window": _scrub_log(text[s.start():]),
         }
     inflight = any(x.start() > (done_m.start() if done_m else 0) for x in starts)
 

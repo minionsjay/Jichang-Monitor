@@ -1,6 +1,8 @@
 # Sensitive data - never commit
 credentials.yaml
 data/
+# airmon.nodeset 导出的节点文件（含真实 server/password/uuid，绝不入库）
+nodes/
 *.log
 
 # Python
@@ -43,3 +45,6 @@ docs/08-原型/plugin/data.json
 *_sub.yaml
 velo_*
 seeds.txt
+
+# 版本探测临时页
+.tmp_ver/
