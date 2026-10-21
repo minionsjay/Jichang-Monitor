@@ -201,6 +201,7 @@ def collect_airport(slug: str, base_dt: datetime, stale_hours: float) -> dict | 
     latest_file_ts = next((t for t in reversed(fname_ts) if t), None)
 
     latest = best = prev = None
+    best_ts = None
     for i in range(len(snaps) - 1, -1, -1):
         s = _load_valid(snaps[i])
         if s is None:
@@ -210,6 +211,7 @@ def collect_airport(slug: str, base_dt: datetime, stale_hours: float) -> dict | 
         if s.get("nodes"):
             if best is None:
                 best = s
+                best_ts = fname_ts[i]
             elif prev is None:
                 prev = s
                 break
@@ -217,7 +219,10 @@ def collect_airport(slug: str, base_dt: datetime, stale_hours: float) -> dict | 
     if latest is None and best is None:
         return None
 
-    latest_ts = latest_file_ts or _fname_ts(snaps[-1])
+    # 陈旧度以「最近一份真的有节点的快照」为准。
+    # 旧逻辑用最新文件（不管有没有节点），于是本浏览器轮 0 节点快照、以及 rescan 用旧数据
+    # 重写出的伪新快照，都会把一家其实断流几天的机场算成「刚更新过」（false green）。
+    latest_ts = best_ts or latest_file_ts or _fname_ts(snaps[-1])
     age_h = None
     if latest_ts is not None:
         age_h = max(0.0, round((base_dt - latest_ts).total_seconds() / 3600, 1))
@@ -401,6 +406,9 @@ def _scrub_log(seg: str) -> str:
     """
     keep = []
     for line in seg.splitlines():
+        # 日志里有「未在 credentials.yaml 指定 panel 或 sub_url」这类**字段名**提示，
+        # 是配置结构说明、不含任何凭据；先归一成中文，免得它触发下面对凭据关键字的拦截。
+        line = line.replace("sub_url", "订阅地址").replace("aead_key", "密钥字段")
         if any(rx.search(line) for _, rx in SANITIZE_RULES):
             line = re.sub(r"https?://\S+", "＜URL已隐藏＞", line)
             if any(rx.search(line) for _, rx in SANITIZE_RULES):

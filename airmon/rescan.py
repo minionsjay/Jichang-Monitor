@@ -31,12 +31,16 @@ def rescan_airport(slug: str, detector: Detector, gentle: float = 0.3) -> Snapsh
              for n in nodes_data]
 
     # 汇总需要（重新）RDAP 的 IP
+    # 同时记录"这一轮到底有没有真的补到东西"，没有就不写新快照（见文件末尾说明）
     todo = set()
+    newly_resolved = 0
     for n in nodes:
         ips = n.raw.get("_resolved_ips")
         if not ips:                       # 之前没解析到，补解析一次
             ips = resolve(n.server)
             n.raw["_resolved_ips"] = ips
+            if ips:
+                newly_resolved += 1
         rd = n.raw.get("_rdap") or {}
         for ip in ips:
             if _needs_rdap(rd.get(ip)):
@@ -53,6 +57,7 @@ def rescan_airport(slug: str, detector: Detector, gentle: float = 0.3) -> Snapsh
 
     # 回填 + 重跑检测
     rdap_map = {}
+    newly_fixed = 0
     for n in nodes:
         rd = dict(n.raw.get("_rdap") or {})
         for ip in n.raw.get("_resolved_ips", []):
@@ -61,11 +66,31 @@ def rescan_airport(slug: str, detector: Detector, gentle: float = 0.3) -> Snapsh
             if rd.get(ip):
                 rdap_map[ip] = rd[ip]
         n.raw["_rdap"] = rd
+    for ip, info in fixed.items():
+        if info and not _needs_rdap(info):
+            newly_fixed += 1
 
     findings = detector.scan_nodes(slug, nodes, rdap_map)
-    snap = Snapshot(airport=slug, ts=store.now_iso(),
-                    source=prev.get("source", "") + " (rescan)",
-                    nodes=nodes, findings=findings, meta=prev.get("meta", {}))
+
+    # ---- 有实际进展才写新快照 ----
+    # 历史行为：不管有没有补到东西，每轮都 save 一份 ts=now 的新快照。
+    # 后果：本轮拉取失败的机场，rescan 用旧数据"重写"了一份带当前时间戳的快照，
+    # 使"最新快照很新鲜"这个陈旧度判据把它们判成健康（false green），
+    # 同时每轮白增 40 份重复快照（data/ 已 2.2GB）。
+    # 现在：只有真的补解析到 IP / 真的补到 RDAP 归属 / 检测结果变了，才落盘。
+    prev_findings = prev.get("findings", [])
+    if not (newly_resolved or newly_fixed) and findings == prev_findings:
+        return None
+
+    meta = dict(prev.get("meta", {}))
+    meta["rescanned_at"] = store.now_iso()
+    # 关键：rescan 是"给同一份采集结果补 RDAP"，不是一次新的采集。
+    # 因此沿用原始快照的 ts（文件按 ts 命名 → 原地覆盖），不把采集时间刷成现在。
+    # 否则陈旧度判据会把好几天前抓的数据当成"刚更新"。
+    src = str(prev.get("source", "")).replace(" (rescan)", "").strip()
+    snap = Snapshot(airport=slug, ts=prev.get("ts") or store.now_iso(),
+                    source=(src + " (rescan)").strip(),
+                    nodes=nodes, findings=findings, meta=meta)
     return snap
 
 
