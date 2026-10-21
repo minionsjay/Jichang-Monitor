@@ -333,28 +333,93 @@ def _drop(out_dir: str, slug: str) -> None:
             pass
 
 
+def _client_nodes(slug: str) -> list[dict]:
+    """读 data/client_nodes/<slug>.json（客户端内存捞到的**完整**节点），转成快照节点形状。
+
+    背景：`run.py all` 的 scan-memory 每轮都会用「只有 server:port、protocol=unknown」
+    的快照覆盖同一机场的最新快照。若只看最新快照，客户端机场的完整节点会被瞬间吃掉
+    （ssrdog 实测发生过：36 个 AnyTLS 变 0 个可导出）。所以导出时把 client_nodes
+    作为一等节点来源，再与快照按 (server,port) 合并。
+    """
+    path = os.path.join(DATA_DIR, "client_nodes", slug + ".json")
+    if not os.path.isfile(path):
+        return []
+    try:
+        d = json.load(open(path, encoding="utf-8"))
+    except Exception:                                         # noqa: BLE001
+        return []
+    out: list[dict] = []
+    for p in d.get("nodes") or []:
+        if not isinstance(p, dict):
+            continue
+        proto = str(p.get("type") or "").strip()
+        server, port = p.get("server"), p.get("port")
+        if not proto or not server or not port:
+            continue
+        raw = {k: v for k, v in p.items() if k not in ("name", "type", "server", "port")}
+        out.append({"name": p.get("name") or f"{server}:{port}",
+                    "protocol": proto, "server": str(server), "port": port, "raw": raw})
+    return out
+
+
+def _merge_nodes(snap_nodes: list[dict], client_nodes: list[dict]) -> tuple[list[dict], str]:
+    """按 (server,port) 合并两个来源：能导出的优先，同能导出时以快照（更新）为准。"""
+    if not client_nodes:
+        return snap_nodes, "snapshot"
+    if not snap_nodes:
+        return client_nodes, "client_nodes"
+
+    def key(n):
+        return (str(n.get("server") or (n.get("raw") or {}).get("server")),
+                str(n.get("port") or (n.get("raw") or {}).get("port")))
+
+    merged: dict[tuple, dict] = {}
+    for n in client_nodes:
+        merged[key(n)] = n
+    used_client = 0
+    for n in snap_nodes:
+        k = key(n)
+        old = merged.get(k)
+        if old is None:
+            merged[k] = n
+            continue
+        if _proxy_of(n)[0] is not None:
+            merged[k] = n                     # 快照这份也能导出 → 用更新的快照
+        elif _proxy_of(old)[0] is not None:
+            used_client += 1                  # 快照只是 raw-only 的残片 → 保留客户端完整版
+        else:
+            merged[k] = n
+    return list(merged.values()), ("client_nodes+snapshot" if used_client else "snapshot")
+
+
 def _export_one(slug: str, out_dir: str, gen: str) -> dict:
     entry: dict = {"slug": slug, "nodes": 0, "exported": 0, "skipped": 0,
                    "protos": {}, "snapshot_protos": {}, "source_snapshot": "",
-                   "ok": False}
+                   "node_source": "", "ok": False}
     if not _SLUG_RE.match(slug):
         entry["note"] = "非法 slug"
         return entry
     snaps = _snapshots(slug)
-    if not snaps:
+    client = _client_nodes(slug)
+    if not snaps and not client:
         entry["note"] = "无快照"
         _drop(out_dir, slug)
         return entry
-    path = snaps[-1]
-    entry["source_snapshot"] = _rel(path)
-    try:
-        snap = store.load(path)
-    except Exception as e:                                    # noqa: BLE001
-        entry["note"] = f"快照读取失败: {e}"
-        _drop(out_dir, slug)
-        return entry
+    snap_nodes: list[dict] = []
+    if snaps:
+        path = snaps[-1]
+        entry["source_snapshot"] = _rel(path)
+        try:
+            snap = store.load(path)
+            snap_nodes = snap.get("nodes") or []
+        except Exception as e:                                # noqa: BLE001
+            entry["note"] = f"快照读取失败: {e}"
+            if not client:
+                _drop(out_dir, slug)
+                return entry
 
-    nodes = snap.get("nodes") or []
+    nodes, src = _merge_nodes(snap_nodes, client)
+    entry["node_source"] = src
     entry["nodes"] = len(nodes)
     entry["snapshot_protos"] = dict(Counter(str(n.get("protocol") or "?") for n in nodes))
     if not nodes:

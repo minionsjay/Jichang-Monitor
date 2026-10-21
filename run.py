@@ -254,6 +254,53 @@ def _get_client_config(slug: str) -> dict | None:
         return None
 
 
+def _merge_client_nodes(slug: str, snap):
+    """把 data/client_nodes/<slug>.json 里的**完整节点**并入内存扫描快照。
+
+    内存扫描只能给出 server:port（protocol=unknown，无 password/uuid），而客户端 core 进程的
+    运行期配置里其实有完整字段（t11 实测：ssrdog AnyTLS / speedcat VLESS / fastlink VLESS）。
+    不合并的话，每轮 scan-memory 都会用残片覆盖掉完整节点，导出与面板同时退化。
+    这里只做「同名 server:port 补字段」，不引入 harvested 里多出来的旧节点（避免复活死节点）。
+    """
+    try:
+        import json as _json
+        p = os.path.join(store.DATA_DIR, "client_nodes", slug + ".json")
+        if not os.path.isfile(p):
+            return snap
+        d = _json.load(open(p, encoding="utf-8"))
+        full = {}
+        for n in d.get("nodes") or []:
+            if not isinstance(n, dict):
+                continue
+            k = (str(n.get("server") or ""), str(n.get("port") or ""))
+            if k[0] and k[1]:
+                full[k] = n
+        if not full:
+            return snap
+        fixed = 0
+        for node in snap.nodes:
+            k = (str(node.server or ""), str(node.port or ""))
+            src = full.get(k)
+            if not src:
+                continue
+            want = str(src.get("type") or "").strip()
+            if not want or (node.protocol or "").lower() == want.lower():
+                continue
+            node.protocol = want
+            for kk, vv in src.items():
+                if kk in ("name", "type", "server", "port"):
+                    continue
+                if vv not in (None, "", [], {}):
+                    node.raw[kk] = vv
+            fixed += 1
+        if fixed:
+            print(f"    [{slug}] 内存快照已补全 {fixed} 个节点的协议字段（来自 client_nodes）",
+                  flush=True)
+    except Exception as e:                                    # noqa: BLE001
+        print(f"    [{slug}] client_nodes 合并失败（忽略）: {e}", flush=True)
+    return snap
+
+
 def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     """自动启动客户端 → 等待 → scan-memory → keep_alive控制关闭。"""
     import subprocess as _sp
@@ -330,6 +377,7 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
         except Exception:
             pass
     if best_snap is not None:
+        _merge_client_nodes(slug, best_snap)
         store.save(best_snap)
         print(f"    [{slug}] ✓ scan-memory 最终: {len(best_snap.nodes)}节点, {len(best_snap.findings)}华为", flush=True)
     else:

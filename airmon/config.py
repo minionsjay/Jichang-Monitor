@@ -21,9 +21,19 @@ def load_airports(path: str | None = None) -> dict[str, dict]:
 
 def get_airport(name: str, path: str | None = None) -> dict:
     airports = load_airports(path)
-    if name not in airports:
-        raise KeyError(f"未知机场: {name}（可选: {', '.join(airports)}）")
-    return airports[name]
+    if name in airports:
+        return airports[name]
+    # 主名册其实在 credentials.yaml（45 条），airports.yaml 只有 13 条。
+    # 于是 ingest-profile / scan-memory 这类按 slug 取机场的命令，对「只在 credentials 里」
+    # 的机场一律 KeyError 直接失败（t11 实测，只能另写脚本绕开）。这里回落成最小档案。
+    try:
+        cred = load_credentials().get(name)
+    except Exception:                                        # noqa: BLE001
+        cred = None
+    if cred:
+        return {"name": name, "type": cred.get("type") or "auto",
+                "panel": cred.get("panel"), "from_credentials": True}
+    raise KeyError(f"未知机场: {name}（可选: {', '.join(airports)}）")
 
 
 def load_credentials(path: str | None = None) -> dict:
