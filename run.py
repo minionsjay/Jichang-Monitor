@@ -1222,6 +1222,35 @@ def cmd_all(args):
               f"可导出 {_nt['exported']} 个 → {_nt['airports_exported']} 台机场）")
     except Exception as _e:
         print(f"[节点分文件导出失败，忽略] {_e}")
+    # 5.11/5 机场状态台账（在 docs/机场可用性清单-*.xlsx 里新增一张以「本轮结束时间」命名的表）
+    # 依赖 openpyxl：本进程没有就找 DSH 自带 python 跑；都不可用则跳过，不影响主流程
+    try:
+        _tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", "update_airport_xlsx.py")
+        if os.path.exists(_tool):
+            _ran = False
+            try:
+                import openpyxl  # noqa: F401
+                import importlib.util as _ilu
+                _spec = _ilu.spec_from_file_location("_airport_xlsx", _tool)
+                _mod = _ilu.module_from_spec(_spec)
+                _spec.loader.exec_module(_mod)
+                _ran = True
+            except ImportError:
+                _cand = glob.glob(os.path.expandvars(
+                    r"%LOCALAPPDATA%\.dsh\dsh-runtimes\*\dependencies\python\python.exe"))
+                if _cand:
+                    import subprocess as _sp
+                    _r = _sp.run([_cand[0], "-X", "utf8", _tool], cwd=os.path.dirname(_tool) + os.sep + "..",
+                                 capture_output=True, text=True, timeout=240)
+                    _tail = [x for x in (_r.stdout or "").strip().splitlines() if x]
+                    print(_tail[-1] if _tail else "[状态表] 无输出")
+                    if _r.returncode != 0:
+                        print(f"[状态表退出码 {_r.returncode}] {( _r.stderr or '')[-180:]}")
+                    _ran = True
+            if not _ran:
+                print("[状态表] 本机没有 openpyxl，本轮跳过")
+    except Exception as _e:
+        print(f"[状态表生成失败，忽略] {_e}")
     try:
         os.remove(_lock)
     except Exception:
