@@ -374,6 +374,11 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
                     break
             else:
                 print(f"    [{slug}] scan-memory 第{wait_round+1}轮: {n}节点", flush=True)
+                # 连续 6 轮（约 60 秒）一个节点都没抽到，说明客户端没登录/没连接
+                # （或 core 在 Services 会话需提权），继续等满 180 秒纯属浪费。
+                if wait_round >= 5 and best_snap is None:
+                    print(f"    [{slug}] 连续 6 轮 0 节点，提前放弃等待", flush=True)
+                    break
         except Exception:
             pass
     if best_snap is not None:
@@ -506,14 +511,33 @@ def _pull_one(slug: str, cred: dict, detector: Detector):
     # 优先级 1: sub_url直抓（成功就用它，失败继续走登录/客户端兜底）
     if cred.get("sub_url"):
         print(f"    [{slug}] 抓取订阅: {cred['sub_url'][:60]} ...", flush=True)
-        try:
-            snap = collect_from_url(slug, cred["sub_url"], detector,
-                                    cred.get("user_agent", "clash.meta"))
+        # 瞬时网络错误（连接重置/超时/分块截断）重试一次：夜间代理抖动时这类失败
+        # 会把本可成功的机场误判成失败，实测每轮额外损失 5~7 家。
+        import time as _time
+        import requests as _rq
+        transient_types = (getattr(_rq.exceptions, "ConnectionError", ()),
+                           getattr(_rq.exceptions, "Timeout", ()),
+                           getattr(_rq.exceptions, "ChunkedEncodingError", ()))
+        snap = None
+        last_err = None
+        for attempt in (1, 2):
+            try:
+                snap = collect_from_url(slug, cred["sub_url"], detector,
+                                        cred.get("user_agent", "clash.meta"))
+                break
+            except Exception as e:
+                last_err = e
+                transient = isinstance(e, transient_types) if transient_types != ((),) else False
+                if attempt == 1 and transient:
+                    print(f"    [{slug}] 订阅瞬时失败({str(e)[:40]})，2秒后重试一次", flush=True)
+                    _time.sleep(2)
+                    continue
+                break
+        if snap is not None:
             _finish(slug, snap, "manual-url")
             return  # sub_url成功就结束，不需要再启动客户端
-        except Exception as e:
-            print(f"    [{slug}] 订阅URL失败({str(e)[:50]})，尝试面板登录...")
-            # 继续走下面的登录流程
+        print(f"    [{slug}] 订阅URL失败({str(last_err)[:50]})，尝试面板登录...")
+        # 继续走下面的登录流程
 
     # 优先级 2: cookie遍历节点页
     if cred.get("cookie"):
