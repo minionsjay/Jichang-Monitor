@@ -1236,8 +1236,12 @@ def cmd_all(args):
                 _spec.loader.exec_module(_mod)
                 _ran = True
             except ImportError:
-                _cand = glob.glob(os.path.expandvars(
-                    r"%LOCALAPPDATA%\.dsh\dsh-runtimes\*\dependencies\python\python.exe"))
+                _roots = [os.environ.get("DSH_HOME") or "",
+                          os.path.expandvars(r"%USERPROFILE%\.dsh"),
+                          os.path.expandvars(r"%LOCALAPPDATA%\.dsh")]
+                _cand = []
+                for _rt in [r for r in _roots if r]:
+                    _cand += glob.glob(os.path.join(_rt, "dsh-runtimes", "*", "dependencies", "python", "python.exe"))
                 if _cand:
                     import subprocess as _sp
                     _r = _sp.run([_cand[0], "-X", "utf8", _tool], cwd=os.path.dirname(_tool) + os.sep + "..",
