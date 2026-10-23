@@ -1,0 +1,22 @@
+[
+  {
+    "file": "page.png",
+    "state": null,
+    "size": "1440x900",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [],
+    "lint": [
+      {
+        "rule": "englishLabel",
+        "label": "中文界面里的英文大写标签",
+        "count": 5,
+        "examples": [
+          "td.nm「AMAZON-SIN」",
+          "td.nm「HINET-NET」",
+          "td.nm「AMAZON-NRT」"
+        ]
+      }
+    ]
+  }
+]

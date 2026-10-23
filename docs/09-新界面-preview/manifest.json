@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "project": "机场监控台",
+  "round": "方向探索",
+  "candidates": [
+    {
+      "baseline": true,
+      "concept": "深色控制台 + 11×5 状态矩阵 + 右侧待办事件流，一眼定位坏掉的机场",
+      "id": "dir-a",
+      "kind": "html",
+      "name": "A · 作战室",
+      "nativeViewport": {
+        "height": 900,
+        "width": 1440
+      },
+      "palette": [
+        "#07080a",
+        "#0c0f14",
+        "#35d08a",
+        "#f2b33d",
+        "#f0555c"
+      ],
+      "source": "docs/09-新界面-preview/A-control-room.html",
+      "traits": [
+        "深色 #07080a",
+        "状态矩阵",
+        "事件流",
+        "等宽数字"
+      ],
+      "typography": "Segoe UI / Cascadia Mono"
+    },
+    {
+      "concept": "纸白编辑排版，衬线大标题 + 30 天折线 + 到期/断档两栏名单，每天看一页就够",
+      "id": "dir-b",
+      "kind": "html",
+      "name": "B · 体检报告",
+      "nativeViewport": {
+        "height": 900,
+        "width": 1440
+      },
+      "palette": [
+        "#fbfaf6",
+        "#15171b",
+        "#bf3a2b",
+        "#2f7d5b"
+      ],
+      "source": "docs/09-新界面-preview/B-report.html",
+      "traits": [
+        "纸白 #fbfaf6",
+        "衬线标题",
+        "30 天折线",
+        "双栏名单"
+      ],
+      "typography": "Georgia / 宋体 / Segoe UI"
+    },
+    {
+      "concept": "暗靛雷达：47 家按状态分三层环绕，中心节点总数，右侧四个环形仪表 + 断流清单",
+      "id": "dir-c",
+      "kind": "html",
+      "name": "C · 塔台",
+      "nativeViewport": {
+        "height": 900,
+        "width": 1440
+      },
+      "palette": [
+        "#080911",
+        "#0d0f1c",
+        "#8b7bf7",
+        "#3ee0b0",
+        "#ff6b8a"
+      ],
+      "source": "docs/09-新界面-preview/C-tower.html",
+      "traits": [
+        "暗靛 #080911",
+        "三层环雷达",
+        "环形仪表",
+        "点位大小=节点数"
+      ],
+      "typography": "Segoe UI / Cascadia Mono"
+    }
+  ]
+}

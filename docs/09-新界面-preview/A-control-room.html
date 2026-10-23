@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>A · 作战室 — 机场监控台</title>
+<style>
+  :root{
+    --bg:#07080a; --panel:#0c0f14; --panel-2:#101419; --line:#1a1f27; --line-soft:#141920;
+    --ink:#e9ecf1; --mut:#98a0ad; --dim:#7c8493;
+    --ok:#35d08a; --warn:#f2b33d; --bad:#f0555c; --idle:#5c8bff;
+    --mono:ui-monospace,"Cascadia Mono","SF Mono",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--ink);
+    font:13px/1.45 -apple-system,"Segoe UI Variable Display","Segoe UI",system-ui,"Microsoft YaHei UI","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums; letter-spacing:-.02em}
+  .app{display:grid; grid-template-columns:228px 1fr 344px; height:100vh}
+
+  /* ---------- 左：品牌与轮次 ---------- */
+  .side{border-right:1px solid var(--line); padding:26px 22px; display:flex; flex-direction:column; gap:26px}
+  .brand{display:flex; align-items:center; gap:9px}
+  .mark{width:22px;height:22px;border:1px solid var(--ok); border-radius:6px; position:relative}
+  .mark::before,.mark::after{content:""; position:absolute; background:var(--ok)}
+  .mark::before{left:5px;right:5px;top:50%;height:1px}
+  .mark::after{top:5px;bottom:5px;left:50%;width:1px}
+  .brand b{font-size:14px; letter-spacing:.14em; font-weight:600}
+  .brand span{font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:.08em}
+
+  .runbox{background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 13px; display:flex; flex-direction:column; gap:9px}
+  .runbox .k{font-size:10.5px; color:var(--dim); letter-spacing:.1em}
+  .pill{display:inline-flex; align-items:center; gap:6px; font-size:11px; color:var(--warn)}
+  .dot{width:6px;height:6px;border-radius:50%; background:currentColor; box-shadow:0 0 0 3px rgba(242,179,61,.13)}
+  .runbox .v{font-family:var(--mono); font-size:11px; color:var(--mut)}
+
+  .nav{display:flex; flex-direction:column; gap:1px; margin-top:-6px}
+  .nav a{display:flex; align-items:center; justify-content:space-between; padding:7px 9px; border-radius:6px;
+    color:var(--mut); text-decoration:none; font-size:12.5px}
+  .nav a.on{background:var(--panel-2); color:var(--ink)}
+  .nav a .c{font-family:var(--mono); font-size:10.5px; color:var(--dim)}
+  .nav a.on .c{color:var(--ok)}
+
+  .foot{margin-top:auto; font-size:11px; color:var(--dim); line-height:1.7}
+  .foot b{color:var(--mut); font-weight:500}
+
+  /* ---------- 中：主区 ---------- */
+  .main{padding:24px 28px 20px; display:flex; flex-direction:column; min-width:0}
+  .mhead{display:flex; align-items:flex-end; justify-content:space-between; padding-bottom:16px; border-bottom:1px solid var(--line)}
+  .mhead h1{font-size:19px; font-weight:600; letter-spacing:-.01em}
+  .mhead h1 em{font-style:normal; color:var(--mut); font-weight:400; margin-left:8px; font-size:13px}
+  .stamp{font-family:var(--mono); font-size:10.5px; color:var(--dim); text-align:right; line-height:1.7}
+
+  .kpis{display:grid; grid-template-columns:repeat(5,1fr); border-bottom:1px solid var(--line)}
+  .kpi{padding:16px 16px 15px 0; border-right:1px solid var(--line-soft); margin-right:1px}
+  .kpi:last-child{border-right:0}
+  .kpi .lab{font-size:11px; color:var(--dim); letter-spacing:.06em; margin-bottom:7px}
+  .kpi .val{font-family:var(--mono); font-size:31px; line-height:1; letter-spacing:-.03em}
+  .kpi .sub{font-size:11px; color:var(--mut); margin-top:7px}
+  .kpi.ok .val{color:var(--ok)} .kpi.bad .val{color:var(--bad)} .kpi.warn .val{color:var(--warn)}
+
+  .sec{margin-top:18px; display:flex; align-items:center; gap:10px}
+  .sec h2{font-size:12px; font-weight:600; letter-spacing:.02em}
+  .sec .hint{font-family:var(--mono); font-size:10.5px; color:var(--dim)}
+  .legend{margin-left:auto; display:flex; gap:14px; font-size:11px; color:var(--mut)}
+  .legend i{display:inline-block; width:7px; height:7px; border-radius:2px; margin-right:5px; vertical-align:1px}
+
+  /* 机场矩阵 */
+  .grid{display:grid; grid-template-columns:repeat(11,1fr); grid-auto-rows:1fr; gap:7px; margin-top:12px; flex:1; min-height:0}
+  .cell{position:relative; min-height:58px; border:1px solid var(--line); border-radius:6px; background:var(--panel);
+    padding:7px 8px; display:flex; flex-direction:column; justify-content:space-between; overflow:hidden}
+  .cell::before{content:""; position:absolute; left:0; top:0; bottom:0; width:2px; background:var(--line)}
+  .cell .n{font-size:11.5px; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .cell .c{font-family:var(--mono); font-size:14px; line-height:1; letter-spacing:-.02em}
+  .cell .c small{font-size:9px; color:var(--dim); margin-left:2px}
+  .cell.a{border-color:#1c3329; background:linear-gradient(160deg,#0d1a15,#0b1210)}
+  .cell.a::before{background:var(--ok)} .cell.a .c{color:#7ce0b0}
+  .cell.b{border-color:#33290f; background:linear-gradient(160deg,#191408,#12100a)}
+  .cell.b::before{background:var(--warn)} .cell.b .c{color:#f2c66b}
+  .cell.c{border-color:#1a2233; background:linear-gradient(160deg,#0c1220,#0a0e17)}
+  .cell.c::before{background:var(--idle)} .cell.c .c{color:#8fb2ff}
+  .cell.d{border-color:#331a1d; background:linear-gradient(160deg,#1b0e10,#120a0b)}
+  .cell.d::before{background:var(--bad)} .cell.d .c{color:#ff8b8f}
+  .cell.d .c{opacity:.55}
+  .cell .c.zero{color:var(--dim)}
+
+  /* 底部：协议分布 */
+  .dist{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:grid; grid-template-columns:1fr 1fr; gap:30px}
+  .bar{display:flex; height:7px; gap:2px; margin:9px 0 9px; border-radius:2px; overflow:hidden}
+  .bar span{border-radius:2px}
+  .dl{display:flex; flex-wrap:wrap; gap:5px 14px; font-size:11px; color:var(--mut)}
+  .dl b{font-family:var(--mono); color:var(--ink); font-weight:500; margin-left:4px}
+
+  /* ---------- 右：事件流 ---------- */
+  .rail{border-left:1px solid var(--line); padding:24px 20px; display:flex; flex-direction:column; min-width:0; background:#080a0d}
+  .rail h2{font-size:12px; font-weight:600; display:flex; align-items:baseline; gap:8px}
+  .rail h2 span{font-family:var(--mono); font-size:10px; color:var(--bad)}
+  .evts{margin-top:14px; display:flex; flex-direction:column; gap:1px; overflow:hidden}
+  .ev{padding:10px 0; border-bottom:1px solid var(--line-soft); display:flex; gap:9px}
+  .ev .bar-dot{width:2px; border-radius:2px; background:var(--bad); flex:0 0 2px; margin-top:2px}
+  .ev.b .bar-dot{background:var(--warn)} .ev.c{opacity:.72} .ev.c .bar-dot{background:var(--idle)}
+  .ev .t{font-family:var(--mono); font-size:10px; color:var(--dim); letter-spacing:.02em}
+  .ev .h{font-size:12px; margin:2px 0 3px; display:flex; align-items:center; gap:6px}
+  .ev .h b{font-weight:500}
+  .ev .h .tag{font-family:var(--mono); font-size:9px; color:var(--dim); border:1px solid var(--line); padding:0 4px; border-radius:3px}
+  .ev .r{font-size:12px; color:var(--mut); line-height:1.5;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+
+  .rail .join{margin-top:auto; padding-top:14px; border-top:1px solid var(--line); font-size:11px; color:var(--dim); line-height:1.75}
+  .rail .join b{color:var(--mut); font-weight:500}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- 左栏 -->
+  <aside class="side">
+    <div class="brand">
+      <div class="mark"></div>
+      <div><b>AIRMON</b><br><span>机场监控台</span></div>
+    </div>
+
+    <div class="runbox">
+      <div class="k">本轮采集</div>
+      <div class="pill"><i class="dot"></i><span id="runState">进行中 · 拉取</span></div>
+      <div class="v" id="runAt">—</div>
+    </div>
+
+    <nav class="nav">
+      <a class="on">总览<span class="c">47</span></a>
+      <a>到期<span class="c" id="n-exp">5</span></a>
+      <a>告警<span class="c">120</span></a>
+      <a>华为云<span class="c">0</span></a>
+      <a>节点<span class="c" id="n-nodes">2310</span></a>
+      <a>机场库<span class="c">47</span></a>
+      <a>分析<span class="c">30d</span></a>
+      <a>运行<span class="c">—</span></a>
+    </nav>
+
+    <div class="foot">
+      每 3 小时自动采集<br>
+      订阅 · 客户端 · 内存扫描<br>
+      <b>数据基准</b> <span id="f-base">—</span>
+    </div>
+  </aside>
+
+  <!-- 主区 -->
+  <main class="main">
+    <div class="mhead">
+      <h1>机场健康总览<em>47 家 · 唯一订阅与客户端供给视图</em></h1>
+      <div class="stamp">
+        <div>DATA <span id="s-base">—</span></div>
+        <div>ANALYSIS 30 DAYS</div>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi ok">
+        <div class="lab">在线可用</div>
+        <div class="val" id="k-ok">34</div>
+        <div class="sub">另有 6 抖动 · 7 断流</div>
+      </div>
+      <div class="kpi">
+        <div class="lab">节点总数</div>
+        <div class="val" id="k-nodes">2310</div>
+        <div class="sub">较上轮 <span style="color:var(--ok)">+128</span></div>
+      </div>
+      <div class="kpi">
+        <div class="lab">可导出节点</div>
+        <div class="val" id="k-exp">1447</div>
+        <div class="sub">31 家机场有可导出</div>
+      </div>
+      <div class="kpi bad">
+        <div class="lab">套餐已过期</div>
+        <div class="val" id="k-past">5</div>
+        <div class="sub">仍出节点 2 家 · 随时断</div>
+      </div>
+      <div class="kpi warn">
+        <div class="lab">节点换血</div>
+        <div class="val" id="k-churn">15.9k</div>
+        <div class="sub">快链 30 天累计变动</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <h2>机场矩阵</h2>
+      <span class="hint">按状态排序 / 数字为快照节点</span>
+      <div class="legend">
+        <span><i style="background:var(--ok)"></i>可用</span>
+        <span><i style="background:var(--warn)"></i>订阅失效</span>
+        <span><i style="background:var(--idle)"></i>仅客户端</span>
+        <span><i style="background:var(--bad)"></i>断流</span>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+
+    <div class="dist">
+      <div>
+        <div class="sec" style="margin-top:0">
+          <h2>协议构成</h2>
+          <span class="hint">全 47 家合计</span>
+        </div>
+        <div class="bar" id="bar"></div>
+        <div class="dl" id="dl"></div>
+      </div>
+      <div>
+        <div class="sec" style="margin-top:0">
+          <h2>地区分布</h2>
+          <span class="hint">按出口 IP 归属</span>
+        </div>
+        <div class="bar" id="gbar"></div>
+        <div class="dl" id="gdl"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 右栏：事件流 -->
+  <aside class="rail">
+    <h2>需要你动手<span id="evN">—</span></h2>
+    <div class="evts" id="evts"></div>
+    <div class="join">
+      <b>零节点榜</b> <span id="zeroTop">—</span><br>
+      <b>稳定性</b> <span id="stabTop">—</span>
+    </div>
+  </aside>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  var D = window.DATA, K = D.kpis, fmt = function(n){ return (n||0).toLocaleString('en-US'); };
+  var $ = function(id){ return document.getElementById(id); };
+
+  $('k-ok').textContent = K.ok;
+  $('k-nodes').textContent = fmt(K.nodes);
+  $('k-exp').textContent = fmt(K.exported);
+  $('k-past').textContent = K.expired;
+  $('k-churn').textContent = (K.churn_top/1000).toFixed(1) + 'k';
+  $('n-exp').textContent = K.expired;
+  $('n-nodes').textContent = fmt(K.nodes);
+  $('s-base').textContent = D.meta.generated || '—';
+  $('f-base').textContent = D.meta.generated || '—';
+  $('runState').textContent = (D.meta.run_status === 'running' ? '进行中 · ' : '完成 · ') + (D.meta.run_step || '');
+  $('runAt').textContent = D.meta.run_started || '';
+
+  /* 矩阵 */
+  var cls = {A:'a', B:'b', C:'c', D:'d'};
+  $('grid').innerHTML = D.airports.map(function(a){
+    var z = a.nodes ? '' : ' zero';
+    return '<div class="cell ' + (cls[a.state]||'') + '" title="' + a.name + ' · ' + a.reason + '">' +
+      '<div class="n">' + a.name + '</div>' +
+      '<div class="c' + z + '">' + (a.nodes || '0') + '<small>n</small></div></div>';
+  }).join('');
+
+  /* 协议条 */
+  var COL = ['#8b93a1','#5c8bff','#35d08a','#f2b33d','#b98cff','#4fd1c5','#f0555c','#7c8794','#c2a26b'];
+  var tot = D.protos.reduce(function(s,p){ return s + p[1]; }, 0);
+  $('bar').innerHTML = D.protos.map(function(p,i){
+    return '<span style="width:' + (p[1]/tot*100).toFixed(2) + '%;background:' + COL[i%COL.length] + '" title="' + p[0] + ' ' + p[1] + '"></span>';
+  }).join('');
+  $('dl').innerHTML = D.protos.map(function(p,i){
+    return '<span><i style="display:inline-block;width:6px;height:6px;border-radius:2px;background:' + COL[i%COL.length] + ';margin-right:5px;vertical-align:1px"></i>' +
+      p[0] + '<b>' + fmt(p[1]) + '</b></span>';
+  }).join('');
+
+  /* 地区条 */
+  var GC = ['#7c8493','#5c8bff','#35d08a','#f2b33d','#b98cff','#4fd1c5','#f0555c'];
+  var gtot = D.geos.reduce(function(s,p){ return s + p[1]; }, 0);
+  $('gbar').innerHTML = D.geos.map(function(p,i){
+    return '<span style="width:' + (p[1]/gtot*100).toFixed(2) + '%;background:' + GC[i%GC.length] + '"></span>';
+  }).join('');
+  $('gdl').innerHTML = D.geos.map(function(p,i){
+    return '<span><i style="display:inline-block;width:6px;height:6px;border-radius:2px;background:' + GC[i%GC.length] + ';margin-right:5px;vertical-align:1px"></i>' +
+      p[0] + '<b>' + fmt(p[1]) + '</b></span>';
+  }).join('');
+
+  /* 事件流：先 D 后 B，各取前若干 */
+  var bad = D.airports.filter(function(a){ return a.state === 'D'; });
+  var warn = D.airports.filter(function(a){ return a.state === 'B'; });
+  var list = bad.concat(warn);
+  $('evN').textContent = list.length + ' 项';
+  $('evts').innerHTML = list.slice(0, 9).map(function(a){
+    var tag = a.state === 'D' ? (a.days < 0 ? '过期 ' + Math.abs(a.days) + 'd' : '断流') : '订阅失效';
+    var r = (a.reason || '').replace(/^[^；]*；/, '').slice(0, 62);
+    return '<div class="ev ' + (a.state === 'D' ? '' : 'b') + '">' +
+      '<div class="bar-dot"></div><div>' +
+      '<div class="t">' + a.slug + '</div>' +
+      '<div class="h"><b>' + a.name + '</b><span class="tag">' + tag + '</span></div>' +
+      '<div class="r">' + (r || a.reason) + '</div></div></div>';
+  }).join('');
+
+  $('zeroTop').textContent = D.zero.map(function(z){ return z.name + ' ' + z.n; }).join(' · ');
+  $('stabTop').textContent = D.stability.map(function(s){ return s.name + ' ' + s.pct + '%'; }).join(' · ');
+})();
+</script>
+</body>
+</html>

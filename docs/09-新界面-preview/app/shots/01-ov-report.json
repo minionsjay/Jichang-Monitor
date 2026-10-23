@@ -1,0 +1,22 @@
+[
+  {
+    "file": "page.png",
+    "state": null,
+    "size": "1440x900",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [],
+    "lint": [
+      {
+        "rule": "sideStripe",
+        "label": "彩色单侧边线",
+        "count": 47,
+        "examples": [
+          "button.cell.d「qiangda 86 断流」（::before）",
+          "button.cell.d「oixcloud 47 断流」（::before）",
+          "button.cell.d「jsqpro 0 断流」（::before）"
+        ]
+      }
+    ]
+  }
+]

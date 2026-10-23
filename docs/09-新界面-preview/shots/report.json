@@ -1,0 +1,116 @@
+[
+  {
+    "file": "A-control-room.png",
+    "target": "E:\\Hermes-Agent\\Jichang-Monitor\\docs\\09-新界面-preview\\A-control-room.html",
+    "name": "A-control-room",
+    "state": null,
+    "size": "1440x900",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [],
+    "lint": [
+      {
+        "rule": "sideStripe",
+        "label": "彩色单侧边线",
+        "count": 47,
+        "examples": [
+          "div.cell.d「强大 86n」（::before）",
+          "div.cell.d「OIX云 47n」（::before）",
+          "div.cell.d「加速器Pro 0n」（::before）"
+        ]
+      },
+      {
+        "rule": "smallText",
+        "label": "正文小于 13px",
+        "count": 10,
+        "examples": [
+          "div.foot「每 3 小时自动采集 订阅 · 客户端 · 内存」（11px）",
+          "div.r「面板 TLS 握手失败；套餐 2026-09-2」（11.5px）",
+          "div.r「面板登录报「页面已过期」；套餐 2026-09-」（11.5px）"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "B-report.png",
+    "target": "E:\\Hermes-Agent\\Jichang-Monitor\\docs\\09-新界面-preview\\B-report.html",
+    "name": "B-report",
+    "state": null,
+    "size": "1440x900",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [],
+    "lint": []
+  },
+  {
+    "file": "C-tower.png",
+    "target": "E:\\Hermes-Agent\\Jichang-Monitor\\docs\\09-新界面-preview\\C-tower.html",
+    "name": "C-tower",
+    "state": null,
+    "size": "1440x900",
+    "zoom": 1,
+    "animationWaitMs": 0,
+    "issues": [],
+    "lint": [
+      {
+        "rule": "englishLabel",
+        "label": "中文界面里的英文大写标签",
+        "count": 2,
+        "examples": [
+          "div.foot「3H CYCLE 47 AIRPORTS 10-」",
+          "div「30 DAY WINDOW」"
+        ]
+      },
+      {
+        "rule": "smallText",
+        "label": "正文小于 13px",
+        "count": 1,
+        "examples": [
+          "div.foot「订阅直取 31 · 客户端内核 9 · 内存扫描」（10px）"
+        ]
+      }
+    ]
+  },
+  {
+    "file": "sheet.png",
+    "width": 2000,
+    "height": 480,
+    "columns": 3,
+    "items": [
+      {
+        "naturalWidth": 1440,
+        "naturalHeight": 900,
+        "width": 640,
+        "height": 400,
+        "labelHeight": 32,
+        "x": 24,
+        "y": 24,
+        "label": "A-control-room",
+        "labelY": 432
+      },
+      {
+        "naturalWidth": 1440,
+        "naturalHeight": 900,
+        "width": 640,
+        "height": 400,
+        "labelHeight": 32,
+        "x": 680,
+        "y": 24,
+        "label": "B-report",
+        "labelY": 432
+      },
+      {
+        "naturalWidth": 1440,
+        "naturalHeight": 900,
+        "width": 640,
+        "height": 400,
+        "labelHeight": 32,
+        "x": 1336,
+        "y": 24,
+        "label": "C-tower",
+        "labelY": 432
+      }
+    ],
+    "issues": []
+  }
+]

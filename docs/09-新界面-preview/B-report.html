@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>B · 体检报告 — 机场监控台</title>
+<style>
+  :root{
+    --paper:#fbfaf6; --ink:#15171b; --mut:#5f636c; --faint:#83888f; --rule:#e2dfd6; --rule-2:#efede6;
+    --red:#bf3a2b; --amber:#b8801f; --green:#2f7d5b;
+    --serif:Georgia,"Songti SC","Source Han Serif SC","Noto Serif SC",SimSun,serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,"Liberation Mono",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{background:var(--paper); color:var(--ink); overflow:hidden;
+    font:13.5px/1.55 "Segoe UI",system-ui,-apple-system,"Microsoft YaHei UI","Microsoft YaHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+    background-image:radial-gradient(#00000008 1px, transparent 1px); background-size:3px 3px}
+  .wrap{max-width:1240px; margin:0 auto; padding:0 44px; height:100vh; display:flex; flex-direction:column}
+
+  /* masthead */
+  .top{display:flex; align-items:center; justify-content:space-between; padding:22px 0 14px; border-bottom:1.5px solid var(--ink)}
+  .top .l{display:flex; align-items:baseline; gap:12px}
+  .top .l b{font-size:12px; letter-spacing:.2em; font-weight:700}
+  .top .l span{font-size:11px; color:var(--mut); letter-spacing:.08em}
+  .top .r{font-family:var(--mono); font-size:10.5px; color:var(--mut); letter-spacing:.04em; display:flex; gap:18px}
+  .top .r em{font-style:normal; color:var(--red)}
+
+  /* 头版 */
+  .lede{padding:26px 0 20px; display:grid; grid-template-columns:1fr 300px; gap:44px; border-bottom:1px solid var(--rule)}
+  h1{font-family:var(--serif); font-size:44px; line-height:1.16; letter-spacing:-.015em; font-weight:600}
+  h1 i{font-style:normal; color:var(--red)}
+  .dek{margin-top:13px; font-size:14px; color:var(--mut); max-width:56ch; line-height:1.72}
+  .dek b{color:var(--ink); font-weight:600}
+  .side-note{border-left:1px solid var(--rule); padding-left:20px; font-size:12px; color:var(--mut); line-height:1.85}
+  .side-note .k{font-family:var(--mono); font-size:9.5px; letter-spacing:.14em; color:var(--faint); margin-bottom:8px}
+  .side-note b{color:var(--ink); font-weight:600; font-family:var(--mono); font-size:12px}
+
+  /* 三个大数字 */
+  .figures{display:grid; grid-template-columns:repeat(4,1fr); padding:20px 0 18px; border-bottom:1px solid var(--rule)}
+  .fig{padding-right:24px; border-right:1px solid var(--rule-2)}
+  .fig:last-child{border-right:0}
+  .fig .n{font-size:38px; line-height:1; letter-spacing:-.03em; font-weight:600; font-variant-numeric:tabular-nums}
+  .fig .n small{font-size:15px; font-weight:500; color:var(--mut); margin-left:3px; letter-spacing:0}
+  .fig .l{margin-top:8px; font-size:11.5px; color:var(--mut)}
+  .fig .n.red{color:var(--red)}
+  .fig .n.grn{color:var(--green)}
+
+  /* 折线 */
+  .chart{padding:18px 0 10px; border-bottom:1px solid var(--rule); position:relative}
+  .chart .h{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:6px}
+  .chart .h h2{font-family:var(--serif); font-size:15px; font-weight:600; letter-spacing:.01em}
+  .chart .h .s{font-family:var(--mono); font-size:10px; color:var(--faint); letter-spacing:.06em}
+  svg{display:block; width:100%; height:132px}
+
+  /* 两栏名单 */
+  .cols{display:grid; grid-template-columns:1.05fr 1fr; gap:44px; padding:18px 0 0; flex:1; min-height:0}
+  .col h3{font-size:11px; letter-spacing:.14em; color:var(--faint); font-family:var(--mono); margin-bottom:9px}
+  .row{display:flex; align-items:baseline; gap:10px; padding:6.5px 0; border-bottom:1px solid var(--rule-2)}
+  .row .nm{width:96px; flex:0 0 96px; font-size:12.5px}
+  .row .ds{font-family:var(--mono); font-size:11px; width:74px; flex:0 0 74px; color:var(--red)}
+  .row .ds.warn{color:var(--amber)} .row .ds.good{color:var(--green)}
+  .row .why{font-size:11.5px; color:var(--mut); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+
+  .foot{margin-top:auto; padding:12px 0 16px; border-top:1.5px solid var(--ink); display:flex; justify-content:space-between;
+    font-family:var(--mono); font-size:10.5px; color:var(--faint); letter-spacing:.05em}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="l"><b>AIRMON</b><span>机场监控台 · 每日体检</span></div>
+    <div class="r">
+      <span id="t-date">—</span>
+      <span>第 <em id="t-run">—</em> 轮采集</span>
+      <span>30 天窗口</span>
+    </div>
+  </div>
+
+  <div class="lede">
+    <div>
+      <h1>47 个机场，<br>今天有 <i id="h-bad">13</i> 家没能交出节点</h1>
+      <p class="dek">
+        <b id="h-ok">34</b> 家正常供给，合计 <b id="h-nodes">2,310</b> 个节点，其中 <b id="h-exp">1,447</b> 个可直接导出成配置。
+        另外 <b id="h-past">5</b> 家套餐已经过期却仍在出节点，属于随时会断的状态。
+      </p>
+    </div>
+    <div class="side-note">
+      <div class="k">最近一次数据</div>
+      <b id="s-base">—</b>
+      <div class="k" style="margin-top:14px">采集方式</div>
+      订阅直取 <b>31</b> · 客户端 <b>9</b> · 内存扫描 <b>7</b><br>
+      <div class="k" style="margin-top:14px">最大扰动</div>
+      <span id="s-churn">—</span>
+    </div>
+  </div>
+
+  <div class="figures">
+    <div class="fig"><div class="n grn" id="f-ok">34</div><div class="l">家在线可用</div></div>
+    <div class="fig"><div class="n" id="f-nodes">2,310</div><div class="l">个节点在册</div></div>
+    <div class="fig"><div class="n" id="f-exp">1,447</div><div class="l">个可导出配置</div></div>
+    <div class="fig"><div class="n red" id="f-past">5</div><div class="l">家套餐已过期</div></div>
+  </div>
+
+  <div class="chart">
+    <div class="h">
+      <h2>三十天节点总数</h2>
+      <div class="s" id="c-hint">—</div>
+    </div>
+    <svg id="line" viewBox="0 0 1200 132" preserveAspectRatio="none"></svg>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h3>套餐到期 · 前景最急</h3>
+      <div id="exp-list"></div>
+    </div>
+    <div class="col">
+      <h3>断了，原因各不相同</h3>
+      <div id="bad-list"></div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <span>AIRMON · 47 AIRPORTS · 3H CYCLE</span>
+    <span id="f-stamp">—</span>
+  </div>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  var D = window.DATA, K = D.kpis, $ = function(i){ return document.getElementById(i); };
+  var fmt = function(n){ return (n||0).toLocaleString('en-US'); };
+  var bad = K.subfail + K.clientonly + K.down;
+
+  $('h-bad').textContent = bad;
+  $('h-ok').textContent = K.ok;
+  $('h-nodes').textContent = fmt(K.nodes);
+  $('h-exp').textContent = fmt(K.exported);
+  $('h-past').textContent = K.expired;
+  $('f-ok').textContent = K.ok;
+  $('f-nodes').textContent = fmt(K.nodes);
+  $('f-exp').textContent = fmt(K.exported);
+  $('f-past').textContent = K.expired;
+  $('t-date').textContent = (D.meta.generated || '').replace(/-/g, '.');
+  $('s-base').textContent = D.meta.generated || '—';
+  $('f-stamp').textContent = 'DATA ' + (D.meta.generated || '');
+  $('s-churn').textContent = D.churn.map(function(c){ return c.name + ' ' + fmt(c.n); }).join('，');
+
+  /* 30 天折线 */
+  var ts = D.timeseries, vals = ts.totals || [], ds = ts.dates || [];
+  var W = 1200, H = 132, PAD = 14;
+  if (vals.length > 1) {
+    var mx = Math.max.apply(null, vals), mn = Math.min.apply(null, vals);
+    var span = Math.max(mx - mn, 1), X = function(i){ return i / (vals.length - 1) * W; };
+    var Y = function(v){ return H - PAD - (v - mn) / span * (H - PAD * 2); };
+    var pts = vals.map(function(v, i){ return X(i).toFixed(1) + ',' + Y(v).toFixed(1); });
+    var area = 'M0,' + H + ' L' + pts.join(' L') + ' L' + W + ',' + H + ' Z';
+    var grid = [0, .25, .5, .75, 1].map(function(p){
+      var y = PAD + p * (H - PAD * 2);
+      return '<line x1="0" y1="' + y + '" x2="' + W + '" y2="' + y + '" stroke="#e2dfd6" stroke-width="1" stroke-dasharray="2 4"/>';
+    }).join('');
+    var ticks = ds.filter(function(d, i){ return i % 5 === 0 || i === ds.length - 1; }).map(function(d){
+      var i = ds.indexOf(d);
+      return '<text x="' + X(i).toFixed(0) + '" y="' + (H - 2) + '" font-size="9" fill="#a2a6ae" font-family="Consolas,monospace" text-anchor="' + (i === 0 ? 'start' : (i === ds.length - 1 ? 'end' : 'middle')) + '">' + d + '</text>';
+    }).join('');
+    var last = pts[pts.length - 1].split(',');
+    $('line').innerHTML =
+      grid +
+      '<path d="' + area + '" fill="#bf3a2b" opacity="0.05"/>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="#bf3a2b" stroke-width="1.6" stroke-linejoin="round"/>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="#bf3a2b"/>' +
+      '<text x="' + (last[0] - 8) + '" y="' + (parseFloat(last[1]) - 9) + '" font-size="11" font-weight="600" fill="#bf3a2b" font-family="Consolas,monospace" text-anchor="end">' + fmt(vals[vals.length - 1]) + '</text>' +
+      ticks;
+    $('c-hint').textContent = 'PEAK ' + fmt(mx) + ' · LOW ' + fmt(mn);
+  }
+
+  /* 到期名单：过期在前，然后 30 天内 */
+  var ex = D.expiry.slice().sort(function(a, b){ return a.days - b.days; });
+  $('exp-list').innerHTML = ex.slice(0, 7).map(function(e){
+    var txt = e.days < 0 ? '过期 ' + Math.abs(e.days) + ' 天' : '剩 ' + e.days + ' 天';
+    var cls = e.days < 0 ? '' : (e.days <= 30 ? 'warn' : 'good');
+    var note = e.days < 0 ? '订阅仍出节点，随时会断' : '到期前需续费，否则节点归零';
+    return '<div class="row"><span class="nm">' + e.name + '</span>' +
+      '<span class="ds ' + cls + '">' + txt + '</span>' +
+      '<span class="why">' + note + '</span></div>';
+  }).join('');
+
+  /* 断了名单 */
+  $('bad-list').innerHTML = D.airports.filter(function(a){ return a.state === 'B' || a.state === 'C' || a.state === 'D'; })
+    .slice(0, 7).map(function(a){
+      var tag = a.state === 'B' ? '订阅 ' + (a.nodes ? '失效' : '无节点') : (a.state === 'C' ? '仅客户端' : '断流');
+      var why = (a.reason || '').replace(/；.*$/, '').slice(0, 34) || '—';
+      return '<div class="row"><span class="nm">' + a.name + '</span>' +
+        '<span class="ds">' + tag + '</span>' +
+        '<span class="why">' + why + '</span></div>';
+    }).join('');
+})();
+</script>
+</body>
+</html>
