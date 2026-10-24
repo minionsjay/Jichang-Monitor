@@ -159,7 +159,7 @@
       var cls = stCls(a.state);
       var clOnly = a.type === "client" && !a.has_sub;
       var expired = a.days != null && a.days < 0;
-      var tip = a.slug + " · " + stName(a.state) + " · 可用 " + num(a.nodes) + " 个（有协议）" +
+      var tip = a.slug + " · " + stName(a.state) + " · 节点 " + num(a.nodes) + " 个（有协议）" +
         (a.frag ? "\n另有 " + num(a.frag) + " 条无协议残片（内存扫描只拿到域名+端口，导不进配置）" : "") +
         (clOnly ? "\n只能用客户端获取（没有可用的订阅地址）" : "") +
         (expired ? "\n套餐" + (a.expire || "") + " 已到期（" + Math.abs(a.days) + " 天前）" : "") +
