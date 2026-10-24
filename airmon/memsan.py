@@ -112,6 +112,83 @@ def find_clash_pids(client_name: str = None) -> list[tuple[str, int]]:
 
 # ---- 内存扫描 ----
 
+# Clash/mihomo 节点对象里值得一并取出的字段（旧正则会把这些丢掉）
+NODE_FIELDS = ("name", "type", "server", "port", "password", "uuid", "cipher", "alterId",
+               "tls", "servername", "sni", "network", "flow", "skip-cert-verify", "udp",
+               "plugin", "plugin-opts", "ws-opts", "grpc-opts", "reality-opts",
+               "auth", "up", "down", "obfs", "obfs-password", "protocol", "protocol-param")
+
+
+def _balanced_object(text: str, start: int, max_len: int = 6000) -> str | None:
+    """从 text[start] 的 '{' 起做括号配平，返回完整 JSON 对象字符串。"""
+    depth = 0
+    in_str = False
+    esc = False
+    end = min(len(text), start + max_len)
+    for i in range(start, end):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return None
+
+
+def _extract_complete_objects(data: bytes) -> list[dict]:
+    """从一块内存里捞出**完整**的节点对象。
+
+    为什么需要这个：原来的 SEARCH_PATTERNS 从 `"server"` 开始匹配，
+    而 `"name":"香港-01"` / `"type":"vless"` 都写在 server 前面，
+    于是名称只剩合成的 node-<port>、协议一律 unknown、uuid/tls 全丢。
+    内存里那份 JSON 其实是完整的（配置就在内存里），配平后直接解析即可。
+    """
+    try:
+        text = data.decode("utf-8", "ignore")
+    except Exception:
+        return []
+    if '"server"' not in text:
+        return []
+    out: list[dict] = []
+    seen: set[tuple[str, int]] = set()
+    for m in re.finditer(r'\{\s*"(?:name|type|server)"', text):
+        frag = _balanced_object(text, m.start())
+        if not frag or '"server"' not in frag:
+            continue
+        try:
+            obj = json.loads(frag)
+        except Exception:
+            continue
+        if not isinstance(obj, dict):
+            continue
+        srv, prt = obj.get("server"), obj.get("port")
+        if not isinstance(srv, str) or not isinstance(prt, (int, str)):
+            continue
+        try:
+            prt = int(prt)
+        except Exception:
+            continue
+        if not (0 < prt < 65536):
+            continue
+        key = (srv, prt)
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append({k: obj[k] for k in NODE_FIELDS if k in obj})
+    return out
+
+
 def scan_process_memory(pid: int) -> dict:
     """扫描进程内存，返回所有匹配的字符串。用 UTF-8 解码（支持中文）。"""
     if not _is_windows():
@@ -148,6 +225,10 @@ def scan_process_memory(pid: int) -> dict:
                     data = buf.raw[:bytes_read.value]
                     total += len(data)
                     regions += 1
+                    # 先尝试捞完整对象（能带出 name/type/uuid），失败才靠下面的正则兜底
+                    for obj in _extract_complete_objects(data):
+                        found_items.append({"label": "json_obj", "value": obj})
+
                     for label, pattern in SEARCH_PATTERNS.items():
                         for m in re.finditer(pattern, data):
                             # 用 UTF-8 解码（支持中文节点名），失败回退 ASCII
@@ -270,9 +351,33 @@ def extract_nodes(found_items: list[dict]) -> list[Node]:
             if m:
                 all_uuids.add(m.group(1))
 
+    # ① 完整对象优先（name/type/uuid/tls 都在），旧正则只作兜底
+    for item in found_items:
+        if item.get("label") != "json_obj":
+            continue
+        obj = item.get("value") or {}
+        srv = str(obj.get("server") or "").strip()
+        if not srv or srv in SKIP_IPS or srv in ("1.1.1.1", "127.0.0.1", "0.0.0.0"):
+            continue
+        try:
+            prt = int(obj.get("port"))
+        except Exception:
+            continue
+        nm = re.sub(r'[\x00-\x1f]', '', str(obj.get("name") or f"node-{prt}"))[:64] or f"node-{prt}"
+        proto = str(obj.get("type") or obj.get("protocol") or "unknown").lower()
+        raw = {"source": "memory_scan", "_complete": True}
+        for k in ("uuid", "password", "cipher", "alterId", "tls", "servername", "sni",
+                  "network", "flow", "skip-cert-verify", "udp", "plugin", "plugin-opts",
+                  "reality-opts", "ws-opts", "grpc-opts"):
+            if k in obj and obj[k] not in (None, "", False):
+                raw[k] = obj[k]
+        nodes[f"{srv}:{prt}"] = Node(name=nm, protocol=proto, server=srv, port=prt, raw=raw)
+
     for item in found_items:
         val = item["value"]
         label = item["label"]
+        if label == "json_obj":
+            continue
 
         # JSON node / anytls_frag / vless_frag / full_node
         if label in ("json_node", "anytls_frag", "vless_frag", "full_node"):
