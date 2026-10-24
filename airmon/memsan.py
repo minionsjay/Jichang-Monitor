@@ -225,7 +225,17 @@ def scan_process_memory(pid: int) -> dict:
                     data = buf.raw[:bytes_read.value]
                     total += len(data)
                     regions += 1
-                    # 先尝试捞完整对象（能带出 name/type/uuid），失败才靠下面的正则兜底
+                    # ① 整份 proxies 数组（最理想：一次拿到全部完整节点）
+                    arr_objs = _extract_proxies_arrays(data)
+                    if not arr_objs:
+                        # ①b 数组跨 region 截断时，退化为按 "server" 锚点逐个取对象
+                        try:
+                            arr_objs = _objects_by_anchor(data.decode("utf-8", "ignore"))
+                        except Exception:
+                            arr_objs = []
+                    for obj in arr_objs:
+                        found_items.append({"label": "json_obj", "value": obj})
+                    # ② 单个完整对象（带 name/type/uuid），失败才靠下面的正则兜底
                     for obj in _extract_complete_objects(data):
                         found_items.append({"label": "json_obj", "value": obj})
 
@@ -333,6 +343,97 @@ SKIP_IPS = {
     '1.12.12.21', '162.159.61.8', '104.21.44.93',
     '127.0.0.1', '0.0.0.0',
 }
+
+
+def _balanced_seq(text: str, start: int, open_ch: str, close_ch: str, max_len: int = 8_000_000):
+    """从 text[start] 的开括号起做配平（跳过字符串内的括号），返回完整片段。"""
+    if start >= len(text) or text[start] != open_ch:
+        return None
+    depth = 0
+    in_str = False
+    esc = False
+    end = min(len(text), start + max_len)
+    for i in range(start, end):
+        ch = text[i]
+        if in_str:
+            if esc:
+                esc = False
+            elif ch == "\\":
+                esc = True
+            elif ch == '"':
+                in_str = False
+            continue
+        if ch == '"':
+            in_str = True
+        elif ch == open_ch:
+            depth += 1
+        elif ch == close_ch:
+            depth -= 1
+            if depth == 0:
+                return text[start:i + 1]
+    return None
+
+
+def _extract_proxies_arrays(data: bytes) -> list[dict]:
+    """找内存里整份配置的 "proxies":[...] 数组并整体解析。
+
+    为什么优先级最高：节点对象往往以 "alpn"/"client-fingerprint" 开头
+    （server 在后），逐对象配平时起始正则抓不到；而整份配置的数组里
+    每个节点都是完整 dict，一次解析全拿到。
+    """
+    try:
+        text = data.decode("utf-8", "ignore")
+    except Exception:
+        return []
+    if "proxies" not in text:
+        return []
+    out: list[dict] = []
+    for m in re.finditer(r'"proxies"\s*:\s*\[', text):
+        frag = _balanced_seq(text, m.end() - 1, "[", "]")
+        if not frag or len(frag) < 20:
+            continue
+        try:
+            arr = json.loads(frag)
+        except Exception:
+            continue
+        if not isinstance(arr, list):
+            continue
+        for obj in arr:
+            if isinstance(obj, dict) and obj.get("server") and obj.get("port"):
+                out.append(obj)
+    return out
+
+
+def _objects_by_anchor(text: str) -> list[dict]:
+    """以 "server":"..." 为锚点向前找 { 并配平，拿到单节点 dict。
+
+    比整份 "proxies":[ 数组更抗截断：客户端把配置写在内存里时，
+    数组常常跨 region 边界（单个 region 只有 32KB~4MB），整份解析
+    会失败；单对象一般几 hundred 字节，落在同一 region 内。
+    起始键不固定（万达云是 alpn/client-fingerprint 开头，server 在后），
+    所以不能靠 \{\s*"server" 匹配。
+    """
+    out: list[dict] = []
+    seen: set[tuple] = set()
+    for m in re.finditer(r'"server"\s*:\s*"([^"]{2,150})"', text):
+        pos = text.rfind("{", 0, m.start())
+        tries = 0
+        while pos >= 0 and tries < 4:
+            frag = _balanced_seq(text, pos, "{", "}")
+            if frag:
+                try:
+                    obj = json.loads(frag)
+                except Exception:
+                    obj = None
+                if isinstance(obj, dict) and obj.get("server") and obj.get("port"):
+                    key = (str(obj.get("server")), str(obj.get("port")))
+                    if key not in seen:
+                        seen.add(key)
+                        out.append(obj)
+                    break
+            pos = text.rfind("{", 0, pos)
+            tries += 1
+    return out
 
 
 def extract_nodes(found_items: list[dict]) -> list[Node]:
