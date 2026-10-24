@@ -127,3 +127,34 @@ python -X utf8 tools/panel_preview_server.py --port 57010
 为什么改：`sub_health.json` 的 `last_ok` 是 2026-10-21 订阅诊断脚本写入的一次性值，之后每轮拉取成功都不会更新，于是出现「今天刚拉到、界面显示 2 天前」。改后 47 家里只有真正没再成功过的（如 bywave，20 节点停在 10-19）才会显示旧时间。
 
 配套：抽屉打开时用后端 `/api/airport/<slug>` 返回的 `last_ok`（同一算法实时算）覆盖显示；点「获取节点」拉取成功后，服务端会自动重跑 `tools/gen_panel_data.py` 重新生成 `data.js`，界面给出「点这里刷新」链接，刷新后卡片数字与时间同步更新。
+
+## 承载与 CDN 归属（2026-10-24 新增）
+
+抽屉里有两处新信息，回答的是「这家机场的节点落在谁家的云/CDN 上」。
+
+- **承载/CDN**（机场信息区）：按快照里每个节点 IP 的 RDAP 归属（owner/netname）归类后取前 4 名，
+  形如 `腾讯云 97% · 未归类 3%`。识别得到的厂商有：华为云/CDN、Cloudflare、Akamai、阿里云、
+  腾讯云（含海外 Aceville）、AWS、Azure、Google、Oracle、百度云、中华电信 HiNet、香港宽频/HKT、
+  Cogent、CTG、三大运营商，以及「IP 转租/代理」「未归类」。
+  含华为时该片段标红。归类只依据 RDAP 文本，不做额外请求，认不出的统一记「未归类」。
+- **节点表的「归属」列**：逐节点的厂商名，方便看出一家机场的节点是不是集中压在同一个落地。
+
+### CNAME 链也算证据
+
+`airmon/dnsq.py` 用纯标准库实现了 UDP DNS 查询（支持 CNAME 压缩指针、32 线程批量），
+`airmon/collect.py` 在富化阶段给域名型 server 采 CNAME 链写入 `raw._cnames`，
+`airmon/detect.py` 的域名维度再把这条链一起查。
+
+意义：节点域名 CNAME 到 `xxx.cdnhwcibv.com` / `xxx.hwclouds-dns.com` 这类华为 CDN 边缘域时，
+现在能被命中；此前只看 server 字符串，这一层完全看不见。
+
+### 当前实况（2026-10-24 实测 1131 个域名）
+
+- 994 个直接是 A 记录（无 CNAME），137 个有 CNAME 链：1 跳 79、2 跳 32、3 跳 26。
+- **没有任何一条指向公共 CDN**（Cloudflare / Akamai / 华为 CDN / CloudFront 均 0），
+  链的末跳都是机场自有域或自有 GSLB（`gslb-hy.com`、`gtm-host.com`、`singgnetworkcdn.com`）。
+- 115 个域名末跳换到了另一注册域（如 `39140.linknode.cc → wz2.hfzz.eu.org`），
+  属于跨域 CNAME 调度，不是 CDN。
+
+也就是说：**检测能力已经就位，但当前 47 家没有一家把节点前置到公共 CDN**。
+真有人这么做时，`detect.py` 会同时给两条证据（CNAME 命中 + 边缘 IP 的 RDAP 命中）。
