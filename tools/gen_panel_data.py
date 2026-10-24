@@ -91,6 +91,33 @@ def load_credentials_subs():
     return out
 
 
+def latest_ok_local(slug: str, limit: int = 8) -> str | None:
+    """最近一次「真拿到节点」的时间（本地时区 YYYY-MM-DD HH:MM）。
+
+    别用 sub_health.json 里那个 last_ok：它是诊断脚本 2026-10-21 的快照，
+    后续每轮拉取成功都不会改它，界面上就会出现「今天刚拉到、却显示 2 天前」。
+    """
+    d = os.path.join(DATA, slug)
+    try:
+        files = sorted((f for f in os.listdir(d) if re.match(r"\d{8}T\d{6}Z", f)), reverse=True)
+    except OSError:
+        return None
+    for name in files[:limit]:
+        try:
+            with io.open(os.path.join(d, name), encoding="utf-8") as fh:
+                snap = json.load(fh)
+        except Exception:
+            continue
+        if not (snap.get("nodes") or []):
+            continue
+        try:
+            t = datetime.strptime(name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        return t.astimezone().strftime("%Y-%m-%d %H:%M")
+    return None
+
+
 def load_names():
     """slug -> {cn, src}：卡片显示的中文名（人工维护 data/airport_names.json）。"""
     return jload(os.path.join(DATA, "airport_names.json"), {}) or {}
@@ -323,7 +350,7 @@ def main():
             "unlimited": bool(q.get("unlimited")),
             "reason": sh.get("reason") or "",
             "action": sh.get("action") or "",
-            "last_ok": sh.get("last_ok"),
+            "last_ok": latest_ok_local(slug) or sh.get("last_ok"),
             "stale_h": stale_h,
             "stability": stab.get("pct"),
             "churn": churn.get("churn") or 0,

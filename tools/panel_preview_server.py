@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime
 import io
 import json
 import re
@@ -144,7 +145,32 @@ def airport_detail(slug: str, reveal: bool = False) -> dict:
         "client_local": ver.get("local") or "",
         "client_latest": ver.get("latest") or "",
         "status": ver.get("status") or "",
+        "last_ok": latest_ok_local(slug),
     }
+
+
+def latest_ok_local(slug: str, limit: int = 8) -> str:
+    """最近一次真拿到节点的时间（扫该机场最近几份快照，别用诊断文件的旧值）。"""
+    d = DATA / slug
+    try:
+        names = sorted((n for n in os.listdir(d) if re.match(r"\d{8}T\d{6}Z", n)), reverse=True)
+    except OSError:
+        return ""
+    for name in names[:limit]:
+        try:
+            with io.open(d / name, encoding="utf-8") as fh:
+                snap = json.load(fh)
+        except Exception:
+            continue
+        if not (snap.get("nodes") or []):
+            continue
+        try:
+            t = datetime.datetime.strptime(name[:16], "%Y%m%dT%H%M%SZ").replace(
+                tzinfo=datetime.timezone.utc)
+        except ValueError:
+            continue
+        return t.astimezone().strftime("%Y-%m-%d %H:%M")
+    return ""
 
 
 def round_status() -> dict:
@@ -165,6 +191,29 @@ def _scrub(line: str) -> str:
     line = SCRUB_URL.sub("<订阅地址已隐藏>", line)
     line = SCRUB_KEYS.sub(lambda m: m.group(1) + "=<已隐藏>", line)
     return line.rstrip()
+
+
+def _regen_panel_data(job: dict) -> None:
+    """拉取成功后重跑数据生成器，让卡片/表格跟上新快照（best-effort）。"""
+    try:
+        with _job_lock:
+            job["regen"] = "running"
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "utf-8"
+        r = subprocess.run(
+            [sys.executable, "-X", "utf8", "tools/gen_panel_data.py"],
+            cwd=str(ROOT), env=env, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=300,
+        )
+        ok = r.returncode == 0 and "LEAK-CHECK CLEAN" in (r.stdout or "")
+        with _job_lock:
+            job["regen"] = "ok" if ok else "failed"
+            if not ok:
+                job["tail"].append("面板数据重生成失败：" + _scrub((r.stderr or r.stdout or "")[-300:]))
+    except Exception as e:  # noqa: BLE001
+        with _job_lock:
+            job["regen"] = "failed"
+            job["tail"].append("面板数据重生成异常：" + _scrub(str(e)))
 
 
 def _run_fetch(slug: str) -> None:
@@ -189,6 +238,8 @@ def _run_fetch(slug: str) -> None:
         with _job_lock:
             job["state"] = "done" if proc.returncode == 0 else "failed"
             job["exit"] = proc.returncode
+        if proc.returncode == 0:
+            _regen_panel_data(job)
     except Exception as e:  # noqa: BLE001
         with _job_lock:
             job["state"] = "failed"
@@ -214,6 +265,7 @@ def start_fetch(slug: str) -> dict:
             "slug": slug, "state": "running", "exit": None, "lines": 0, "tail": [],
             "started_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
             "ended_at": None,
+            "regen": "",
         }
     threading.Thread(target=_run_fetch, args=(slug,), daemon=True).start()
     return {"ok": True, "slug": slug}

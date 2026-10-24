@@ -119,3 +119,11 @@ python -X utf8 tools/panel_preview_server.py --port 57010
 - 只在本地预览服务（`python -X utf8 tools/panel_preview_server.py --port 57010`）下可用；双击 `standalone.html` 打开时没有后端，编辑入口不出现。
 
 对应后端：`tools/panel_preview_server.py` 的 `save_sub_url()` 与 `POST /api/sub`。
+
+## 「最近成功」的时间口径（2026-10-24）
+
+抽屉里「最近成功」= **该机场最近一份「真拿到节点」的快照时间**，由 `tools/gen_panel_data.py` 的 `latest_ok_local()` 扫 `data/<slug>/*.json` 得出，不读 `data/sub_health.json` 里的 `last_ok`。
+
+为什么改：`sub_health.json` 的 `last_ok` 是 2026-10-21 订阅诊断脚本写入的一次性值，之后每轮拉取成功都不会更新，于是出现「今天刚拉到、界面显示 2 天前」。改后 47 家里只有真正没再成功过的（如 bywave，20 节点停在 10-19）才会显示旧时间。
+
+配套：抽屉打开时用后端 `/api/airport/<slug>` 返回的 `last_ok`（同一算法实时算）覆盖显示；点「获取节点」拉取成功后，服务端会自动重跑 `tools/gen_panel_data.py` 重新生成 `data.js`，界面给出「点这里刷新」链接，刷新后卡片数字与时间同步更新。

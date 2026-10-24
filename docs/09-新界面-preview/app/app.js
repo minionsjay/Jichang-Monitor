@@ -765,7 +765,7 @@
       ["获取方式", esc(a.via || "—")],
       ["套餐到期", esc(a.expire || "—") + (a.days != null ? "（" + esc(daysText(a.days)) + "）" : "")],
       ["流量", a.unlimited ? "不限量" : (a.total_gb != null ? num(used) + " / " + num(a.total_gb) + " GB（" + (a.used_pct || 0) + "%）" : "—")],
-      ["最近成功", esc(relTime(a.last_ok))],
+      ["最近成功", '<span id="apLastOk">' + esc(relTime(a.last_ok)) + "</span>"],
       ["快照年龄", a.stale_h != null ? a.stale_h + " 小时" : "—"],
       ["30 天稳定", a.stability != null ? a.stability + "%" : "—"],
       ["累计波动", num(a.churn || 0)],
@@ -994,6 +994,8 @@
           });
         });
       }
+      var lo = $("#apLastOk");
+      if (lo && d.last_ok) lo.textContent = relTime(d.last_ok) + "（" + d.last_ok + "）";
       bindSubEditor(slug);
     }).catch(function (e) {
       box.innerHTML = apRow("说明", '<span class="dim">读取失败：' + esc(e.message) + "</span>");
@@ -1153,7 +1155,21 @@
       }
       btn.disabled = false;
       if (j.state === "done") {
-        msg.innerHTML = '<span style="color:var(--green)">完成</span> · 磁盘已更新，矩阵数字以下一轮导出为准';
+        if (j.regen === "ok") {
+          msg.innerHTML = '<span style="color:var(--green)">完成</span> · 已重新生成本页数据，' +
+            '<a href="javascript:void 0" id="apReload" style="color:var(--blue)">点这里刷新</a>看最新卡片';
+          var rl = $("#apReload");
+          if (rl) rl.onclick = function () { location.reload(); };
+        } else if (j.regen === "running") {
+          msg.innerHTML = '<span style="color:var(--green)">完成</span> · 正在重新生成本页数据…';
+          clearTimeout(fetchTimers[slug]);
+          fetchTimers[slug] = setTimeout(function () { pollFetch(slug); }, 1500);
+          log.className = "logbox";
+          loadAirportInfo(slug);
+          return;
+        } else {
+          msg.innerHTML = '<span style="color:var(--green)">完成</span> · 快照已更新（本页数据未重生成，刷新可能仍是旧值）';
+        }
         log.className = "logbox";
         loadAirportInfo(slug);
       } else if (j.state === "failed") {
