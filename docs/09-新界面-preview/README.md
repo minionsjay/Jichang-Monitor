@@ -186,3 +186,18 @@ python -X utf8 -m airmon.nodeset
 为什么用 `data/client_nodes/` 这个独立目录：`run.py all` 每轮的 scan-memory 会用「只有 server:port」的快照覆盖最新快照，若只看快照，完整节点会被瞬间吃掉（ssrdog 实测从 36 个归零）。`airmon/nodeset.py` 的 `_client_nodes()` + `_merge_nodes()` 把 client_nodes 当一等来源，按 `(server,port)` 合并。
 
 青云梯极速版实测：62 个 VLESS（XTLS-Vision、每节点独立 SNI），节点名 `香港-01…`，`uuid` 与面板 `xboard_domain_user.uuid` 一致。
+
+## 客户端配置只在内存时怎么捞（server 锚点法）
+
+有些客户端（万达云 `wandacloudCore`、青云梯 `ApexCore`）把订阅配置只放在内存里，磁盘上
+`cache.db` 不是 SQLite、`flutter_secure_storage.dat` 需 DPAPI 解密。内存里的节点对象
+**起始键不固定**（万达云是 `{"alpn":…,"client-fingerprint":…,"server":…`，`server` 在中间），
+所以不能靠 `\{\s*"server"` 匹配，整份 `"proxies":[…` 数组又常跨 region 边界截断。
+
+`airmon/memsan.py` 的做法：找每处 `"server":"…"`，向前回溯到 `{` 并做字符串感知的括号配平，
+再 `json.loads` 取单对象（失败就再往前找一个 `{`，最多 4 次）。实测万达云 555 条记录里
+捞出 68 个完整 AnyTLS 节点（香港10/台湾20/美国6/新加坡6/日本3/印尼3/韩国3…），
+其余 487 条是客户端探测出来的裸 `IP:端口`（无协议无密码，导不进配置，属正常）。
+
+客户端要**保持运行**才能扫：`credentials.yaml` 里给该机场 `client.keep_alive: true`，
+`run.py scan-memory` 扫完就不会 `taskkill` 关掉它。
