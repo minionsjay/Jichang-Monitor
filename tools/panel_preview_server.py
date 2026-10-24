@@ -206,12 +206,23 @@ def _regen_panel_data(job: dict) -> None:
             job["regen"] = "running"
         env = dict(os.environ)
         env["PYTHONIOENCODING"] = "utf-8"
+        # ① 先重算节点索引：scan-memory / pull 只写快照，nodes/index.json 由 nodeset 生成，
+        #    不跑这一步，面板会拿旧索引（表现为「明明扫到 95 个，卡片还是 62」）。
+        r0 = subprocess.run(
+            [sys.executable, "-X", "utf8", "-m", "airmon.nodeset"],
+            cwd=str(ROOT), env=env, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=600,
+        )
+        # ② 再生成面板数据
         r = subprocess.run(
             [sys.executable, "-X", "utf8", "tools/gen_panel_data.py"],
             cwd=str(ROOT), env=env, capture_output=True, text=True,
             encoding="utf-8", errors="replace", timeout=300,
         )
         ok = r.returncode == 0 and "LEAK-CHECK CLEAN" in (r.stdout or "")
+        if r0.returncode != 0:
+            with _job_lock:
+                job["tail"].append("节点索引重算失败：" + _scrub((r0.stderr or r0.stdout or "")[-200:]))
         with _job_lock:
             job["regen"] = "ok" if ok else "failed"
             if not ok:
