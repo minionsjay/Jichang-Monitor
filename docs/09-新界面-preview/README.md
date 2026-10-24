@@ -201,3 +201,28 @@ python -X utf8 -m airmon.nodeset
 
 客户端要**保持运行**才能扫：`credentials.yaml` 里给该机场 `client.keep_alive: true`，
 `run.py scan-memory` 扫完就不会 `taskkill` 关掉它。
+
+## 运行记录（独立于总览）
+
+「运行」页现在是定时轮的账本，三块：
+
+1. **健康体检**：`tools/watchdog.py` 的四类病（僵尸锁 / 心跳超时 / 台账未收尾 / 太久没成功）。
+2. **历史轮次**：`data/runs.json` 最近 20 轮（开始/耗时/触发/结果/成功失败/节点/陈旧），点一行展开失败名单。
+   只有带 `trigger: scheduled` 的是定时轮；早期轮次是 `tools/backfill_runs.py` 从快照时间聚类还原的，标 `derived`。
+3. **订阅原文存档**：`data/subraw/<slug>/<ts>.yaml|json|txt` 是每轮订阅的原始响应（每机场留 30 份）。
+   正文含节点密码/uuid，**不进 git**（`.gitignore` 已排除 `data/subraw/`），面板查看走 `/api/raw/<slug>` 且服务端打码。
+
+定时轮跑完时，前端 60 秒轮询 `/api/status` 的 `started_at|ended_at|nodes_total` 指纹，
+一变就 `reloadData()` 并 toast「检测到新一轮跑完」——总览、到期、告警、节点页一起换新。
+
+## 代理可达性（哪些机场非走代理不可）
+
+`python -X utf8 tools/proxy_need.py` → `data/proxy_need.json`，对每家机场的订阅地址与面板各测两次（直连 / 走 `[::1]:7890`），
+只读第一段响应，不下载全文。面板上体现为两处：抽屉「订阅入口」一行、运行页「代理可达性」一块。
+
+分类词只有五个：`直连即可` / `直连/代理均可` / `需代理` / `直连不通 · 需代理`（直连失败且代理没测）/ `直连与代理都不通`。
+
+注意两点：
+
+- **代理没开时那一组不测**，所以「需代理」无法判定，只能看到「直连不通」；先开代理再跑一次才有完整结论。
+- `403 / 504` 不算「需代理」——那是站点自己拦脚本或站点挂了，开代理也未必通；`SSL 握手失败`才是墙外订阅域的典型特征。
