@@ -158,3 +158,13 @@ python -X utf8 tools/panel_preview_server.py --port 57010
 
 也就是说：**检测能力已经就位，但当前 47 家没有一家把节点前置到公共 CDN**。
 真有人这么做时，`detect.py` 会同时给两条证据（CNAME 命中 + 边缘 IP 的 RDAP 命中）。
+
+## 拉取成功后卡片即时变绿
+
+在抽屉里点「获取节点」，流程是：`POST api/fetch/<slug>` → 真跑 `run.py pull --airport <slug>` → 成功后自动重跑 `tools/gen_panel_data.py` 重写 `data.js` → 前端 `reloadData()` 重新拉取并重绘。三处关键修复（2026-10-24）：
+
+1. **状态按实测判定**：`state` 不再吃 `data/sub_health.json` 里上一次诊断的旧值，而是「最新快照时间 + 是否真有节点 + 套餐是否过期」实时算。所以订阅换好、拉取成功后卡片立刻从黄转绿（实测 ktm 55 节点、everlife 23 节点）。
+2. **清视图绘制标记**：`reloadData()` 里补 `S.drawn = {}`。之前每个视图都有「画过一次就 return」的标记，数据变了但卡片纹丝不动。
+3. **抽屉提示重写**：抽屉重绘会重建 `#apFetchMsg`，所以先重绘再写「已完成 · 已刷新」，否则提示被冲掉、看起来像没反应。
+
+`data/sub_health.json` 仍保留 `reason` / `action` 两列（说明「卡在哪、该做什么」），只是不再决定颜色。
