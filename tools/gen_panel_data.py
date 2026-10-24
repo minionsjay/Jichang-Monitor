@@ -478,6 +478,9 @@ def main():
                         break
                     if ikey:
                         infra_cnt[ikey] = infra_cnt.get(ikey, 0) + 1
+                    # 解析出的 IP：节点 server 多半是域名，真正的落地 IP 在 raw._resolved_ips，
+                    # 不带上这一列，面板上就只看到 xxx.example.com:22063，完全看不出节点在哪。
+                    _ips = (nd.get("raw") or {}).get("_resolved_ips") or []
                     row = [
                         (nd.get("name") or "")[:48],
                         proto,
@@ -486,6 +489,7 @@ def main():
                         1 if proto in EXPORTABLE else 0,
                         owner,
                         _infra_label(ikey) if ikey else "",
+                        str(_ips[0])[:40] if _ips else "",
                     ]
                     node_rows.append(row)
         except Exception:

@@ -575,6 +575,49 @@ def _account_block(lines: list[str], slug: str):
     return None
 
 
+NODES = ROOT / "nodes"
+
+
+def file_view(slug: str, kind: str) -> dict:
+    """给抽屉「原始文件」按钮用：返回**打码后**的文件正文。
+
+    kind=raw  订阅原文（订阅链接下载下来的那一坨）
+    kind=snap 解析后的快照 JSON（含 _resolved_ips / _cnames / _rdap / 华为命中）
+    kind=yaml 导出的 Clash 配置（nodes/<slug>.yaml）
+    """
+    if not re.match(r"^[a-z0-9][a-z0-9_-]{0,40}$", slug or ""):
+        return {"ok": False, "error": "机场标识不合法"}
+    rs = _rawstore()
+    try:
+        if kind == "raw":
+            meta = (rs.load_index() or {}).get(slug) or {}
+            path = meta.get("path")
+            if not path or not os.path.exists(path):
+                return {"ok": False, "error": "这家还没有订阅原文存档（server-fetch 分支没有原文）"}
+            title = "订阅原文 · %s · %s B · %s" % (os.path.basename(path), meta.get("bytes"), meta.get("via") or "")
+            text = rs.scrubbed_text(path, limit=800_000)
+        elif kind == "snap":
+            name = _snapnames.newest(DATA / slug)
+            if not name:
+                return {"ok": False, "error": "这家还没有快照"}
+            path = DATA / slug / name
+            title = "解析后快照 · %s · %d B" % (name, path.stat().st_size)
+            # 快照是 JSON，密码/uuid 同样要打码；source 里的订阅主机名也隐掉前缀
+            text = rs.scrubbed_text(str(path), limit=800_000)
+            text = re.sub(r'("source"\s*:\s*"https?://)([^."/]+)', r"\1<已隐藏>", text)
+        elif kind == "yaml":
+            path = NODES / (slug + ".yaml")
+            if not path.exists():
+                return {"ok": False, "error": "这家没有可导出节点（nodes/%s.yaml 不存在）" % slug}
+            title = "导出配置 · nodes/%s.yaml · %d B" % (slug, path.stat().st_size)
+            text = rs.scrubbed_text(str(path), limit=800_000)
+        else:
+            return {"ok": False, "error": "未知的文件类型：%s" % kind}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}
+    return {"ok": True, "slug": slug, "kind": kind, "title": title, "text": text}
+
+
 def save_sub_url(slug: str, url: str) -> dict:
     """把某家的 sub_url 写回 credentials.yaml：文本级替换单行，先备份、写完回读校验。"""
     slug = (slug or "").strip()
@@ -712,6 +755,11 @@ class Handler(SimpleHTTPRequestHandler):
                 self._json({"ok": False, "error": "%s: %s" % (type(e).__name__, e)}, 500)
             return True
 
+        if parts[:2] == ["api", "file"] and len(parts) == 3:
+            kind = (q.get("kind", ["raw"])[0] or "raw").lower()
+            self._json(file_view(parts[2], kind))
+            return True
+
         if parts[:2] == ["api", "sub"] and self.command == "POST":
             length = int(self.headers.get("Content-Length") or 0)
             if length <= 0 or length > 8192:
@@ -764,6 +812,7 @@ def main(argv: list[str] | None = None) -> int:
     print("  POST /api/fetch/<slug>   真跑 run.py pull --airport <slug>")
     print("  POST /api/sub            改订阅地址 → 写回 credentials.yaml（先备份）")
     print("  /api/raw/<slug>          最近一份订阅原文（JWT/密码/uuid 已打码）")
+    print("  /api/file/<slug>?kind=   打码后的 原文 raw / 快照 snap / 导出配置 yaml")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

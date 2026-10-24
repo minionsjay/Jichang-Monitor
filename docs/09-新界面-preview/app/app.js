@@ -969,6 +969,14 @@
       '<span class="small dim" id="apFetchMsg"></span></div>' +
       '<div class="logbox" id="apLog" style="display:none"></div>';
 
+    /* 原始文件：订阅下载下来那一坨 / 我们解析后的快照 / 导出配置，都打码后可看 */
+    h += '<div class="sub-h">原始文件</div>' +
+      '<div class="row wrap" style="gap:8px">' +
+      '<button class="btn xs" id="apFileRaw">订阅原文</button>' +
+      '<button class="btn xs" id="apFileSnap">解析后快照</button>' +
+      '<button class="btn xs" id="apFileYaml">导出配置</button>' +
+      '<span class="small dim">密码/uuid/令牌已打码</span></div>';
+
     h += '<dl class="kv">';
     kv.forEach(function (p) { h += "<dt>" + p[0] + "</dt><dd>" + p[1] + "</dd>"; });
     h += "</dl>";
@@ -1032,12 +1040,14 @@
       rows.forEach(function (r) { pc[r[1]] = (pc[r[1]] || 0) + 1; });
       h += '<div class="sub-h">节点（全部 ' + rows.length + ' 条）</div>';
       h += '<div class="nodewrap"><table class="tbl compact nodetbl"><thead><tr>' +
-        '<th class="nm">名称</th><th>协议</th><th>地址</th><th>归属</th></tr></thead><tbody>';
+        '<th class="nm">名称</th><th>协议</th><th>地址</th><th>解析 IP</th><th>归属</th></tr></thead><tbody>';
       rows.forEach(function (r) {
         var own = r[6] || r[5] || "—";
         var hot2 = own.indexOf("华为") === 0 ? ' class="hot"' : "";
+        var ip = r[7] || "";
         h += '<tr><td class="nm xsmall">' + esc(r[0] || "—") + '</td><td class="xsmall nowrap"><i class="dotc" style="background:' +
-          protoColor(r[1]) + ';margin-right:5px"></i>' + esc(r[1]) + '</td><td class="mono xsmall dim">' + esc(r[2]) + ":" + (r[3] || "") + '</td><td class="xsmall dim"' + hot2 + ">" + esc(own) + "</td></tr>";
+          protoColor(r[1]) + ';margin-right:5px"></i>' + esc(r[1]) + '</td><td class="mono xsmall dim">' + esc(r[2]) + ":" + (r[3] || "") +
+          '</td><td class="mono xsmall' + (ip ? "" : " dim") + '">' + esc(ip || "未解析") + '</td><td class="xsmall dim"' + hot2 + ">" + esc(own) + "</td></tr>";
       });
       h += "</tbody></table></div>";
     } else {
@@ -1051,6 +1061,22 @@
 
     loadAirportInfo(slug);
     $("#apFetch").addEventListener("click", function () { fetchNodes(slug); });
+    [["apFileRaw", "raw"], ["apFileSnap", "snap"], ["apFileYaml", "yaml"]].forEach(function (p) {
+      var el = $("#" + p[0]);
+      if (el) el.addEventListener("click", function () { viewFile(slug, p[1]); });
+    });
+  }
+
+  /* 看打码后的原始文件：原文 / 快照 / 导出配置 */
+  function viewFile(slug, kind) {
+    openModal("读取中…", "正在取文件…");
+    fetch("api/file/" + encodeURIComponent(slug) + "?kind=" + kind, { cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { openModal("取不到这个文件", j.error || "未知原因"); return; }
+        openModal(j.title || kind, j.text || "");
+      })
+      .catch(function (e) { openModal("取不到这个文件", String(e)); });
   }
 
   /* ------------------------------------------------------ 本地预览后端 */

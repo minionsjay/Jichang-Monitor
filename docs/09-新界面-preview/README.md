@@ -274,3 +274,39 @@ panel_preview_server / backfill_runs）已统一。
 | `data/rdap_cache.json` | RDAP 归属缓存（命中新 IP 时追加） |
 
 `server-fetch` 分支是直接吃 v2board 的 JSON API，没有"订阅原文"，所以不写 `subraw/`。
+
+## 为什么以前看不到 IP，现在能看到（2026-10-24）
+
+订阅里的节点 `server` 90% 是域名（`2021.lev03.dnsapp.us:22063`），真正的落地 IP 在解析结果里：
+`raw._resolved_ips = ["114.42.192.93"]` + `raw._rdap = {"114.42.192.93": ["HINET-NET", "HINET Network-Adm", "TW", ""]}`。
+之前面板只取 `server`，所以永远只显示域名；现在节点表多了「解析 IP」一列（`node_rows[7]`），
+`未解析` 表示这轮 DNS 没解析出来（多半是域名挂了或解析超时）。
+
+顺带口径：`归属` 列（中华电信 HiNet / 华为云 / Cloudflare …）就是从这个 IP 的 RDAP 推出来的，
+不是从域名推的 —— 所以「解析 IP 为空」时归属也会是 `—`。
+
+## 数据流：订阅下载下来之后做了什么
+
+`run.py pull --airport <slug>` 的实际顺序：
+
+1. **拿原始文本** —— `collect.fetch_subscription()`（订阅 URL）或面板登录 / `server-fetch` API；
+   `airmon.rawstore.save_raw()` 存一份原文到 `data/subraw/<slug>/`
+2. **解析** —— `airmon.parse.parse_subscription()`：Clash YAML / base64 订阅体 / v2board JSON，统一成 `Node{name, protocol, server, port, raw{cipher,password,uuid,…}}`
+3. **DNS 解析** —— `airmon.enrich`：对域名型 `server` 查 A 记录写 `raw._resolved_ips`，查 CNAME 链写 `raw._cnames`（`airmon.dnsq`，标准库 UDP DNS，32 线程）
+4. **RDAP 归属** —— 对每个 IP 查 `raw._rdap`（`airmon.enrich.rdap_many`，带 `data/rdap_cache.json` 缓存），拿到 netname / 机构名 / 国家
+5. **判归属** —— `airmon.infra.classify()` 把 RDAP 的 owner+netname 归到华为云 / Cloudflare / 中华电信 / AWS…
+6. **华为五维判定** —— `airmon.detect`：rdap_name / asn / cidr / domain（server 本身 + CNAME 链）/ string
+7. **落盘** —— `store.save()` 写 `data/<slug>/<本地时间>.json`（节点 + meta + 命中）
+8. **后处理** —— `airmon.nodeset` 生成 `nodes/<slug>.yaml|txt`，`tools/gen_panel_data.py` 生成 `data.js`
+
+## 抽屉里的「原始文件」三个按钮
+
+| 按钮 | 内容 | 来源 |
+|---|---|---|
+| 订阅原文 | 订阅链接下载回来那一坨（YAML / base64 / JSON） | `data/subraw/<slug>/` 最近一份 |
+| 解析后快照 | 我们解析后的完整 JSON（节点 + `_resolved_ips` + `_cnames` + `_rdap` + 华为命中） | `data/<slug>/` 最新快照 |
+| 导出配置 | `nodes/<slug>.yaml`（可直接喂 mihomo proxy-provider） | `nodeset` 产出 |
+
+三个都走 `GET /api/file/<slug>?kind=raw|snap|yaml`，正文一律**打码**：JWT、`password`/`uuid`/`auth`/`token`/`key`
+替换成 `<已隐藏>`，`source` 里的订阅主机名隐掉前缀（`https://<已隐藏>.yuji.homes`）。
+`订阅原文` 对走 `server-fetch` API 的机场会返回「没有原文」——那种分支吃的是 JSON API 响应，没有订阅文本。
