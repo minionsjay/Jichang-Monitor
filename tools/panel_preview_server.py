@@ -222,13 +222,39 @@ def _regen_panel_data(job: dict) -> None:
             job["tail"].append("面板数据重生成异常：" + _scrub(str(e)))
 
 
+def _fetch_cmd(slug: str) -> tuple[list[str], str]:
+    """选对命令：客户端型机场没有订阅地址，`pull` 必然 0 节点，要用 scan-memory。
+
+    qingyunti/hhy/dovex 这类的节点只活在客户端内核内存里，
+    订阅那一套（pull）对它们无效 —— 之前按钮一律跑 pull，所以「运行几次都是 0」。
+    """
+    creds = _load_yaml("credentials.yaml")
+    reg = _load_yaml("airports.yaml")
+    acc = ((creds.get("accounts") or {}) if isinstance(creds, dict) else {}).get(slug) or {}
+    ent = {}
+    for e in (reg.get("airports") or []) if isinstance(reg, dict) else []:
+        if isinstance(e, dict) and e.get("name") == slug:
+            ent = e
+            break
+    core = ""
+    if isinstance(ent.get("client"), dict):
+        core = ent["client"].get("core_process") or ""
+    is_client = (acc.get("type") == "client") or bool(core) or not acc.get("sub_url")
+    if is_client and not acc.get("sub_url"):
+        cmd = [sys.executable, "-X", "utf8", "run.py", "scan-memory", "--airport", slug]
+        return cmd, "scan-memory" + ((" · " + core) if core else "")
+    return [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"], "pull"
+
+
 def _run_fetch(slug: str) -> None:
     job = _jobs[slug]
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
     env["HTTP_PROXY"] = "http://[::1]:7890"
     env["HTTPS_PROXY"] = "http://[::1]:7890"
-    cmd = [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"]
+    cmd, mode = _fetch_cmd(slug)
+    with _job_lock:
+        job["mode"] = mode
     try:
         proc = subprocess.Popen(
             cmd, cwd=str(ROOT), env=env,

@@ -394,6 +394,9 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     # 适用场景: QQT等需要保持登录态的客户端, 扫描后不关闭, 下次直接读内存
     if client_cfg.get("keep_alive"):
         print(f"    [{slug}] keep_alive=true, 保持客户端运行(不关闭)", flush=True)
+    elif not auto_started:
+        # 客户端本来就是用户开着的：只读内存，不要把人家的客户端关掉
+        print(f"    [{slug}] 客户端由用户启动，扫描后保持运行", flush=True)
     else:
         try:
             _sp.run(["taskkill", "/F", "/IM", f"{core_process}.exe"],
@@ -862,6 +865,7 @@ def cmd_scan_memory(args):
 
             if os.path.exists(exe_path):
                 print(f"启动客户端: {exe_path}")
+                launched_by_us = True
                 _sp.Popen([exe_path], cwd=install_dir)
                 print(f"等待 {core_process} 启动（最多60秒）...")
                 for _ in range(30):
@@ -913,8 +917,8 @@ def cmd_scan_memory(args):
         print("  建议：python3 run.py monitor-net --airport", args.airport,
               "--client", core_process, "--watch")
 
-    # 自动关闭客户端（如果是本命令启动的）
-    if not args.pid:
+    # 自动关闭客户端：**仅**当它是由本命令启动的。用户自己开着的别杀。
+    if not args.pid and locals().get("launched_by_us"):
         try:
             _sp.run(["taskkill", "/F", "/IM", f"{core_process}.exe"],
                      capture_output=True, timeout=10)
