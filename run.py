@@ -311,10 +311,12 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
 
     def _find_pid(proc_name):
         try:
+            # tasklist 输出是 GBK；不能用 text=True（本机 utf-8 模式会 UnicodeDecodeError）
             r = _sp.run(["tasklist", "/FI", f"IMAGENAME eq {proc_name}.exe",
                          "/FO", "CSV", "/NH"],
-                        capture_output=True, text=True, timeout=10)
-            for line in r.stdout.strip().split("\n"):
+                        capture_output=True, timeout=10)
+            out = (r.stdout or b"").decode("gbk", "replace")
+            for line in out.strip().split("\n"):
                 parts = line.strip('"').split('","')
                 if len(parts) >= 2 and parts[0].lower() == f"{proc_name}.exe".lower():
                     return int(parts[1])
@@ -814,10 +816,12 @@ def cmd_scan_memory(args):
 
     def _find_pid(proc_name):
         try:
+            # tasklist 输出是 GBK；不能用 text=True（本机 utf-8 模式会 UnicodeDecodeError）
             r = _sp.run(["tasklist", "/FI", f"IMAGENAME eq {proc_name}.exe",
                          "/FO", "CSV", "/NH"],
-                        capture_output=True, text=True, timeout=10)
-            for line in r.stdout.strip().split("\n"):
+                        capture_output=True, timeout=10)
+            out = (r.stdout or b"").decode("gbk", "replace")
+            for line in out.strip().split("\n"):
                 parts = line.strip('"').split('","')
                 if len(parts) >= 2 and parts[0].lower() == f"{proc_name}.exe".lower():
                     return int(parts[1])
