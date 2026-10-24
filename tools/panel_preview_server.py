@@ -179,6 +179,33 @@ def latest_ok_local(slug: str, limit: int = 8) -> str:
     return ""
 
 
+_WD = {"mod": None, "cache": None, "at": 0.0}
+
+
+def watchdog_report() -> dict:
+    """跑一次 tools/watchdog.py 体检（模块只加载一次，结果缓存 10 秒）。
+
+    体检内容：僵尸锁 / 心跳超时（卡死）/ last_run 未收尾 / 太久没成功。
+    """
+    import importlib.util
+    now = time.time()
+    try:
+        if _WD["mod"] is None:
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "watchdog.py")
+            spec = importlib.util.spec_from_file_location("_airmon_watchdog", path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _WD["mod"] = mod
+        if _WD["cache"] and now - _WD["at"] < 10:
+            return _WD["cache"]
+        res = _WD["mod"].check()
+        _WD["cache"] = res
+        _WD["at"] = now
+        return res
+    except Exception as e:
+        return {"healthy": None, "error": str(e), "problems": []}
+
+
 def round_status() -> dict:
     d = _load_json(DATA / "last_run.json", {})
     return {
@@ -189,6 +216,7 @@ def round_status() -> dict:
         "pull_ok": d.get("pull_ok"),
         "pull_fail": d.get("pull_fail"),
         "nodes_total": d.get("nodes_total"),
+        "watchdog": watchdog_report(),
     }
 
 

@@ -691,7 +691,34 @@
     var fail = typeof r.pull_fail === "number" ? r.pull_fail : null;
     var dur = r.duration_s ? (r.duration_s / 60).toFixed(1) + " 分钟" : "—";
 
-    var h = '<div class="kpis" style="grid-template-columns:repeat(5,minmax(0,1fr))">' +
+    var h = "";
+    var wd = API.wd;
+    if (wd) {
+      var bad = wd.healthy === false;
+      var probs = wd.problems || [];
+      h += '<div class="sec" style="border-color:' + (bad ? "var(--red)" : "var(--line)") + '">' +
+        '<div class="sec-h"><h2>健康体检</h2><span class="n">' +
+        (wd.heartbeat_age_min != null ? "心跳 " + wd.heartbeat_age_min.toFixed(1) + " 分钟前" : "无心跳") + "</span></div>" +
+        '<div class="sec-b tight"><div class="row wrap" style="gap:8px;align-items:center">' +
+        pill(bad ? "pill r" : "pill g", bad ? "异常 " + probs.length + " 项" : "健康") +
+        pill(wd.round_running ? "pill t" : "pill", wd.round_running ? "轮次在跑" : "当前无轮次") +
+        (wd.heartbeat_step ? pill("pill", esc(wd.heartbeat_step)) : "") +
+        (wd.heartbeat_progress ? pill("pill b", esc(wd.heartbeat_progress) + " 家") : "") +
+        (wd.heartbeat_airport ? '<span class="dim small">当前 ' + esc(wd.heartbeat_airport) + "</span>" : "") +
+        "</div>";
+      if (probs.length) {
+        h += '<table class="tbl compact" style="margin-top:8px"><thead><tr><th>问题</th><th>说明</th><th>怎么处理</th></tr></thead><tbody>';
+        probs.forEach(function (p) {
+          h += '<tr><td class="mono xsmall">' + esc(p.kind) + "</td><td>" + esc(p.summary || "") +
+               '</td><td class="xsmall dim">' + esc(p.fix || "—") + "</td></tr>";
+        });
+        h += "</tbody></table>";
+      } else {
+        h += '<div class="dim small" style="margin-top:6px">锁、心跳、台账三者一致：没有僵尸锁、没有卡死、上一轮正常收尾。</div>';
+      }
+      h += "</div></div>";
+    }
+    h += '<div class="kpis' + (h ? ' mt14' : '') + '" style="grid-template-columns:repeat(5,minmax(0,1fr))">' +
       '<div class="kpi ' + (r.status === "ok" ? "ok" : "b") + '"><div class="lb">本轮状态</div><div class="vl" style="font-size:22px">' + esc(r.status || "—") + '</div><div class="ft">' + esc(r.step || "") + "</div></div>" +
       '<div class="kpi"><div class="lb">耗时</div><div class="vl" style="font-size:22px">' + esc(dur) + '</div><div class="ft">' + esc(shortTime(r.started_at)) + " → " + esc(shortTime(r.ended_at)) + "</div></div>" +
       '<div class="kpi ok"><div class="lb">拉取成功</div><div class="vl" style="font-size:22px">' + (ok == null ? "—" : num(ok)) + '</div><div class="ft">家机场</div></div>' +
@@ -900,6 +927,10 @@ var API = { ok: false, reason: "" };
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
         API.ok = true;
+        return r.json().then(function (j) {
+          API.wd = j.watchdog || null;
+          if (S.view === "run" && RENDER.run) RENDER.run();
+        }).catch(function () {});
       })
       .catch(function () {
         API.ok = false;

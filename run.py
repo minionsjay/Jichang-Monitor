@@ -1037,6 +1037,63 @@ def _pull_one_safe(slug: str, cred: dict, detector: Detector, box: dict):
         box["err"] = f"{type(e).__name__}: {e}"
 
 
+# ── 轮次心跳：给看门狗/面板用（last_run.json 只在起手和收尾写，中间被杀就看不出来） ──
+_HB_STATE = {"step": None, "done": None, "total": None, "airport": None, "started": None, "epoch": 0.0}
+
+
+def _heartbeat(step=None, done=None, total=None, airport=None, force=False):
+    """把当前轮次进度写进 data/run_heartbeat.json（节流 5 秒）。
+
+    为什么单独一个文件：last_run.json 只在起手/收尾写，进程被硬杀时它永远停在
+    status=running，看不出「死在哪一步、多久没动了」。心跳每步/每机场更新，
+    外部（tools/watchdog.py、面板 /api/status）超过 90 分钟没见更新即可判定卡死。
+    """
+    import json as _json
+    import time as _time
+    try:
+        now = _time.time()
+        if not force and now - _HB_STATE.get("epoch", 0.0) < 5:
+            return
+        _HB_STATE["epoch"] = now
+        if step is not None:
+            _HB_STATE["step"] = step
+        if done is not None:
+            _HB_STATE["done"] = done
+        if total is not None:
+            _HB_STATE["total"] = total
+        if airport is not None:
+            _HB_STATE["airport"] = airport
+        if not _HB_STATE.get("started"):
+            _HB_STATE["started"] = store.now_iso()
+        payload = {
+            "pid": os.getpid(),
+            "started_at": _HB_STATE["started"],
+            "updated_at": store.now_iso(),
+            "epoch": int(now),
+            "step": _HB_STATE.get("step"),
+            "done": _HB_STATE.get("done"),
+            "total": _HB_STATE.get("total"),
+            "airport": _HB_STATE.get("airport"),
+        }
+        path = os.path.join(store.DATA_DIR, "run_heartbeat.json")
+        tmp = path + ".tmp"
+        with open(tmp, "w", encoding="utf-8") as f:
+            _json.dump(payload, f, ensure_ascii=False, indent=2)
+        os.replace(tmp, path)
+    except Exception:
+        pass
+
+
+def _heartbeat_done():
+    """本轮正常收尾：删掉心跳文件（存在=还在跑，不存在=没在跑）。"""
+    try:
+        path = os.path.join(store.DATA_DIR, "run_heartbeat.json")
+        if os.path.exists(path):
+            os.remove(path)
+    except Exception:
+        pass
+
+
 def cmd_all(args):
     global VERBOSE
     VERBOSE = getattr(args, "verbose", False)
@@ -1060,11 +1117,13 @@ def cmd_all(args):
     creds = load_credentials()
     detector = Detector()
     total = len(creds)
+    _heartbeat(step="1/5 拉取订阅", done=0, total=total, force=True)
     print(f"=== 1/5 拉取所有机场 (共{total}个) ===")
     ok, fail = 0, 0
     failed: list[tuple[str, str]] = []
     for i, (slug, cred) in enumerate(creds.items(), 1):
         print(f"[{i}/{total}] 正在拉取 {slug} ...", flush=True)
+        _heartbeat(step="1/5 拉取订阅", done=i - 1, total=total, airport=slug, force=True)
         before = _latest_snap_name(slug)
         box: dict = {}
         t = threading.Thread(target=_pull_one_safe, args=(slug, cred, detector, box), daemon=True)
@@ -1084,6 +1143,7 @@ def cmd_all(args):
     print(f"\n  拉取完成: {ok}成功 / {fail}失败")
 
     # 2/5: 客户端型机场 — 自动启动客户端 → 等待连接 → scan-memory → 关闭
+    _heartbeat(step="2/5 客户端内存扫描", force=True)
     print("\n=== 2/5 客户端型机场内存扫描 ===")
     client_scanned = 0
     # 从 credentials.yaml 和 airports.yaml 收集所有有client配置的机场
@@ -1095,6 +1155,7 @@ def cmd_all(args):
         client_cfg = cred.get("client") or _get_client_config(slug)
         if not client_cfg or not client_cfg.get("core_process"):
             continue
+        _heartbeat(step="2/5 客户端内存扫描", airport=slug, force=True)
         _do_scan_memory(slug, client_cfg, detector)
         client_scanned += 1
     # 也检查 airports.yaml 里 enabled 的 client 类型
@@ -1109,6 +1170,7 @@ def cmd_all(args):
         if not client_cfg or not client_cfg.get("core_process"):
             continue
         checked.add(slug)
+        _heartbeat(step="2/5 客户端内存扫描", airport=slug, force=True)
         _do_scan_memory(slug, client_cfg, detector)
         client_scanned += 1
 
@@ -1117,16 +1179,20 @@ def cmd_all(args):
     else:
         print("  (无客户端型机场可扫描)")
 
+    _heartbeat(step="3/5 补全落地归属", force=True)
     print("\n=== 3/5 补全落地IP归属 (rescan) ===")
     for slug in [os.path.basename(d.rstrip("/").rstrip("\\")) for d in
                  glob.glob(os.path.join(store.DATA_DIR, "*/"))
                  if os.path.basename(d.rstrip("/").rstrip("\\"))
                  and not os.path.basename(d.rstrip("/").rstrip("\\")).startswith(("_", "."))]:
+        _heartbeat(step="3/5 补全落地归属", airport=slug)
         snap = rescan_airport(slug, detector)
         if snap:
             store.save(snap)
+    _heartbeat(step="4/5 导出 CSV", force=True)
     print("\n=== 4/5 导出 CSV ===")
     cmd_export(argparse.Namespace(airport=None, out=args.out))
+    _heartbeat(step="5/5 生成报告", force=True)
     print("=== 5/5 生成报告 ===")
     report_path = report_mod.generate(None)
     print(f"报告 → {report_path}")
@@ -1159,6 +1225,7 @@ def cmd_all(args):
 
     # 5.4/5 套餐数据刷新（离线收割新快照的 subscription-userinfo；数据>7天旧才在线补拉。best-effort）
     try:
+        _heartbeat(step="5.4 套餐刷新", force=True)
         from airmon.quota import main as _quota_main
         _quota_main([])
     except Exception as _e:
@@ -1166,6 +1233,7 @@ def cmd_all(args):
 
     # 5.5/5 仪表盘（best-effort，失败不影响主流程与退出码）
     try:
+        _heartbeat(step="5.5 仪表盘", force=True)
         from airmon.dashboard import generate
         print(f"仪表盘 → {generate()}")
     except Exception as _e:
@@ -1173,6 +1241,7 @@ def cmd_all(args):
 
     # 5.6/5 机场分析预计算（增量缓存，日常增量很快；best-effort）
     try:
+        _heartbeat(step="5.6 分析预计算", force=True)
         from airmon.analyze import build as _analyze_build
         _analyze_build()
         print("分析数据 → data\\analysis.json")
@@ -1224,6 +1293,7 @@ def cmd_all(args):
     # 5.10/5 节点分文件导出（每机场一个 Clash 订阅 + base64 订阅体；best-effort）
     # 产物在 nodes/（含真实凭据，已在 .gitignore），随本轮快照一起刷新
     try:
+        _heartbeat(step="5.10 节点分文件", force=True)
         from airmon.nodeset import export as _nodeset_export
         _nt = _nodeset_export()["totals"]
         print(f"节点分文件 → nodes\\（{_nt['airports']} 机场 / {_nt['nodes']} 节点，"
@@ -1233,6 +1303,7 @@ def cmd_all(args):
     # 5.11/5 机场状态台账（在 docs/机场可用性清单-*.xlsx 里新增一张以「本轮结束时间」命名的表）
     # 依赖 openpyxl：本进程没有就找 DSH 自带 python 跑；都不可用则跳过，不影响主流程
     try:
+        _heartbeat(step="5.11 状态台账", force=True)
         _tool = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tools", "update_airport_xlsx.py")
         if os.path.exists(_tool):
             _ran = False
@@ -1263,6 +1334,7 @@ def cmd_all(args):
                 print("[状态表] 本机没有 openpyxl，本轮跳过")
     except Exception as _e:
         print(f"[状态表生成失败，忽略] {_e}")
+    _heartbeat_done()
     try:
         os.remove(_lock)
     except Exception:

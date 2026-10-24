@@ -600,6 +600,8 @@ table.tbl .mono { font-family: var(--mono); font-size: 12px; }
 .pill.d { background: rgba(240, 85, 92, .13); color: #ff9a9e; }
 .pill.t { background: rgba(62, 224, 176, .12); color: #86efd6; }
 .pill.v { background: rgba(155, 140, 255, .14); color: #bdb2ff; }
+.pill.g { background: rgba(53, 208, 138, .16); color: #7ee6b6; }
+.pill.r { background: rgba(240, 85, 92, .18); color: #ff9a9e; }
 
 .dotc {
   width: 6px; height: 6px;
