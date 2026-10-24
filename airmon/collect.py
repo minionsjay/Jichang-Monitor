@@ -15,6 +15,7 @@ from .detect import Detector
 from .dnsq import cname_many
 from .enrich import resolve, rdap_many
 from .login import smart_login, fetch_subscription
+from .rawstore import save_raw
 from .models import Snapshot, Node, Finding
 from .parse import parse_subscription, parse_clash_yaml
 
@@ -132,6 +133,8 @@ def collect_direct(airport: dict, detector: Detector) -> Snapshot:
     ua = sub.get("user_agent", "clash.meta")
     resp = requests.get(url, headers={"User-Agent": ua}, timeout=30, verify=False)
     resp.raise_for_status()
+    save_raw(name, resp.text, {"status": resp.status_code,
+                               "via": "direct"}, via="direct")
     nodes = parse_subscription(resp.text)
     snap = Snapshot(airport=name, ts=store.now_iso(), source=url, nodes=nodes)
     # 订阅流量/到期信息常在响应头
@@ -202,6 +205,7 @@ def collect_from_url(slug: str, sub_url: str, detector: Detector,
                      user_agent: str = "clash.meta") -> Snapshot:
     """已知订阅链接（手动取/反爬机场兜底）：直接抓 → 富化 → 华为检测。"""
     text, meta = fetch_subscription(sub_url, user_agent)
+    save_raw(slug, text, meta, via="manual-url")
     nodes = parse_subscription(text)
     meta["panel_type"] = "manual-url"
     snap = Snapshot(airport=slug, ts=store.now_iso(), source=sub_url,
@@ -230,8 +234,11 @@ def _v2board_servers_to_nodes(servers: list[dict]) -> list[Node]:
     """把 v2board /api/v1/user/server/fetch 返回的 server 数组转成 Node 列表。"""
     nodes = []
     for sv in servers:
-        name = sv.get("name", "").strip()
-        host = sv.get("host", "").strip()
+        # v2board 偶尔把 name/host 返回成 null（不是缺字段），直接 .strip() 会
+        # AttributeError: 'NoneType' object has no attribute 'strip'，
+        # 表现为「server/fetch失败」但订阅直抓正常——cloudnx 就是这样被误判的。
+        name = (sv.get("name") or "").strip()
+        host = (sv.get("host") or "").strip()
         port = sv.get("port") or sv.get("server_port") or 0
         proto = sv.get("type", "") or sv.get("protocol", "")
         if not host or not port:
@@ -243,7 +250,7 @@ def _v2board_servers_to_nodes(servers: list[dict]) -> list[Node]:
                      "trojan": "trojan", "shadowsocks": "ss", "ss": "ss"}
         proto = proto_map.get(proto, proto)
         # listen_ip 是服务器真实IP，直接预填到 _resolved_ips 避免DNS解析
-        listen_ip = sv.get("listen_ip", "")
+        listen_ip = sv.get("listen_ip") or ""
         resolved = []
         if listen_ip and listen_ip != "0.0.0.0":
             resolved = [listen_ip]
@@ -270,6 +277,7 @@ def collect_login(slug: str, panel: str, email: str, password: str,
     """
     sub_url, _auth, kind = smart_login(panel, email, password, ptype)
     text, meta = fetch_subscription(sub_url)
+    save_raw(slug, text, meta, via="login:" + str(kind))
     nodes = parse_subscription(text)
     meta["panel_type"] = kind
     snap = Snapshot(airport=slug, ts=store.now_iso(), source=sub_url,

@@ -498,20 +498,22 @@ def _pull_one(slug: str, cred: dict, detector: Detector):
     cred_type = cred.get("type", "auto")
     if cred_type in ("v2board", "auto", None):
         panel = cred.get("panel") or _resolve_panel(slug, None)[0]
-        if panel and cred.get("email") and cred.get("password"):
+        if not (panel and cred.get("email") and cred.get("password")):
+            print(f"    [{slug}] 未填面板地址/账号，跳过 server/fetch（走订阅或客户端）")
+        else:
             print(f"    [{slug}] 尝试 server/fetch API: {panel} ...", flush=True)
-        from airmon.collect import collect_server_fetch
-        try:
-            snap = collect_server_fetch(slug, panel, cred["email"],
-                                        cred["password"], detector)
-            if snap.nodes:
-                print(f"    [{slug}] ✓ server/fetch成功: {len(snap.nodes)}节点")
-                _finish(slug, snap, "server-fetch")
-                return
-            else:
-                print(f"    [{slug}] server/fetch返回0节点，尝试其他方式")
-        except Exception as e:
-            print(f"    [{slug}] server/fetch失败({str(e)[:50]})，尝试其他方式")
+            from airmon.collect import collect_server_fetch
+            try:
+                snap = collect_server_fetch(slug, panel, cred["email"],
+                                            cred["password"], detector)
+                if snap.nodes:
+                    print(f"    [{slug}] ✓ server/fetch成功: {len(snap.nodes)}节点")
+                    _finish(slug, snap, "server-fetch")
+                    return
+                else:
+                    print(f"    [{slug}] server/fetch返回0节点，尝试其他方式")
+            except Exception as e:
+                print(f"    [{slug}] server/fetch失败({str(e)[:50]})，尝试其他方式")
 
     # 优先级 1: sub_url直抓（成功就用它，失败继续走登录/客户端兜底）
     if cred.get("sub_url"):
@@ -1094,6 +1096,49 @@ def _heartbeat_done():
         pass
 
 
+def _append_run_history(last: dict, keep: int = 60) -> None:
+    """把本轮摘要追加到 data/runs.json（面板「运行记录」读它）。
+
+    为什么另开一个文件：last_run.json 每次覆盖，只能看见最后一轮；
+    用户要看的是「几点跑的、跑成什么样、最近几轮的趋势」。
+    """
+    try:
+        p = os.path.join(store.DATA_DIR, "runs.json")
+        hist = []
+        if os.path.exists(p):
+            try:
+                with open(p, encoding="utf-8") as f:
+                    hist = json.load(f) or []
+                if not isinstance(hist, list):
+                    hist = []
+            except (OSError, ValueError):
+                hist = []
+        item = {
+            "started_at": last.get("started_at"),
+            "ended_at": last.get("ended_at"),
+            "duration_s": last.get("duration_s"),
+            "status": last.get("status"),
+            "pull_ok": last.get("pull_ok"),
+            "pull_fail": last.get("pull_fail"),
+            "client_scanned": last.get("client_scanned"),
+            "airports_active": last.get("airports_active"),
+            "nodes_total": last.get("nodes_total"),
+            "hw_findings": last.get("hw_findings"),
+            "stale_n": len(last.get("stale_over_6h") or []),
+            "failed": (last.get("failed") or [])[:60],
+            "trigger": last.get("trigger") or "scheduled",
+            "note": last.get("note"),
+        }
+        # 同 started_at 覆盖（重跑/补写时不产生两条）
+        hist = [h for h in hist if h.get("started_at") != item["started_at"]]
+        hist.append(item)
+        hist = hist[-keep:]
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(hist, f, ensure_ascii=False, indent=2)
+    except Exception as _e:  # noqa: BLE001
+        print(f"[runs.json 写入失败，忽略] {_e}")
+
+
 def cmd_all(args):
     global VERBOSE
     VERBOSE = getattr(args, "verbose", False)
@@ -1269,10 +1314,12 @@ def cmd_all(args):
             "airports_active": aps, "nodes_total": tot,
             "hw_findings": len(hw_findings),
             "stale_over_6h": stale,
+            "trigger": os.environ.get("AIRMON_TRIGGER") or "manual",
         }
         with open(os.path.join(store.DATA_DIR, "last_run.json"), "w", encoding="utf-8") as f:
             json.dump(last, f, ensure_ascii=False, indent=2)
         print(f"运行台账 → data\\last_run.json（成功{ok}/失败{fail}，陈旧{len(stale)}）")
+        _append_run_history(last)
     except Exception as _e:
         print(f"[last_run.json 写入失败，忽略] {_e}")
 

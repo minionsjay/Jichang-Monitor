@@ -726,6 +726,68 @@
       '<div class="kpi t"><div class="lb">采集节点</div><div class="vl" style="font-size:22px">' + (r.nodes_total == null ? num(T.nodes) : num(r.nodes_total)) + '</div><div class="ft">华为命中 ' + (r.hw_findings == null ? "—" : r.hw_findings) + "</div></div>" +
       "</div>";
 
+    /* 代理可达性：哪些订阅直连就能拉、哪些非走代理不可 */
+    var pm = D.proxy_meta || {};
+    var pAgg = { direct: [], direct_fail: [], proxy: [], both: [], none: [], nosub: [] };
+    (D.airports || []).forEach(function (a) {
+      var pk2 = (a.proxy && a.proxy.sub) || (a.has_sub ? "" : "nosub");
+      if (!pk2) return;
+      if (!pAgg[pk2]) pAgg[pk2] = [];
+      pAgg[pk2].push(a);
+    });
+    h += '<div class="sec mt14"><div class="sec-h"><h2>代理可达性</h2><span class="n">' +
+      (pm.at ? "探测于 " + esc(pm.at) + " · " + (pm.proxy_alive ? "代理当时可用" : "代理当时未开") : "还没有探测数据") +
+      '</span></div><div class="sec-b tight">';
+    if (!pm.at) {
+      h += '<span class="dim small">跑一次 <span class="mono">python -X utf8 tools/proxy_need.py</span> 才知道哪几家非走代理不可。</span>';
+    } else {
+      var dOk = pAgg.direct.length + pAgg.both.length;
+      var dBad = pAgg.direct_fail.length + pAgg.none.length;
+      h += '<div class="row wrap" style="gap:6px">' +
+        pill("pill g", "直连即可 " + dOk + " 家") +
+        pill("pill t", "直连不通 " + dBad + " 家") +
+        pill("pill", "无订阅（客户端型）" + pAgg.nosub.length + " 家") +
+        (!pm.proxy_alive ? pill("pill r", "代理未开 · 需代理组未测") : "") +
+        "</div>";
+      if (dBad) {
+        h += '<div class="small fg2" style="margin-top:8px">直连不通：' +
+          esc(pAgg.direct_fail.concat(pAgg.none).map(function (a) { return a.slug; }).join("、")) + "</div>" +
+          '<div class="xsmall dim" style="margin-top:4px">SSL 握手失败多是墙外订阅域（需代理）；403/504 是站点自己拦或挂了，开代理也未必通。</div>';
+      }
+      var byProxy = pAgg.proxy.map(function (a) { return a.slug; });
+      if (byProxy.length) {
+        h += '<div class="xsmall dim" style="margin-top:4px">只能靠代理：' + esc(byProxy.join("、")) + "</div>";
+      }
+    }
+    h += "</div></div>";
+
+    var runs = D.runs || [];
+    h += '<div class="sec mt14"><div class="sec-h"><h2>历史轮次</h2><span class="n">最近 ' + runs.length + ' 轮 · 点一行看本轮失败名单</span></div><div class="sec-b tight">';
+    if (!runs.length) {
+      h += '<span class="dim small">还没有轮次记录：run.py 从下一轮起会把摘要写进 data/runs.json。</span>';
+    } else {
+      h += '<table class="tbl compact" id="runsTbl"><thead><tr><th>开始</th><th>耗时</th><th>触发</th><th>结果</th><th>成功/失败</th><th class="r">节点</th><th class="r">陈旧</th></tr></thead><tbody>';
+      runs.slice().reverse().forEach(function (x, i) {
+        var du = x.duration_s ? (x.duration_s / 60).toFixed(1) + "m" : "—";
+        var stc = x.derived ? "pill" : (x.status === "ok" ? "pill ok" : "pill d");
+        var stt = x.derived ? "还原" : esc(x.status || "—");
+        var nf = (x.failed || []).length;
+        h += '<tr class="rrow" data-i="' + i + '"' + (nf ? ' style="cursor:pointer"' : "") + '>' +
+          '<td class="mono xsmall">' + esc(shortTime(x.started_at)) + "</td>" +
+          '<td class="mono xsmall">' + du + "</td>" +
+          '<td class="xsmall dim">' + (x.trigger === "scheduled" ? "定时" : "手动") + "</td>" +
+          "<td>" + pill(stc, stt) + "</td>" +
+          '<td class="mono xsmall">' + (x.pull_ok == null ? "—" : x.pull_ok) + " / " + (x.pull_fail == null ? "—" : x.pull_fail) + "</td>" +
+          '<td class="r mono">' + (x.nodes_total == null ? "—" : num(x.nodes_total)) + "</td>" +
+          '<td class="r mono ' + (x.stale_n ? "" : "dim") + '">' + (x.stale_n == null ? "—" : x.stale_n) + "</td></tr>";
+        if (nf) {
+          h += '<tr class="rdet" data-i="' + i + '" style="display:none"><td colspan="7" class="xsmall dim" style="padding-left:20px">' +
+            nf + " 家失败：" + esc(x.failed.slice(0, 18).join("、")) + (nf > 18 ? " …" : "") + "</td></tr>";
+        }
+      });
+      h += "</tbody></table></div></div>";
+    }
+
     var stale = r.stale || [];
     h += '<div class="sec"><div class="sec-h"><h2>陈旧机场</h2><span class="n">最近快照超过 6 小时</span></div><div class="sec-b">';
     if (stale.length) {
@@ -753,7 +815,78 @@
     });
     h += "</tbody></table></div></div>";
 
+    var raws = (D.airports || []).filter(function (a) { return a.raw && a.raw.at; })
+      .sort(function (a, b) { return String(b.raw.at).localeCompare(String(a.raw.at)); });
+    h += '<div class="sec mt14"><div class="sec-h"><h2>订阅原文存档</h2><span class="n">' + raws.length + " 家 · 正文含凭据，只在此处显示元信息</span></div>" +
+      '<div class="sec-b tight">';
+    if (!raws.length) {
+      h += '<span class="dim small">还没有存档：订阅型机场每次拉取都会把原始响应存到 data/subraw/&lt;机场&gt;/（每台保留最近 30 份）。</span>';
+    } else {
+      h += '<table class="tbl compact"><thead><tr><th>机场</th><th>最近一份</th><th>格式</th><th class="r">大小</th><th>通道</th><th></th></tr></thead><tbody>';
+      raws.forEach(function (a) {
+        var kb = a.raw.bytes ? (a.raw.bytes / 1024).toFixed(1) + " KB" : "—";
+        h += '<tr><td class="nm">' + esc(nmOf(a)) + "</td>" +
+          '<td class="mono xsmall">' + esc(shortTime(a.raw.at)) + "</td>" +
+          '<td class="mono xsmall">' + esc(a.raw.ext || "—") + "</td>" +
+          '<td class="r mono xsmall">' + kb + "</td>" +
+          '<td class="xsmall dim">' + esc(a.raw.via || "—") + "</td>" +
+          '<td class="r"><button class="btn ghost xs raws" data-slug="' + esc(a.slug) + '">看原文</button></td></tr>';
+      });
+      h += "</tbody></table></div></div>";
+    }
+
     v.innerHTML = h;
+    $$("button.raws").forEach(function (b) {
+      b.addEventListener("click", function () {
+        var slug = b.getAttribute("data-slug");
+        b.textContent = "读取中…";
+        fetch("api/raw/" + encodeURIComponent(slug) + "?limit=300000", { cache: "no-store" })
+          .then(function (r) { return r.json(); })
+          .then(function (j) {
+            b.textContent = "看原文";
+            if (!j.ok) { toast(j.error || "读取失败"); return; }
+            var m = j.meta || {};
+            openModal("订阅原文 · " + slug + " · " + (m.at || "") + " · " + (m.bytes ? (m.bytes / 1024).toFixed(1) + " KB" : ""), j.text || "");
+          })
+          .catch(function () { b.textContent = "看原文"; toast("预览服务未启动或不可达"); });
+      });
+    });
+    $$("#runsTbl .rrow").forEach(function (tr) {
+      tr.addEventListener("click", function () {
+        var i = tr.getAttribute("data-i");
+        var d = $("#runsTbl").querySelector('.rdet[data-i="' + i + '"]');
+        if (d) d.style.display = d.style.display === "none" ? "" : "none";
+      });
+    });
+  }
+
+  /* ------------------------------------------------------------ 弹窗与轻提示 */
+  function toast(msg) {
+    var t = $("#toast");
+    if (!t) return;
+    t.textContent = msg;
+    t.className = "on";
+    clearTimeout(t._h);
+    t._h = setTimeout(function () { t.className = ""; }, 3400);
+  }
+
+  function openModal(title, text) {
+    $("#mdlT").textContent = title || "";
+    $("#mdlB").textContent = text || "";
+    $("#mdl").classList.add("on");
+  }
+
+  function closeModal() {
+    $("#mdl").classList.remove("on");
+  }
+
+  function initModal() {
+    var x = $("#mdlX"), m = $("#mdl");
+    if (x) x.addEventListener("click", closeModal);
+    if (m) m.addEventListener("click", function (e) { if (e.target === m) closeModal(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeModal();
+    });
   }
 
   /* ------------------------------------------------------------ 右栏待办 */
@@ -802,6 +935,19 @@
       ["IDC 特征", a.idc_score != null ? a.idc_score + " · " + esc(a.idc_level || "") : "—"],
       ["探活", a.probe_ok != null ? a.probe_ok + " 通 / " + a.probe_fail + " 失败" : "—"],
       ["客户端", a.client ? esc(a.client) + " v" + esc(a.client_local || "?") + (a.client_latest ? " → " + esc(a.client_latest) : "") : "—"],
+      ["订阅入口", (function () {
+        var pk = (a.proxy && a.proxy.sub) || "";
+        if (!pk) return a.has_sub ? "—" : "无订阅（客户端型）";
+        var map = {
+          direct: ["直连即可", "var(--green)"],
+          both: ["直连/代理均可", "var(--green)"],
+          proxy: ["需代理", "var(--amber)"],
+          direct_fail: ["直连不通 · 需代理", "var(--amber)"],
+          none: ["直连与代理都不通", "var(--red)"]
+        };
+        var m2 = map[pk] || [pk, ""];
+        return '<span style="color:' + m2[1] + '">' + esc(m2[0]) + "</span>";
+      })()],
       ["面板", esc(a.panel || "—")],
       ["域名", (a.domains || []).length ? esc((a.domains || []).join("、")) : "—"]
     ];
@@ -930,6 +1076,17 @@ var API = { ok: false, reason: "" };
         return r.json().then(function (j) {
           API.wd = j.watchdog || null;
           API.proxy = j.proxy !== false;
+          API.round = j;
+          /* 定时轮收尾后 last_run.ended_at 会变：数据自己刷新，不用手动 F5 */
+          var sig = String(j.started_at || "") + "|" + String(j.ended_at || "") + "|" + String(j.nodes_total || "");
+          if (API.sig && API.sig !== sig) {
+            reloadData().then(function (ok) {
+              if (ok && typeof toast === "function") {
+                toast("检测到新一轮跑完（" + (j.nodes_total == null ? "—" : j.nodes_total) + " 个节点），已自动刷新");
+              }
+            });
+          }
+          API.sig = sig;
           if (S.view === "run" && RENDER.run) RENDER.run();
         }).catch(function () {});
       })
@@ -1345,7 +1502,9 @@ var API = { ok: false, reason: "" };
 
   /* ------------------------------------------------------------ 初始化 */
   function init() {
+    initModal();
     probeApi();
+    setInterval(probeApi, 60000);  /* 定时轮 6h 一次，但执行中状态/看门狗要能看到变化 */
     $("#brandSub").textContent = "本轮 " + (D.meta.base || "—");
     $("#footBase").textContent = D.meta.base || "—";
     $("#footBuilt").textContent = D.meta.built || "—";

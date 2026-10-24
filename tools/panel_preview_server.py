@@ -34,6 +34,14 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+def _rawstore():
+    """延迟导入 airmon.rawstore：只有看原文时才需要。"""
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    from airmon import rawstore
+    return rawstore
+
+
 ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "docs" / "09-新界面-preview" / "app"
 DATA = ROOT / "data"
@@ -208,10 +216,17 @@ def watchdog_report() -> dict:
 
 def round_status() -> dict:
     d = _load_json(DATA / "last_run.json", {})
+    hb = _load_json(DATA / "run_heartbeat.json", {})
+    runs = _load_json(DATA / "runs.json", []) or []
     return {
         "status": d.get("status"),
         "started_at": d.get("started_at"),
         "ended_at": d.get("ended_at"),
+        "trigger": d.get("trigger"),
+        "step": hb.get("step"),
+        "progress": ("%s/%s" % (hb.get("done"), hb.get("total"))) if hb.get("total") else None,
+        "airport": hb.get("airport"),
+        "runs_n": len(runs) if isinstance(runs, list) else 0,
         "running": _run_lock_holder() is not None,
         "pull_ok": d.get("pull_ok"),
         "pull_fail": d.get("pull_fail"),
@@ -671,6 +686,22 @@ class Handler(SimpleHTTPRequestHandler):
             self._json(airport_detail(parts[2], reveal=reveal))
             return True
 
+        if parts[:2] == ["api", "raw"] and len(parts) == 3:
+            slug = parts[2]
+            limit = int((q.get("limit", ["200000"])[0] or "200000"))
+            try:
+                rs = _rawstore()
+                meta = (rs.load_index() or {}).get(slug) or {}
+                path = meta.get("path")
+                if not path or not os.path.exists(path):
+                    self._json({"ok": False, "error": "这家还没有订阅原文存档"}, 404)
+                    return True
+                text = rs.scrubbed_text(path, limit=max(2000, min(limit, 800000)))
+                self._json({"ok": True, "slug": slug, "meta": {k: meta.get(k) for k in ("at", "ext", "bytes", "via", "sha256")}, "text": text})
+            except Exception as e:  # noqa: BLE001
+                self._json({"ok": False, "error": "%s: %s" % (type(e).__name__, e)}, 500)
+            return True
+
         if parts[:2] == ["api", "sub"] and self.command == "POST":
             length = int(self.headers.get("Content-Length") or 0)
             if length <= 0 or length > 8192:
@@ -722,6 +753,7 @@ def main(argv: list[str] | None = None) -> int:
     print("  /api/airport/<slug>      机场详情（订阅默认打码）")
     print("  POST /api/fetch/<slug>   真跑 run.py pull --airport <slug>")
     print("  POST /api/sub            改订阅地址 → 写回 credentials.yaml（先备份）")
+    print("  /api/raw/<slug>          最近一份订阅原文（JWT/密码/uuid 已打码）")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

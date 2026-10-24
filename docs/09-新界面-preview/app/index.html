@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>机场监控台 · 作战室</title>
-<link rel="stylesheet" href="styles.css?v=29">
+<link rel="stylesheet" href="styles.css?v=30">
 </head>
 <body>
 <div class="app">
@@ -120,6 +120,14 @@
 
 <!-- ============================ 抽屉 ============================ -->
 <div class="backdrop" id="bd"></div>
+<div class="modal" id="mdl">
+  <div class="mdl-box">
+    <div class="mdl-h"><h3 id="mdlT"></h3><button class="btn ghost xs" id="mdlX">关闭</button></div>
+    <pre class="mdl-body" id="mdlB"></pre>
+  </div>
+</div>
+<div id="toast"></div>
+
 <aside class="drawer" id="dr">
   <div class="dr-h">
     <div>
@@ -133,7 +141,7 @@
   <div class="dr-b" id="drBody"></div>
 </aside>
 
-<script src="data.js?v=27"></script>
-<script src="app.js?v=29"></script>
+<script src="data.js?v=30"></script>
+<script src="app.js?v=30"></script>
 </body>
 </html>

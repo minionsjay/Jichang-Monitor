@@ -157,6 +157,88 @@ def latest_snap_info(slug: str, limit: int = 12) -> dict:
     return newest or {"ts": None, "nodes": 0, "age_h": None}
 
 
+def load_runs(limit: int = 20):
+    """最近若干轮次的运行记录（runs.json 由 run.py 5.7 每轮追加）。"""
+    rows = jload(os.path.join(ROOT, "data", "runs.json"), []) or []
+    if not isinstance(rows, list):
+        return []
+    out = []
+    for r in rows[-limit:]:
+        if not isinstance(r, dict):
+            continue
+        out.append({
+            "started_at": r.get("started_at"),
+            "ended_at": r.get("ended_at"),
+            "duration_s": r.get("duration_s"),
+            "status": r.get("status"),
+            "pull_ok": r.get("pull_ok"),
+            "pull_fail": r.get("pull_fail"),
+            "client_scanned": r.get("client_scanned"),
+            "airports_active": r.get("airports_active"),
+            "nodes_total": r.get("nodes_total"),
+            "hw_findings": r.get("hw_findings"),
+            "stale_n": r.get("stale_n"),
+            "failed": (r.get("failed") or [])[:60],
+            "trigger": r.get("trigger") or "manual",
+            "derived": bool(r.get("derived")),
+        })
+    return out
+
+
+def load_subraw_index():
+    """每家机场最近一份订阅原始响应的元信息（不含正文）。"""
+    ix = jload(os.path.join(ROOT, "data", "subraw", "index.json"), {}) or {}
+    out = {}
+    if not isinstance(ix, dict):
+        return out
+    for slug, v in ix.items():
+        if not isinstance(v, dict):
+            continue
+        out[slug] = {
+            "at": v.get("at"),
+            "ext": v.get("ext"),
+            "bytes": v.get("bytes"),
+            "via": v.get("via"),
+        }
+    return out
+
+
+def _reach_kind(d, direct_key, proxy_key):
+    """直连/代理两组探测结果 -> 分类词。p_ok 为 None 表示那一组没测（代理没开）。"""
+    d_ok = (d.get(direct_key) or {}).get("ok")
+    pk = d.get(proxy_key)
+    p_ok = (pk or {}).get("ok") if isinstance(pk, dict) else None
+    if d_ok and p_ok:
+        return "both"
+    if d_ok:
+        return "direct"
+    if p_ok:
+        return "proxy"
+    if d_ok is False and p_ok is None:
+        return "direct_fail"
+    if d_ok is False and p_ok is False:
+        return "none"
+    return None
+
+
+def load_proxy_need():
+    """data/proxy_need.json -> (slug -> {sub,panel}, 元信息)。只出分类词，不出 URL。"""
+    j = jload(os.path.join(DATA, "proxy_need.json"), {}) or {}
+    ap = j.get("airports") or {}
+    cnt = ((j.get("summary") or {}).get("counts") or {})
+    meta = {"at": j.get("generated_at") or "",
+            "proxy_alive": bool(j.get("proxy_alive")),
+            "counts": {k: cnt.get(k) for k in
+                       ("direct_only", "need_proxy", "both", "unreachable")}}
+    out = {}
+    for slug, d in ap.items():
+        if not isinstance(d, dict):
+            continue
+        out[slug] = {"sub": _reach_kind(d, "sub_direct", "sub_proxy"),
+                     "panel": _reach_kind(d, "panel_direct", "panel_proxy")}
+    return out, meta
+
+
 def load_names():
     """slug -> {cn, src}：卡片显示的中文名（人工维护 data/airport_names.json）。"""
     return jload(os.path.join(DATA, "airport_names.json"), {}) or {}
@@ -316,6 +398,9 @@ def main():
     # 每机场卡片
     slugs = sorted(set(list(sub.keys()) + [a["slug"] for a in (idx.get("airports") or [])] + list(reg.keys())))
     nodes_by = {}
+    runs_hist = load_runs(20)
+    subraw_ix = load_subraw_index()
+    proxy_ix, proxy_meta = load_proxy_need()
     airports = []
     for slug in slugs:
         sh = sub.get(slug) or {}
@@ -453,7 +538,9 @@ def main():
             "unlimited": bool(q.get("unlimited")),
             "reason": reason,
             "action": action,
-            "last_ok": latest_ok_local(slug) or sh.get("last_ok"),
+            "last_ok": latest_ok_local(slug),
+            "raw": subraw_ix.get(slug) or None,
+            "proxy": proxy_ix.get(slug) or None,
             "stale_h": stale_h,
             "stability": stab.get("pct"),
             "churn": churn.get("churn") or 0,
@@ -590,6 +677,8 @@ def main():
         "sites": sites_out,
         "clients": [dict(slug=slug, **{k: v for k, v in (c or {}).items() if k in ("client", "local_ver", "latest_ver", "status", "note", "node_pull")}) for slug, c in cv.items()],
         "logTail": parse_run_log(os.path.join(ROOT, "run.log")),
+        "runs": runs_hist,
+        "proxy_meta": proxy_meta,
         "actions": [{"slug": a["slug"], "state": a["state"], "reason": a["reason"], "action": a["action"], "days": a["days"]} for a in actions],
     }
 

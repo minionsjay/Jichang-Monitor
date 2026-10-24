@@ -28,7 +28,9 @@ def _norm(base: str) -> str:
     """只保留 scheme://域名，剥掉路径/query/fragment。
     这样填 panel 时带了 /login、/#/login、/auth/login 等也没关系。"""
     from urllib.parse import urlparse
-    base = base.strip()
+    base = (base or "").strip()
+    if not base:
+        raise LoginError("面板地址为空（credentials.yaml 里 panel 没填）")
     if not base.startswith("http"):
         base = "https://" + base
     u = urlparse(base)
