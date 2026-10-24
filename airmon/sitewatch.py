@@ -25,7 +25,13 @@ WATCH_FILE = ROOT / "freewatch.yaml"
 OUT_FILE = ROOT / "data" / "sitewatch.json"
 TIMEOUT = 12
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-PROXY = {"http": "http://[::1]:7890", "https": "http://[::1]:7890"}
+def _proxy_dict():
+    """本机可用的 HTTP 代理（自动探测，见 airmon/netcfg.py）。"""
+    try:
+        from .netcfg import proxy_dict
+        return proxy_dict()
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def _probe(url: str):

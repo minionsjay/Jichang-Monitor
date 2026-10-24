@@ -277,21 +277,29 @@ def _regen_panel_data(job: dict) -> None:
             job["tail"].append("面板数据重生成异常：" + _scrub(str(e)))
 
 
-def _proxy_alive(host: str = "::1", port: int = 7890, timeout: float = 0.8) -> bool:
-    """本机代理是否在监听。没开就别硬塞 HTTP_PROXY —— requests 会直接 ProxyError。"""
-    import socket
+def _proxy_url() -> str | None:
+    """本机可用的 HTTP 代理（自动探测 7890 / 10808 / 10809 …，见 airmon/netcfg.py）。"""
     try:
-        s = socket.create_connection((host, port), timeout)
-        s.close()
-        return True
-    except OSError:
-        return False
+        import sys as _s
+        _root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        if _root not in _s.path:
+            _s.path.insert(0, _root)
+        from airmon.netcfg import detect
+        return detect()
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _proxy_alive() -> bool:
+    """本机代理是否可用（不只看端口在听，还真的发一次请求）。"""
+    return bool(_proxy_url())
 
 
 def _apply_proxy(env: dict) -> bool:
     """代理开着就注入 [::1]:7890，没开就清掉（走直连）。返回是否用了代理。"""
-    if _proxy_alive():
-        env["HTTP_PROXY"] = env["HTTPS_PROXY"] = "http://[::1]:7890"
+    _pu = _proxy_url()
+    if _pu:
+        env["HTTP_PROXY"] = env["HTTPS_PROXY"] = _pu
         return True
     env.pop("HTTP_PROXY", None)
     env.pop("HTTPS_PROXY", None)
@@ -350,8 +358,8 @@ def _run_fetch_elevated(slug: str, job: dict, cmd: list[str]) -> None:
             pass
     # 路径全是 ASCII，.bat 用 GBK 写更稳妥；内容里不要出现中文
     proxy_lines = (
-        "set HTTP_PROXY=http://[::1]:7890\r\nset HTTPS_PROXY=http://[::1]:7890\r\n"
-        if _proxy_alive() else ""
+        ("set HTTP_PROXY=%s\r\nset HTTPS_PROXY=%s\r\n" % (_pu, _pu))
+        if (_pu := _proxy_url()) else ""
     )
     body = (
         "@echo off\r\n"

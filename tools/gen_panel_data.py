@@ -228,6 +228,7 @@ def load_proxy_need():
     cnt = ((j.get("summary") or {}).get("counts") or {})
     meta = {"at": j.get("generated_at") or "",
             "proxy_alive": bool(j.get("proxy_alive")),
+            "proxy_url": j.get("proxy_url") or "",
             "counts": {k: cnt.get(k) for k in
                        ("direct_only", "need_proxy", "both", "unreachable")}}
     out = {}

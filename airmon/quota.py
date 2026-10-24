@@ -35,7 +35,13 @@ QUOTA_FILE = DATA_DIR / "quota.json"
 CREDENTIALS = PROJECT_ROOT / "credentials.yaml"
 SNAP_RE = re.compile(r"^\d{8}T\d{6}Z\.json$")
 UA = "clash.meta/1.18.0"
-FALLBACK_PROXY = "http://127.0.0.1:7890"
+def _fallback_proxy():
+    """直连失败时的兜底代理（自动探测，见 airmon/netcfg.py）。"""
+    try:
+        from .netcfg import detect
+        return detect() or ""
+    except Exception:  # noqa: BLE001
+        return ""
 GB = 1024 ** 3
 
 
@@ -112,7 +118,7 @@ def _fetch_header_once(sub_url: str, timeout: float, use_proxy: bool) -> dict:
     handlers: list = [urllib.request.HTTPSHandler(context=ctx)]
     if use_proxy:
         handlers.append(urllib.request.ProxyHandler(
-            {"http": FALLBACK_PROXY, "https": FALLBACK_PROXY}))
+            {"http": _fallback_proxy(), "https": _fallback_proxy()}))
     opener = urllib.request.build_opener(*handlers)
     req = urllib.request.Request(sub_url, headers={"User-Agent": UA, "Accept": "*/*"})
     with opener.open(req, timeout=timeout) as resp:

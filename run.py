@@ -1656,6 +1656,15 @@ def cmd_recon(args):
     print(f"\nCSV → {out_csv}")
 
 def main():
+    # 代理自动纠偏：脚本里写死 7890 但机器上开的是 v2rayN 10808 时，
+    # 不纠正就会一路 ProxyError / 超时，表现为「代理明明开着却说没开」。
+    try:
+        from airmon.netcfg import apply_env as _apply_proxy_env
+        _pu = _apply_proxy_env()
+        if _pu and os.environ.get("AIRMON_PROXY_QUIET") != "1":
+            print(f"[代理] 使用 {_pu}")
+    except Exception:  # noqa: BLE001
+        pass
     # Windows下强制UTF-8输出，避免GBK编码错误
     import sys as _sys
     if _sys.platform == "win32":

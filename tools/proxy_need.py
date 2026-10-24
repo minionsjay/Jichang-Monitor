@@ -29,7 +29,14 @@ DATA = os.path.join(ROOT, "data")
 OUT = os.path.join(DATA, "proxy_need.json")
 CRED = os.path.join(ROOT, "credentials.yaml")
 
-PROXY = "http://[::1]:7890"
+# 不再写死端口：Clash 用 7890，v2rayN 的 mixed 入站是 10808，探测见 airmon/netcfg.py
+def _proxy_url() -> "str | None":
+    sys.path.insert(0, ROOT)
+    try:
+        from airmon.netcfg import detect
+        return detect()
+    except Exception:  # noqa: BLE001
+        return None
 UA = "clash.meta/1.19.0"
 
 
@@ -49,14 +56,7 @@ def _load_creds() -> dict:
 
 
 def _proxy_alive(timeout: float = 1.0) -> bool:
-    import socket
-    for host in ("::1", "127.0.0.1"):
-        try:
-            with socket.create_connection((host, 7890), timeout=timeout):
-                return True
-        except OSError:
-            continue
-    return False
+    return bool(_proxy_url())
 
 
 def _probe(url: str, use_proxy: bool, timeout: float) -> dict:
@@ -67,7 +67,7 @@ def _probe(url: str, use_proxy: bool, timeout: float) -> dict:
     t0 = time.time()
     proxies = None
     if use_proxy:
-        proxies = {"http": PROXY, "https": PROXY}
+        proxies = {"http": _proxy_url(), "https": _proxy_url()} if use_proxy else None
     try:
         r = requests.get(url, headers={"User-Agent": UA}, timeout=timeout,
                          verify=False, stream=True, proxies=proxies)
@@ -120,12 +120,12 @@ def main(argv: list[str]) -> int:
     urllib3.disable_warnings()
 
     proxy_on = _proxy_alive()
-    print(f"代理 [::1]:7890 → {'可用' if proxy_on else '不可用'}；机场 {len(slugs)} 家")
+    print(f"代理 {_proxy_url() or '（未探测到）'} → {'可用' if proxy_on else '不可用'}；机场 {len(slugs)} 家")
 
     result = {
         "generated_at": dt.datetime.now().strftime("%Y-%m-%d %H:%M"),
         "proxy_alive": proxy_on,
-        "proxy_url": "[::1]:7890",
+        "proxy_url": _proxy_url() or "",
         "timeout_s": a.timeout,
         "airports": {},
     }
