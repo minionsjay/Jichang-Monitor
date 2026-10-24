@@ -226,3 +226,51 @@ python -X utf8 -m airmon.nodeset
 
 - **代理没开时那一组不测**，所以「需代理」无法判定，只能看到「直连不通」；先开代理再跑一次才有完整结论。
 - `403 / 504` 不算「需代理」——那是站点自己拦脚本或站点挂了，开代理也未必通；`SSL 握手失败`才是墙外订阅域的典型特征。
+
+## 快照文件名：本地时间、一眼可读（2026-10-24）
+
+`data/<机场>/` 下的快照文件名从 UTC 紧凑格式改成本地时间：
+
+| | 文件名 | 含义 |
+|---|---|---|
+| 旧（历史 4.5 万个） | `20261024T132028Z.json` | UTC `2026-10-24 13:20:28` = 北京时间 **21:20:28** |
+| 新 | `20261024-212028.json` | 本地时间 **2026-10-24 21:20:28** |
+
+时间取自 `snap.ts`（采集时刻，不是落盘时刻），与 `meta.ts` 一致。
+`airmon/snapnames.py` 是文件名的唯一真源：`fmt()` 生成、`parse()` 解析（带 `Z` 按 UTC，
+不带 `Z` 按本地时区，都返回带时区的 datetime）、`names()` 排序、`display()` 转人话。
+
+**不要直接 `sorted(文件名)`**：`-`(0x2D) < `T`(0x54)，纯字符串排序会把所有新文件排到旧文件后面，
+「最新快照」于是指到几个月前。目录遍历一律走 `snapnames.names(d)`；库里 13 处读取点
+（store / rawstore / analyze / dashboard / huawei_detect / prune / quota / gen_panel_data /
+panel_preview_server / backfill_runs）已统一。
+
+## 点一次「获取节点」到底做了什么
+
+前端 `POST /api/fetch/<slug>` → 服务端判断类型后起子进程：
+
+* 订阅型：`run.py pull --airport <slug> -v`
+  → 拉订阅 / 面板登录 / `server-fetch` API → `airmon.rawstore.save_raw()` 存原文
+  → 解析 → `airmon.enrich`（DNS 解析 + RDAP）→ `airmon.detect`（华为五维 + CNAME）
+  → `store.save()` 写快照
+* 客户端型（没有 `sub_url`）：`run.py scan-memory --airport <slug>`
+  → 找/拉起客户端内核 → 扫内存 → 锚点法解出完整节点 → 写快照
+  （非管理员时会写 `.tmp_scan/<slug>.bat` 再 UAC 提权跑）
+
+成功后服务端自动两步：`python -m airmon.nodeset`（重算 `nodes/`）→ `tools/gen_panel_data.py`
+（重算 `data.js`），前端轮询到 done 就刷新抽屉与卡片。
+
+**落盘清单**（以一次订阅型 pull 实测为准）：
+
+| 文件 | 说明 |
+|---|---|
+| `data/<slug>/<本地时间>.json` | 本轮快照（节点 + meta + 华为命中） |
+| `data/subraw/<slug>/<时间>.<yaml/json/txt/b64>` + `.json` | 订阅原文 + 元数据（打码后可直接看） |
+| `data/subraw/index.json` | 原文存档索引 |
+| `nodes/<slug>.yaml` / `nodes/<slug>.txt` | Clash proxies / base64 订阅体（47 家全量重写） |
+| `nodes/index.json` | 各机场可导出节点数与跳过原因 |
+| `docs/09-新界面-preview/app/data.js` | 面板数据包 |
+| `data/panel_state.json` | 每机场状态/节点数/原因（服务端读） |
+| `data/rdap_cache.json` | RDAP 归属缓存（命中新 IP 时追加） |
+
+`server-fetch` 分支是直接吃 v2board 的 JSON API，没有"订阅原文"，所以不写 `subraw/`。
