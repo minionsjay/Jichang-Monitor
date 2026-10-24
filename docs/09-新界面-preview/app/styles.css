@@ -1181,3 +1181,6 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
   border: 1px solid rgba(240, 85, 92, .45);
   letter-spacing: .02em;
 }
+
+/* 华为云/CDN 高亮（承载归属行与节点表共用） */
+.hot{color:var(--red);font-weight:600}

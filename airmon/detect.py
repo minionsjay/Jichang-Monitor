@@ -4,7 +4,7 @@
   rdap_name  —— RDAP netname/owner 子串（主判据）
   asn        —— ASN 号
   cidr       —— IP 落在华为云段（兜底）
-  domain     —— 域名/CNAME/NS 子串
+  domain     —— 域名/CNAME 子串（server 本身 + 实测 CNAME 链）
   string     —— 软件二进制/文本 strings 子串
 """
 from __future__ import annotations
@@ -101,8 +101,17 @@ class Detector:
         out: list[Finding] = []
         for n in nodes:
             ctx = f"节点 {n.name or n.server}"
-            # server 是域名也查域名维度
-            out += [f for f in [self._domain_finding(airport, n.server, ctx)] if f]
+            # server 本身 + 它的 CNAME 链都要查域名维度：
+            # 机场常把节点域名 CNAME 到 CDN 边缘域（cdnhwc* = 华为云 CDN），
+            # 只看 server 会漏掉这一层。
+            names = [n.server]
+            for c in (n.raw.get("_cnames") or []):
+                if c and c not in names:
+                    names.append(c)
+            for nm in names:
+                f = self._domain_finding(airport, nm, ctx)
+                if f:
+                    out.append(f)
             for ip in n.raw.get("_resolved_ips", []):
                 netname, owner, country, asn = rdap_map.get(ip, ("", "", "", ""))
                 out += self.scan_ip_record(airport, ip=ip, netname=netname,

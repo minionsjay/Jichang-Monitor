@@ -12,6 +12,7 @@ import requests
 
 from . import store
 from .detect import Detector
+from .dnsq import cname_many
 from .enrich import resolve, rdap_many
 from .login import smart_login, fetch_subscription
 from .models import Snapshot, Node, Finding
@@ -44,6 +45,17 @@ def _filter_placeholders(nodes: list[Node]) -> list[Node]:
             continue
         real.append(n)
     return real
+
+
+def _is_ip_literal(host: str) -> bool:
+    """server 本身就是 IP（含 IPv6 冒号写法）时不需要查 CNAME。"""
+    h = (host or "").strip()
+    if not h:
+        return False
+    if ":" in h:
+        return True
+    parts = h.split(".")
+    return len(parts) == 4 and all(p.isdigit() for p in parts)
 
 
 def _enrich_and_detect(airport: str, nodes: list[Node], detector: Detector):
@@ -90,6 +102,19 @@ def _enrich_and_detect(airport: str, nodes: list[Node], detector: Detector):
         if "_resolved_ips" not in n.raw:
             n.raw["_resolved_ips"] = []
     
+    # CNAME 链：节点名 CNAME 到 CDN 域（cdnhwc* = 华为云 CDN）时，
+    # 只看 server 字符串是看不见的，这里补一层域名维度证据。
+    domain_hosts = [n.server for n in nodes
+                    if n.server and not _is_ip_literal(n.server)]
+    if domain_hosts:
+        try:
+            cmap = cname_many(domain_hosts)
+        except Exception:
+            cmap = {}
+        for n in nodes:
+            if n.server in cmap:
+                n.raw["_cnames"] = cmap[n.server]
+
     rdap_map = rdap_many(all_ips)
     # 把 RDAP 结果也塞回节点，方便快照留档
     for n in nodes:

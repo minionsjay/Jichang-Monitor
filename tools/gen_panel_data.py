@@ -12,12 +12,17 @@ import io
 import json
 import os
 import re
+import sys
 import time
 from collections import Counter, OrderedDict
 from datetime import datetime, timezone
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
+
+from airmon.infra import classify as _infra_classify, label as _infra_label, is_edge as _infra_is_edge  # noqa: E402
 OUT = os.path.join(ROOT, "docs", "09-新界面-preview", "app", "data.js")
 
 EXPORTABLE = {"ss", "vmess", "vless", "trojan", "hysteria2", "anytls"}
@@ -305,6 +310,7 @@ def main():
 
         # 节点明细（只出必要字段）
         node_rows = []
+        infra_cnt = {}
         try:
             best = None
             best_ts = ""
@@ -324,12 +330,24 @@ def main():
             if best:
                 for nd in best:
                     proto = (nd.get("protocol") or "unknown").lower()
+                    owner, ikey = "", ""
+                    rd = (nd.get("raw") or {}).get("_rdap") or {}
+                    for _ip, tup in rd.items():
+                        if not tup:
+                            continue
+                        owner = str(tup[1] or tup[0] or "")[:40]
+                        ikey = _infra_classify(tup[1] or "", tup[0] or "")
+                        break
+                    if ikey:
+                        infra_cnt[ikey] = infra_cnt.get(ikey, 0) + 1
                     row = [
                         (nd.get("name") or "")[:48],
                         proto,
                         (nd.get("server") or "")[:60],
                         int(nd.get("port") or 0),
                         1 if proto in EXPORTABLE else 0,
+                        owner,
+                        _infra_label(ikey) if ikey else "",
                     ]
                     node_rows.append(row)
         except Exception:
@@ -374,6 +392,10 @@ def main():
             "homepage": r.get("homepage") or "",
             "domains": (r.get("domains") or [])[:8],
             "enabled": r.get("enabled", True),
+            "infra": [[_infra_label(k), n, (1 if _infra_is_edge(k) else 0)]
+                      for k, n in sorted(infra_cnt.items(), key=lambda kv: -kv[1])[:4]],
+            "edge_n": sum(n for k, n in infra_cnt.items() if _infra_is_edge(k)),
+            "hw_edge": infra_cnt.get("huawei", 0),
             "node_rows": node_rows,
         })
         nodes_by[slug] = node_rows

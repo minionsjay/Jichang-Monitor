@@ -48,3 +48,6 @@ seeds.txt
 
 # 版本探测临时页
 .tmp_ver/
+
+# 临时探针脚本与截图（不进版本库）
+.tmp_shots/

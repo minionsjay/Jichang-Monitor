@@ -770,6 +770,7 @@
       ["30 天稳定", a.stability != null ? a.stability + "%" : "—"],
       ["累计波动", num(a.churn || 0)],
       ["落地机房", esc(a.rdap_org || "—") + (a.rdap_share != null ? "（" + Math.round(a.rdap_share * 100) + "%）" : "")],
+      ["承载/CDN", infraText(a)],
       ["IDC 特征", a.idc_score != null ? a.idc_score + " · " + esc(a.idc_level || "") : "—"],
       ["探活", a.probe_ok != null ? a.probe_ok + " 通 / " + a.probe_fail + " 失败" : "—"],
       ["客户端", a.client ? esc(a.client) + " v" + esc(a.client_local || "?") + (a.client_latest ? " → " + esc(a.client_latest) : "") : "—"],
@@ -854,10 +855,12 @@
       rows.forEach(function (r) { pc[r[1]] = (pc[r[1]] || 0) + 1; });
       h += '<div class="sub-h">节点（全部 ' + rows.length + ' 条）</div>';
       h += '<div class="nodewrap"><table class="tbl compact nodetbl"><thead><tr>' +
-        '<th class="nm">名称</th><th>协议</th><th>地址</th></tr></thead><tbody>';
+        '<th class="nm">名称</th><th>协议</th><th>地址</th><th>归属</th></tr></thead><tbody>';
       rows.forEach(function (r) {
+        var own = r[6] || r[5] || "—";
+        var hot2 = own.indexOf("华为") === 0 ? ' class="hot"' : "";
         h += '<tr><td class="nm xsmall">' + esc(r[0] || "—") + '</td><td class="xsmall nowrap"><i class="dotc" style="background:' +
-          protoColor(r[1]) + ';margin-right:5px"></i>' + esc(r[1]) + '</td><td class="mono xsmall dim">' + esc(r[2]) + ":" + (r[3] || "") + "</td></tr>";
+          protoColor(r[1]) + ';margin-right:5px"></i>' + esc(r[1]) + '</td><td class="mono xsmall dim">' + esc(r[2]) + ":" + (r[3] || "") + '</td><td class="xsmall dim"' + hot2 + ">" + esc(own) + "</td></tr>";
       });
       h += "</tbody></table></div>";
     } else {
@@ -874,7 +877,22 @@
   }
 
   /* ------------------------------------------------------ 本地预览后端 */
-  var API = { ok: false, reason: "" };
+  function infraText(a) {
+    var arr = a.infra || [];
+    if (!arr.length) return "—";
+    var tot = 0;
+    arr.forEach(function (x) { tot += x[1]; });
+    if (!tot) return "—";
+    var out = [];
+    for (var i = 0; i < arr.length; i++) {
+      var nm = arr[i][0], n = arr[i][1];
+      var hot = nm.indexOf("华为") === 0 ? ' class="hot"' : "";
+      out.push("<span" + hot + ">" + esc(nm) + " " + Math.round(n / tot * 100) + "%</span>");
+    }
+    return out.join(" · ");
+  }
+
+var API = { ok: false, reason: "" };
 
   function probeApi() {
     return fetch("api/status", { cache: "no-store" })
