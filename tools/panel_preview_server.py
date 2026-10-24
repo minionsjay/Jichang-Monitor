@@ -120,6 +120,7 @@ def airport_detail(slug: str, reveal: bool = False) -> dict:
         core = ent["client"].get("core_process") or ""
 
     health = _load_json(DATA / "sub_health.json", {}).get(slug) or {}
+    ps = (_load_json(DATA / "panel_state.json", {}) or {}).get(slug) or {}
     idx = _load_json(ROOT / "nodes" / "index.json", {})
     row = next((r for r in (idx.get("airports") or []) if r.get("slug") == slug), {}) or {}
     versions = _load_json(DATA / "client_versions.json", {})
@@ -136,11 +137,16 @@ def airport_detail(slug: str, reveal: bool = False) -> dict:
         "sub_full": sub_url if reveal else None,
         "sub_host": urlparse(sub_url).netloc if sub_url else "",
         "sub_present": bool(sub_url),
-        "state": health.get("state") or "",
-        "reason": health.get("reason") or "",
-        "action": health.get("action") or "",
-        "nodes": row.get("nodes"),
-        "exported": row.get("exported"),
+        # 状态/节点数与卡片同源（gen_panel_data 产出的 panel_state.json），
+        # 不再用 sub_health.json 里上一次诊断的旧值 —— 否则抽屉会说「A · 快照 153」
+        # 而卡片说「62」，两处对不上。
+        "state": ps.get("state") or health.get("state") or "",
+        "reason": ps.get("reason") or health.get("reason") or "",
+        "action": ps.get("action") or health.get("action") or "",
+        "nodes": ps.get("nodes") if ps else row.get("nodes"),
+        "exported": ps.get("exported") if ps else row.get("exported"),
+        "frag": ps.get("frag") or 0,
+        "snap_total": ps.get("snap_total") or row.get("nodes") or 0,
         "client": ver.get("name") or core,
         "client_local": ver.get("local") or "",
         "client_latest": ver.get("latest") or "",

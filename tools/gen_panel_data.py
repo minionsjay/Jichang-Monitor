@@ -598,6 +598,17 @@ def main():
     # 兜底脱敏：节点名里可能混入机场客服邮箱 / 完整链接
     body = re.sub(r"[\w.+-]+@[\w-]+\.[\w.]{2,}", "[邮箱已隐]", body)
     body = re.sub(r"https?://[^\s\"']+", "[链接已隐]", body)
+    # 面板后端（preview server）读这份，避免抽屉与卡片口径不一致
+    try:
+        _st = {a["slug"]: {"state": a["state"], "nodes": a["nodes"], "exported": a["exported"],
+                           "frag": a.get("frag") or 0, "snap_total": a.get("snap_total") or 0,
+                           "reason": a.get("reason") or "", "action": a.get("action") or ""}
+               for a in payload["airports"]}
+        with io.open(os.path.join(DATA, "panel_state.json"), "w", encoding="utf-8") as fh:
+            json.dump(_st, fh, ensure_ascii=False, separators=(",", ":"))
+    except Exception as exc:
+        print("warn: panel_state.json 写入失败 %s" % exc)
+
     with io.open(OUT, "w", encoding="utf-8") as f:
         f.write("window.AIRMON=")
         f.write(body)

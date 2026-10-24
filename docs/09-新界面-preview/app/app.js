@@ -762,7 +762,7 @@
     var used = (a.total_gb != null && a.used_pct != null) ? Math.round(a.total_gb * a.used_pct / 100) : null;
     var kv = [
       ["状态", dot(stCls(a.state)) + " " + stName(a.state)],
-      ["快照节点", num(a.nodes) + " 条 · 可导出 " + num(a.exported)],
+      ["可用节点", num(a.nodes) + (a.frag ? " 条（另有 " + num(a.frag) + " 条无协议碎片）" : " 条") + " · 可导出 " + num(a.exported)],
       ["获取方式", esc(a.via || "—")],
       ["套餐到期", esc(a.expire || "—") + (a.days != null ? "（" + esc(daysText(a.days)) + "）" : "")],
       ["流量", a.unlimited ? "不限量" : (a.total_gb != null ? num(used) + " / " + num(a.total_gb) + " GB（" + (a.used_pct || 0) + "%）" : "—")],
@@ -953,7 +953,8 @@ var API = { ok: false, reason: "" };
         apRow("订阅", sub) +
         apRow("类型", esc(d.type === "client" ? "客户端型" : "订阅型") + (d.core ? " · " + esc(d.core) : "")) +
         apRow("客户端", cl) +
-        apRow("后端", esc(d.state || "—") + " · 快照 " + num(d.nodes || 0) + " / 可导出 " + num(d.exported || 0)) +
+        apRow("后端", esc(d.state || "—") + " · 可用节点 " + num(d.nodes || 0) + " / 可导出 " + num(d.exported || 0) +
+              (d.frag ? " <span class=\"dim\">（另有 " + num(d.frag) + " 条无协议碎片，导不进配置）</span>" : "")) +
         '<div class="subedit" id="apSubEditBox" style="display:none">' +
         '<div class="sub-h" style="margin-top:10px">改订阅地址</div>' +
         '<input class="inp" id="apSubInput" spellcheck="false" autocomplete="off" ' +
