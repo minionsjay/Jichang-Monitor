@@ -1256,10 +1256,12 @@ def cmd_all(args):
     except Exception as _e:
         print(f"[陈旧度巡检失败，忽略] {_e}")
     try:
+        _ended = store.now_iso()
         last = {
             "status": "ok",
             "started_at": started_iso,
-            "ended_at": store.now_iso(),
+            "ended_at": _ended,
+            "last_ok_at": _ended,
             "duration_s": round(_time.time() - t0, 1),
             "pull_ok": ok, "pull_fail": fail,
             "failed": [{"slug": s, "reason": r} for s, r in failed],

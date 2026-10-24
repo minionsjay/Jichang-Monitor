@@ -155,7 +155,11 @@ def check(stale_min: float = DEFAULT_STALE_MIN, now: float | None = None) -> dic
         })
 
     # ── 4) 太久没成功过（数据陈旧） ──
-    ended = _iso_to_epoch(ledger.get("ended_at"))
+    # 只认真正成功的收尾：aborted / failed / running 都不能算「最近成功」
+    _ok_iso = ledger.get("last_ok_at") or (
+        ledger.get("ended_at") if ledger.get("status") == "ok" else None
+    )
+    ended = _iso_to_epoch(_ok_iso)
     if ended:
         since = (now - ended) / 60.0
         if since > ROUND_INTERVAL_MIN * 1.5:
@@ -177,7 +181,11 @@ def check(stale_min: float = DEFAULT_STALE_MIN, now: float | None = None) -> dic
         })
 
     healthy = not any(p["severity"] in ("high", "medium") for p in problems)
+    _ok_epoch = _iso_to_epoch(ledger.get("last_ok_at") or (
+        ledger.get("ended_at") if ledger.get("status") == "ok" else None))
     return {
+        "last_ok_min": round((now - _ok_epoch) / 60.0, 1) if _ok_epoch else None,
+        "ok_threshold_min": round(ROUND_INTERVAL_MIN * 1.5, 1),
         "checked_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now)),
         "healthy": healthy,
         "round_running": round_running,
@@ -250,6 +258,10 @@ def render(result: dict) -> str:
         lines.append("  心跳: 无")
     lr = result["last_run"]
     lines.append("  上一轮: status=%s · 起 %s · 止 %s" % (lr["status"], lr["started_at"], lr["ended_at"]))
+    _ok = result.get("last_ok_min")
+    if _ok is not None:
+        _flag = "（超过 %.0f 分钟阈值）" % result["ok_threshold_min"] if _ok > result["ok_threshold_min"] else ""
+        lines.append("  上次成功: %.0f 分钟前%s" % (_ok, _flag))
     if result["problems"]:
         lines.append("")
         for p in result["problems"]:
