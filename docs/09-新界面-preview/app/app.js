@@ -929,6 +929,7 @@ var API = { ok: false, reason: "" };
         API.ok = true;
         return r.json().then(function (j) {
           API.wd = j.watchdog || null;
+          API.proxy = j.proxy !== false;
           if (S.view === "run" && RENDER.run) RENDER.run();
         }).catch(function () {});
       })
@@ -1171,6 +1172,15 @@ var API = { ok: false, reason: "" };
     var msg = $("#apFetchMsg");
     var log = $("#apLog");
     if (!API.ok) { msg.textContent = API.reason; return; }
+
+    // 代理没开：订阅站点基本都会超时，先提醒一次；再点就放行
+    if (API.proxy === false && !API.proxyWarned) {
+      API.proxyWarned = true;
+      msg.innerHTML = '<span style="color:var(--amber)">代理没开（[::1]:7890）</span>' +
+        '<span class="dim small"> —— 订阅站点大多在墙外，这次大概率会超时。' +
+        '先打开代理客户端，再点一次；或直接再点一次按直连试。</span>';
+      return;
+    }
 
     btn.disabled = true;
     msg.innerHTML = '<span class="spin"></span>正在开始…';

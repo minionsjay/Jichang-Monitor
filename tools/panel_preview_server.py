@@ -217,6 +217,7 @@ def round_status() -> dict:
         "pull_fail": d.get("pull_fail"),
         "nodes_total": d.get("nodes_total"),
         "watchdog": watchdog_report(),
+        "proxy": _proxy_alive(),
     }
 
 
@@ -259,6 +260,27 @@ def _regen_panel_data(job: dict) -> None:
         with _job_lock:
             job["regen"] = "failed"
             job["tail"].append("面板数据重生成异常：" + _scrub(str(e)))
+
+
+def _proxy_alive(host: str = "::1", port: int = 7890, timeout: float = 0.8) -> bool:
+    """本机代理是否在监听。没开就别硬塞 HTTP_PROXY —— requests 会直接 ProxyError。"""
+    import socket
+    try:
+        s = socket.create_connection((host, port), timeout)
+        s.close()
+        return True
+    except OSError:
+        return False
+
+
+def _apply_proxy(env: dict) -> bool:
+    """代理开着就注入 [::1]:7890，没开就清掉（走直连）。返回是否用了代理。"""
+    if _proxy_alive():
+        env["HTTP_PROXY"] = env["HTTPS_PROXY"] = "http://[::1]:7890"
+        return True
+    env.pop("HTTP_PROXY", None)
+    env.pop("HTTPS_PROXY", None)
+    return False
 
 
 def _fetch_cmd(slug: str) -> tuple[list[str], str]:
@@ -312,9 +334,14 @@ def _run_fetch_elevated(slug: str, job: dict, cmd: list[str]) -> None:
         except OSError:
             pass
     # 路径全是 ASCII，.bat 用 GBK 写更稳妥；内容里不要出现中文
+    proxy_lines = (
+        "set HTTP_PROXY=http://[::1]:7890\r\nset HTTPS_PROXY=http://[::1]:7890\r\n"
+        if _proxy_alive() else ""
+    )
     body = (
         "@echo off\r\n"
-        'cd /d "%s"\r\n'
+        + proxy_lines
+        + 'cd /d "%s"\r\n'
         '"%s" -X utf8 run.py scan-memory --airport %s > "%s" 2>&1\r\n'
         % (ROOT, sys.executable, slug, log)
     )
@@ -353,8 +380,10 @@ def _run_fetch(slug: str) -> None:
     job = _jobs[slug]
     env = dict(os.environ)
     env["PYTHONIOENCODING"] = "utf-8"
-    env["HTTP_PROXY"] = "http://[::1]:7890"
-    env["HTTPS_PROXY"] = "http://[::1]:7890"
+    _used_proxy = _apply_proxy(env)
+    if not _used_proxy:
+        with _job_lock:
+            job["tail"].append("本机代理 [::1]:7890 未运行 —— 本次走直连，被墙的订阅站点会失败\n")
     cmd, mode = _fetch_cmd(slug)
     with _job_lock:
         job["mode"] = mode
