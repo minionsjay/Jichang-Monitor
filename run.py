@@ -1102,6 +1102,7 @@ def _append_run_history(last: dict, keep: int = 60) -> None:
     为什么另开一个文件：last_run.json 每次覆盖，只能看见最后一轮；
     用户要看的是「几点跑的、跑成什么样、最近几轮的趋势」。
     """
+    import json  # run.py 顶层没有 import json（只在 cmd_all 内部局部导入过）
     try:
         p = os.path.join(store.DATA_DIR, "runs.json")
         hist = []
@@ -1314,7 +1315,8 @@ def cmd_all(args):
             "airports_active": aps, "nodes_total": tot,
             "hw_findings": len(hw_findings),
             "stale_over_6h": stale,
-            "trigger": os.environ.get("AIRMON_TRIGGER") or "manual",
+            "trigger": (getattr(args, "trigger", None)
+                        or os.environ.get("AIRMON_TRIGGER") or "manual"),
         }
         with open(os.path.join(store.DATA_DIR, "last_run.json"), "w", encoding="utf-8") as f:
             json.dump(last, f, ensure_ascii=False, indent=2)
@@ -1388,7 +1390,13 @@ def cmd_all(args):
         os.remove(_lock)
     except Exception:
         pass
-    return 1 if (fail or stale) else 0
+    # 退出码语义（2026-10-24 修）：只有「整轮崩了」或「一半以上机场失败」才算失败。
+    # 少数机场挂是常态（过期/跑路/被墙），不该让计划任务 LastTaskResult=1 —— 那会让
+    # 看门狗和用户以为整轮没跑成功，实际 status=ok、节点也采到了。
+    _tried = ok + fail
+    if _tried and fail / _tried >= 0.5:
+        return 2
+    return 0
 
 def cmd_export(args):
     import glob
@@ -1738,6 +1746,7 @@ def main():
     s = sub.add_parser("all", help="一条命令跑完：拉所有机场+补落地+导CSV+出报告")
     s.add_argument("--out", default=None, help="CSV 输出路径，默认 data/nodes_export.csv")
     s.add_argument("-v", "--verbose", action="store_true", help="每个机场拉完即显示协议/落地/华为详情")
+    s.add_argument("--trigger", default=None, help="本轮触发来源（scheduled/manual），写进 runs.json")
     s.set_defaults(func=cmd_all)
 
     s = sub.add_parser("report", help="汇总所有机场→生成节点分析报告(Markdown)")

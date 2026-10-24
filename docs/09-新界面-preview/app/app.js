@@ -782,7 +782,10 @@
           '<td class="r mono ' + (x.stale_n ? "" : "dim") + '">' + (x.stale_n == null ? "—" : x.stale_n) + "</td></tr>";
         if (nf) {
           h += '<tr class="rdet" data-i="' + i + '" style="display:none"><td colspan="7" class="xsmall dim" style="padding-left:20px">' +
-            nf + " 家失败：" + esc(x.failed.slice(0, 18).join("、")) + (nf > 18 ? " …" : "") + "</td></tr>";
+            nf + " 家失败：" +
+            esc(x.failed.slice(0, 18).map(function (f) {
+              return (f && typeof f === "object") ? (f.slug + (f.reason ? "（" + String(f.reason).slice(0, 28) + "）" : "")) : String(f);
+            }).join("、")) + (nf > 18 ? " …" : "") + "</td></tr>";
         }
       });
       h += "</tbody></table></div></div>";
