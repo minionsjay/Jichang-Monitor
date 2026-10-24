@@ -168,3 +168,21 @@ python -X utf8 tools/panel_preview_server.py --port 57010
 3. **抽屉提示重写**：抽屉重绘会重建 `#apFetchMsg`，所以先重绘再写「已完成 · 已刷新」，否则提示被冲掉、看起来像没反应。
 
 `data/sub_health.json` 仍保留 `reason` / `action` 两列（说明「卡在哪、该做什么」），只是不再决定颜色。
+
+## 客户端型机场的完整节点：从 core 内存捞
+
+`scan-memory` 对客户端型机场只能拿到 `IP:端口`（`protocol=unknown`，导不出去）。原因是这类客户端把合并后的完整配置放在 core 进程内存里，磁盘上根本没有——青云梯极速版更极端，`%APPDATA%\com.qytapp.clients.apex\青云梯-极速版\.memory-only-v2` 明确写了「只在内存」。它的订阅地址在 `shared_preferences.json` 里是 `apex-url-v2:` + AES 密文（DPAPI 保护密钥），而订阅端点对脚本出口直接回「安全验证」HTML，所以只能走内存。
+
+```bash
+# 1) 先手动打开客户端并保持运行（必须！Apex.exe 自己拉起时 core 只活十几秒）
+# 2) 抓完整节点（含 uuid / servername / flow / skip-cert-verify）
+python -X utf8 tools/dump_client_nodes.py --slug qingyunti --process ApexCore
+#    → data/client_nodes/qingyunti.json
+# 3) 重新导出可导入配置
+python -X utf8 -m airmon.nodeset
+#    → nodes/qingyunti.yaml（mihomo：proxy-providers: {qingyunti: {type: file, path: ./nodes/qingyunti.yaml}}）
+```
+
+为什么用 `data/client_nodes/` 这个独立目录：`run.py all` 每轮的 scan-memory 会用「只有 server:port」的快照覆盖最新快照，若只看快照，完整节点会被瞬间吃掉（ssrdog 实测从 36 个归零）。`airmon/nodeset.py` 的 `_client_nodes()` + `_merge_nodes()` 把 client_nodes 当一等来源，按 `(server,port)` 合并。
+
+青云梯极速版实测：62 个 VLESS（XTLS-Vision、每节点独立 SNI），节点名 `香港-01…`，`uuid` 与面板 `xboard_domain_user.uuid` 一致。
