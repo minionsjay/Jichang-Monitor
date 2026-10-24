@@ -105,3 +105,17 @@ python -X utf8 tools/panel_preview_server.py --port 57010
 - 机场库的搜索框现在同时匹配中文名（搜「牧牛」可出 muniu 与 muniu-ninja）。
 - 生成链路：`data/airport_names.json` →（`tools/gen_panel_data.py` 的 `load_names()`）→ `data.js` 的 `airports[].name_cn` → `app.js` 的 `nmOf()`。
 - 补中文名：直接改 `data/airport_names.json` 加 `{slug: {cn, src}}`，重跑 `python -X utf8 tools/gen_panel_data.py`。
+
+## 在抽屉里改订阅地址
+
+点机场 → 抽屉「机场信息」→ 订阅那一行右侧「修改」→ 粘贴新链接 → 保存。
+
+- 写回目标：`credentials.yaml` 里**这一家的 `sub_url` 一行**，文本级替换，不动其它账号与其它字段。
+- 保存前先备份到 `data/backup/credentials-<时间戳>-<毫秒>.yaml`（保留最近 40 份，重名自动加序号）。
+- 写完立刻回读校验：YAML 必须能解析、该家 `sub_url` 必须等于新值；任一不满足就**整体回滚**并用原文本覆盖。
+- 只接受 `http://` / `https://`，长度 ≤2048，不许出现空格/换行/引号/控制字符；留空＝清空这家订阅（会二次确认）。
+- 界面显示始终是打码后的值；「显示」按钮才向本机后端取全文。
+- 保存只改配置，**不会立刻拉节点**——改完点同一抽屉里的「获取节点」才会用新链接拉一次。
+- 只在本地预览服务（`python -X utf8 tools/panel_preview_server.py --port 57010`）下可用；双击 `standalone.html` 打开时没有后端，编辑入口不出现。
+
+对应后端：`tools/panel_preview_server.py` 的 `save_sub_url()` 与 `POST /api/sub`。

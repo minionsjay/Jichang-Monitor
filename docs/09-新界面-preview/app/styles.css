@@ -1091,6 +1091,29 @@ i.cl.inline { position: static; display: inline-block; vertical-align: 1px; }
 .cell .nm { padding-right: 24px; }
 .cell[data-d="s"] .nm { padding-right: 20px; }
 
+/* 改订阅地址的编辑区 */
+.subedit {
+  margin-top: 4px;
+  padding: 10px 12px 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface2);
+}
+.subedit .inp {
+  width: 100%;
+  padding: 7px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--line2);
+  background: var(--bg2);
+  color: var(--fg);
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.subedit .inp::placeholder { color: var(--fg3); font-family: var(--sans); font-size: 12px; }
+.subedit .inp:focus { outline: none; border-color: #3b4a63; background: var(--surface); }
+.subedit .okc { color: var(--green); }
+
 /* 卡片上的中文名 + 英文副名 */
 .cell .nm .en {
   font-style: normal;

@@ -920,8 +920,10 @@
       var sub = d.sub_present
         ? '<span class="mono" id="apSubVal">' + esc(d.sub_masked) + "</span>" +
           ' <button class="btn mini" id="apSubShow">显示</button>' +
-          ' <button class="btn mini" id="apSubCopy">复制</button>'
-        : '<span class="dim">无订阅地址（客户端型，靠 core 扫描）</span>';
+          ' <button class="btn mini" id="apSubCopy">复制</button>' +
+          ' <button class="btn mini" id="apSubEdit">修改</button>'
+        : '<span class="dim">无订阅地址（客户端型，靠 core 扫描）</span>' +
+          ' <button class="btn mini" id="apSubEdit">填写</button>';
 
       var cl = d.client
         ? esc(d.client) + (d.client_local ? " v" + esc(d.client_local) : "") +
@@ -932,7 +934,19 @@
         apRow("订阅", sub) +
         apRow("类型", esc(d.type === "client" ? "客户端型" : "订阅型") + (d.core ? " · " + esc(d.core) : "")) +
         apRow("客户端", cl) +
-        apRow("后端", esc(d.state || "—") + " · 快照 " + num(d.nodes || 0) + " / 可导出 " + num(d.exported || 0));
+        apRow("后端", esc(d.state || "—") + " · 快照 " + num(d.nodes || 0) + " / 可导出 " + num(d.exported || 0)) +
+        '<div class="subedit" id="apSubEditBox" style="display:none">' +
+        '<div class="sub-h" style="margin-top:10px">改订阅地址</div>' +
+        '<input class="inp" id="apSubInput" spellcheck="false" autocomplete="off" ' +
+        'placeholder="粘贴新的订阅链接（https://…）">' +
+        '<div class="row" style="gap:8px;align-items:center;margin-top:8px">' +
+        '<button class="btn primary mini" id="apSubSave">保存</button>' +
+        '<button class="btn mini" id="apSubCancel">取消</button>' +
+        '<span class="small" id="apSubMsg"></span></div>' +
+        '<div class="xsmall dim" style="margin-top:6px;line-height:1.6">' +
+        '保存会直接写回 <span class="mono">credentials.yaml</span>（先备份到 data/backup/），' +
+        '只改这一家的 sub_url，不动其它字段。改完点上面的「获取节点」才会用新链接拉节点。</div>' +
+        "</div>";
 
       var show = $("#apSubShow");
       if (show) {
@@ -980,8 +994,77 @@
           });
         });
       }
+      bindSubEditor(slug);
     }).catch(function (e) {
       box.innerHTML = apRow("说明", '<span class="dim">读取失败：' + esc(e.message) + "</span>");
+    });
+  }
+
+  /* 改订阅地址：POST api/sub -> 写回 credentials.yaml（后端会先备份并回读校验） */
+  function bindSubEditor(slug) {
+    var btn = $("#apSubEdit"), boxEl = $("#apSubEditBox"), inp = $("#apSubInput");
+    if (!btn || !boxEl) return;
+    btn.dataset.orig = btn.textContent;
+    btn.addEventListener("click", function () {
+      var on = boxEl.style.display !== "none";
+      boxEl.style.display = on ? "none" : "block";
+      btn.textContent = on ? btn.dataset.orig : "收起";
+      if (!on) {
+        inp.value = "";
+        inp.placeholder = "粘贴新的订阅链接（https://…）；留空保存=清空这家订阅";
+        inp.focus();
+        $("#apSubMsg").textContent = "";
+      }
+    });
+    $("#apSubCancel").addEventListener("click", function () {
+      boxEl.style.display = "none";
+      btn.textContent = btn.dataset.orig || "修改";
+    });
+    $("#apSubSave").addEventListener("click", function () {
+      var v = (inp.value || "").trim();
+      var msg = $("#apSubMsg");
+      if (!v && !confirm("留空保存会把 " + slug + " 的订阅地址清空，确定？")) return;
+      var save = $("#apSubSave");
+      save.disabled = true;
+      msg.className = "small dim";
+      msg.textContent = "保存中…";
+      fetch("api/sub", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: slug, sub_url: v })
+      }).then(function (r) {
+        return r.json().then(function (j) { return { code: r.status, j: j }; });
+      }).then(function (res) {
+        save.disabled = false;
+        if (!res.j || !res.j.ok) {
+          msg.className = "small";
+          msg.style.color = "var(--red)";
+          msg.textContent = "保存失败：" + ((res.j && res.j.error) || ("HTTP " + res.code));
+          return;
+        }
+        msg.className = "small okc";
+        msg.style.color = "";
+        msg.textContent = "已保存" + (res.j.unchanged ? "（与原来相同）" : "") +
+          " · 备份 " + String(res.j.backup || "").split("/").pop() +
+          " · 第 " + (res.j.line || "?") + " 行";
+        var val = $("#apSubVal");
+        if (res.j.present && val) {
+          /* 本来就有订阅：就地改显示，不重绘（否则提示会被刷掉） */
+          val.textContent = res.j.masked || "";
+          setTimeout(function () {
+            boxEl.style.display = "none";
+            btn.textContent = btn.dataset.orig || "修改";
+          }, 1100);
+        } else {
+          /* 有↔无 切换：需要重绘整块，按钮也要换 */
+          setTimeout(function () { loadAirportInfo(slug); }, 1300);
+        }
+      }).catch(function (e) {
+        save.disabled = false;
+        msg.className = "small";
+        msg.style.color = "var(--red)";
+        msg.textContent = "保存失败：" + ((e && e.message) || "网络错误");
+      });
     });
   }
 
