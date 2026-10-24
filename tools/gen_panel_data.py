@@ -342,7 +342,13 @@ def main():
                 state = "B"
         else:
             state = sh_state or ("A" if (ix.get("nodes") or 0) > 0 else "D")
-        nodes = int(ix.get("nodes") or 0) or live_nodes
+        if ix:
+            snap_n = int(ix.get("nodes") or 0)
+            frag_ix = int((ix.get("snapshot_protos") or {}).get("unknown") or 0)
+        else:
+            snap_n, frag_ix = live_nodes, 0
+        nodes = max(0, snap_n - frag_ix)   # 可用节点=有协议；unknown 碎片单列
+        _frag_ix = frag_ix
         exported = int(ix.get("exported") or 0)
         days = q.get("days_left")
         if days is None:
@@ -377,8 +383,6 @@ def main():
             if best:
                 for nd in best:
                     proto = (nd.get("protocol") or "unknown").lower()
-                    if proto in ("", "unknown"):
-                        frag_n += 1
                     owner, ikey = "", ""
                     rd = (nd.get("raw") or {}).get("_rdap") or {}
                     for _ip, tup in rd.items():
@@ -424,14 +428,22 @@ def main():
             reason = sh.get("reason") or ""
             action = sh.get("action") or ""
 
+        # 快照有节点但全是无协议碎片（内存扫描只拿到域名+端口）→ 拿不到可用节点，不能算「可用」
+        if nodes <= 0 and state in ("A", "B") and not (days is not None and days < 0):
+            state = "B"
+            reason = "快照有 %d 条记录，但全是无协议碎片，拿不到可导入的节点" % snap_n
+            action = "打开该客户端后再用「从内核内存捞节点」重新提取"
+        elif state == "A" and nodes > 0:
+            reason = "正常：最新快照 %s 有 %d 个可用节点" % (live_ts, nodes)
+
         airports.append({
             "slug": slug,
             "name_cn": (names.get(slug) or {}).get("cn_short") or (names.get(slug) or {}).get("cn") or "",
             "state": state,
-            "nodes": max(0, nodes - frag_n),   # 可用节点=有协议；unknown 碎片单列
-            "snap_total": nodes,
+            "nodes": nodes,          # 可用节点（有协议、来自 index.json 合并结果）
+            "snap_total": snap_n,    # 合并后的节点总数（含无协议碎片）
             "exported": exported,
-            "frag": frag_n,
+            "frag": _frag_ix,        # 无协议碎片（内存扫描只拿到域名+端口）
             "protos": ix.get("protos") or {},
             "via": "内存扫描" if (ix.get("node_source") == "client_nodes") else ("快照" if ix else "无数据"),
             "days": days,
