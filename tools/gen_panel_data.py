@@ -123,6 +123,40 @@ def latest_ok_local(slug: str, limit: int = 8) -> str | None:
     return None
 
 
+def latest_snap_info(slug: str, limit: int = 12) -> dict:
+    """最近一份「有节点」快照的信息；全都为空则回落最近一份快照。
+
+    返回 {"ts": 本地时间 str|None, "nodes": int, "age_h": float|None}。
+    状态判定要用实测：sub_health.json 是诊断脚本某一刻的快照，
+    机场后来恢复了它也不会改，界面就会一直挂着「订阅失效」。
+    """
+    d = os.path.join(DATA, slug)
+    try:
+        files = sorted((f for f in os.listdir(d) if re.match(r"\d{8}T\d{6}Z", f)), reverse=True)
+    except OSError:
+        return {"ts": None, "nodes": 0, "age_h": None}
+    now = datetime.now(timezone.utc)
+    newest = None
+    for name in files[:limit]:
+        try:
+            with io.open(os.path.join(d, name), encoding="utf-8") as fh:
+                snap = json.load(fh)
+        except Exception:
+            continue
+        nodes = len(snap.get("nodes") or [])
+        try:
+            t = datetime.strptime(name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        age = round((now - t).total_seconds() / 3600.0, 1)
+        ts = t.astimezone().strftime("%Y-%m-%d %H:%M")
+        if newest is None:
+            newest = {"ts": ts, "nodes": 0, "age_h": age}
+        if nodes:
+            return {"ts": ts, "nodes": nodes, "age_h": age}
+    return newest or {"ts": None, "nodes": 0, "age_h": None}
+
+
 def load_names():
     """slug -> {cn, src}：卡片显示的中文名（人工维护 data/airport_names.json）。"""
     return jload(os.path.join(DATA, "airport_names.json"), {}) or {}
@@ -291,8 +325,24 @@ def main():
         p = probe.get(slug) or {}
         idcp = idc.get(slug) or {}
         c = cv.get(slug) or {}
-        state = sh.get("state") or ("A" if (ix.get("nodes") or 0) > 0 else "D")
-        nodes = int(ix.get("nodes") or sh.get("nodes") or 0)
+        # 状态以实测为准：最近一份有节点的快照才说明"现在还能不能拿到节点"
+        snapinfo = latest_snap_info(slug)
+        live_nodes = int(snapinfo.get("nodes") or 0)
+        live_age = snapinfo.get("age_h")
+        live_ts = snapinfo.get("ts") or ""
+        live_fresh = live_nodes > 0 and isinstance(live_age, (int, float)) and live_age <= 6
+        sh_state = sh.get("state")
+        if live_nodes > 0 and live_fresh:
+            state = "A"
+        elif live_nodes > 0:
+            # 有节点但不新鲜：保留诊断快照的分类语义（仅客户端/订阅失效/断流），
+            # 只把"陈旧"这件事写进文案，别把 B/C/D 一律压成 B。
+            state = sh_state if sh_state in ("A", "B", "C", "D") else "B"
+            if sh_state == "A":
+                state = "B"
+        else:
+            state = sh_state or ("A" if (ix.get("nodes") or 0) > 0 else "D")
+        nodes = int(ix.get("nodes") or 0) or live_nodes
         exported = int(ix.get("exported") or 0)
         days = q.get("days_left")
         if days is None:
@@ -302,11 +352,7 @@ def main():
         churn = an_churn.get(slug) or {}
         zero = an_zero.get(slug) or {}
         rd = an_rdap.get(slug) or {}
-        stale_h = None
-        if isinstance(sh.get("stale_h"), (int, float)):
-            stale_h = sh["stale_h"]
-        else:
-            stale_h = snap_age_hours(slug)
+        stale_h = live_age if live_nodes > 0 else snap_age_hours(slug)
 
         # 节点明细（只出必要字段）
         node_rows = []
@@ -353,6 +399,28 @@ def main():
         except Exception:
             node_rows = []
 
+        # 判定文案：恢复了就把诊断快照里的旧结论显式作废，别让人以为还是坏的
+        reason, action = sh.get("reason") or "", sh.get("action") or ""
+        if live_nodes > 0 and live_fresh:
+            if sh_state and sh_state != "A":
+                reason = ("已恢复：最新快照 %s 有 %d 个节点；诊断快照把这家记成 %s 类、原因为「%s」，"
+                          "那条结论已过期" % (live_ts, live_nodes, sh_state, (sh.get("reason") or "—")[:36]))
+            else:
+                reason = "正常：最新快照 %s 有 %d 个节点" % (live_ts, live_nodes)
+            action = "无需处理"
+        elif live_nodes > 0:
+            if sh_state and sh_state != "A":
+                reason = ("%s｜注：最新一份有节点的快照是 %s（%s 小时前，%d 个节点）"
+                          % ((sh.get("reason") or "尚未判定").rstrip("。"), live_ts, live_age, live_nodes))
+                action = sh.get("action") or ""
+            else:
+                reason = ("诊断记 A 类，但最新一份有节点的快照是 %s（%s 小时前，%d 个节点），采集可能卡住"
+                          % (live_ts, live_age, live_nodes))
+                action = "看「运行」页与 run.log 是否报错"
+        elif sh_state:
+            reason = sh.get("reason") or ""
+            action = sh.get("action") or ""
+
         airports.append({
             "slug": slug,
             "name_cn": (names.get(slug) or {}).get("cn_short") or (names.get(slug) or {}).get("cn") or "",
@@ -366,8 +434,8 @@ def main():
             "total_gb": q.get("total_gb"),
             "used_pct": q.get("used_pct"),
             "unlimited": bool(q.get("unlimited")),
-            "reason": sh.get("reason") or "",
-            "action": sh.get("action") or "",
+            "reason": reason,
+            "action": action,
             "last_ok": latest_ok_local(slug) or sh.get("last_ok"),
             "stale_h": stale_h,
             "stability": stab.get("pct"),

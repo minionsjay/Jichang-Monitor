@@ -45,7 +45,7 @@
     return (d.getMonth() + 1) + "-" + p(d.getDate()) + " " + p(d.getHours()) + ":" + p(d.getMinutes());
   }
   var STATE_CLS = { A: "ok", B: "b", C: "c", D: "d" };
-  var STATE_NAME = { A: "可用", B: "订阅失效", C: "仅客户端", D: "断流" };
+  var STATE_NAME = { A: "可用", B: "异常", C: "仅客户端", D: "断流" };
   function stCls(s) { return STATE_CLS[s] || ""; }
   function stName(s) { return STATE_NAME[s] || s || "—"; }
 
@@ -122,7 +122,7 @@
     var kpis = [
       { lb: "监控机场", vl: T.airports, ft: "47 个 data 目录", cls: "" },
       { lb: "本轮可用", vl: T.ok, ft: "订阅通达", cls: "ok" },
-      { lb: "订阅失效", vl: T.b, ft: "需换订阅地址", cls: "b" },
+      { lb: "异常", vl: T.b, ft: "订阅失效或采集卡住", cls: "b" },
       { lb: "仅客户端", vl: T.c, ft: "订阅不通、客户端可用", cls: "c" },
       { lb: "断流", vl: T.d, ft: "无新节点落地", cls: "d" },
       { lb: "快照节点", vl: T.nodes, ft: "可导出 " + num(T.exported), cls: "t" }
@@ -143,7 +143,7 @@
       '<span class="sp"></span>' +
       '<div class="row small dim" style="gap:12px">' +
       '<span class="row" style="gap:5px">' + dot("ok") + "可用 " + T.ok + "</span>" +
-      '<span class="row" style="gap:5px">' + dot("b") + "订阅失效 " + T.b + "</span>" +
+      '<span class="row" style="gap:5px">' + dot("b") + "异常 " + T.b + "</span>" +
       '<span class="row" style="gap:5px">' + dot("c") + "仅客户端 " + T.c + "</span>" +
       '<span class="row" style="gap:5px">' + dot("d") + "断流 " + T.d + "</span>" +
       '<span class="row" style="gap:5px"><i class="cl inline">客</i>只能用客户端获取</span>' +
@@ -1174,10 +1174,23 @@ var API = { ok: false, reason: "" };
       btn.disabled = false;
       if (j.state === "done") {
         if (j.regen === "ok") {
-          msg.innerHTML = '<span style="color:var(--green)">完成</span> · 已重新生成本页数据，' +
-            '<a href="javascript:void 0" id="apReload" style="color:var(--blue)">点这里刷新</a>看最新卡片';
-          var rl = $("#apReload");
-          if (rl) rl.onclick = function () { location.reload(); };
+          msg.innerHTML = '<span style="color:var(--green)">完成</span> · 正在更新卡片…';
+          reloadData().then(function (ok) {
+            if (ok) {
+              var a2 = bySlug[slug];
+              var okTxt = '<span style="color:var(--green)">完成</span> · 已刷新' +
+                (a2 ? "：现在 " + stName(a2.state) + " · " + num(a2.nodes) + " 个节点" : "");
+              /* 先重绘抽屉（会重建 msg 元素），再写入提示，否则提示被冲掉 */
+              if ($("#dr").classList.contains("on")) openDrawer(slug);
+              var m2 = $("#apFetchMsg");
+              if (m2) m2.innerHTML = okTxt;
+            } else {
+              msg.innerHTML = '<span style="color:var(--green)">完成</span> · 数据已重生成，' +
+                '<a href="javascript:void 0" id="apReload" style="color:var(--blue)">点这里刷新</a>看最新卡片';
+              var rl = $("#apReload");
+              if (rl) rl.onclick = function () { location.reload(); };
+            }
+          });
         } else if (j.regen === "running") {
           msg.innerHTML = '<span style="color:var(--green)">完成</span> · 正在重新生成本页数据…';
           clearTimeout(fetchTimers[slug]);
@@ -1220,6 +1233,32 @@ var API = { ok: false, reason: "" };
     an: ["分析", "30 天趋势、落地机房、波动与稳定性"],
     run: ["运行", "本轮采集台账与运行日志"]
   };
+
+  /* 拉取成功后热更新：重新取 data.js、重建索引、重绘当前视图。
+     这样"更新订阅 → 获取节点成功"就能当场变绿，不用手动刷新整页。 */
+  function reloadData() {
+    return fetch("data.js?t=" + Date.now(), { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.text() : ""; })
+      .then(function (txt) {
+        if (!txt || txt.indexOf("window.AIRMON") < 0) return false;
+        try { new Function(txt)(); } catch (e) { return false; }
+        if (!window.AIRMON) return false;
+        D = window.AIRMON;
+        T = D.totals || {};
+        APTS = D.airports || [];
+        bySlug = {};
+        APTS.forEach(function (a) { bySlug[a.slug] = a; });
+        SORTED = APTS.slice().sort(function (x, y) {
+          var o = (ORDER[x.state] == null ? 9 : ORDER[x.state]) - (ORDER[y.state] == null ? 9 : ORDER[y.state]);
+          return o !== 0 ? o : (y.nodes - x.nodes);
+        });
+        /* 各视图有 S.drawn 一次性绘制标记，数据变了必须清掉才会真正重绘 */
+        S.drawn = {};
+        RENDER[S.view]();
+        return true;
+      })
+      .catch(function () { return false; });
+  }
 
   var RENDER = {
     ov: renderOverview, exp: renderExpiry, al: renderAlerts, hw: renderHuawei,
