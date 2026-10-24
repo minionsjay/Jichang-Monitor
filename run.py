@@ -1385,6 +1385,27 @@ def cmd_all(args):
                 print("[状态表] 本机没有 openpyxl，本轮跳过")
     except Exception as _e:
         print(f"[状态表生成失败，忽略] {_e}")
+    # 5.12/5 面板数据（docs/09-新界面-preview/app/data.js）
+    # 少了这一步，定时轮跑完只有 runs.json 更新了，面板读的还是旧 data.js ——
+    # 用户会以为「这一轮根本没跑」。必须每轮重生成，运行记录/总览才会一起换新。
+    try:
+        _heartbeat(step="5.12 面板数据", force=True)
+        import subprocess as _sp2
+        import sys as _sys2
+        _root = os.path.dirname(os.path.abspath(__file__))
+        _gen = os.path.join(_root, "tools", "gen_panel_data.py")
+        if os.path.exists(_gen):
+            _g = _sp2.run([_sys2.executable, "-X", "utf8", _gen], cwd=_root,
+                          capture_output=True, timeout=600)
+            _go = (_g.stdout or b"").decode("utf-8", "replace")
+            _gl = [x for x in _go.splitlines() if x.startswith("airports ")]
+            if _g.returncode == 0:
+                print("面板数据 → data.js 已刷新（%s）" % (_gl[0] if _gl else "ok"))
+            else:
+                _ge = (_g.stderr or b"").decode("utf-8", "replace")[-200:]
+                print("[面板数据生成失败 rc=%d] %s" % (_g.returncode, _ge))
+    except Exception as _e:
+        print(f"[面板数据生成失败，忽略] {_e}")
     _heartbeat_done()
     try:
         os.remove(_lock)
