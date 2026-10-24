@@ -900,8 +900,8 @@ tr.dead td.nm { color: var(--fg2); }
 .drawer {
   position: fixed;
   top: 0; right: 0; bottom: 0;
-  width: 470px;
-  max-width: 92vw;
+  width: 880px;
+  max-width: 96vw;
   background: var(--bg2);
   border-left: 1px solid var(--line2);
   transform: translateX(100%);
@@ -1197,3 +1197,24 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
 .mdl-body{margin:0;padding:14px 16px;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.75;color:var(--fg2);white-space:pre-wrap;word-break:break-all}
 #toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%) translateY(8px);background:var(--bg3);border:1px solid var(--line);color:var(--fg);padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .22s,transform .22s;z-index:70;max-width:70vw}
 #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* 抽屉：IP 与归属宽表 */
+.ipmore {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--surface3, #263041);
+  color: var(--fg3);
+  font-size: 9.5px;
+  vertical-align: 1px;
+}
+.ipalt {
+  display: inline-block;
+  padding: 0 5px;
+  border-radius: 3px;
+  background: rgba(92, 139, 255, .16);
+  color: #8fb0ff;
+  font-size: 10px;
+}
+.xxsmall { font-size: 10.5px; }

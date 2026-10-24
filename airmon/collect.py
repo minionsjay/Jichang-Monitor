@@ -13,7 +13,7 @@ import requests
 from . import store
 from .detect import Detector
 from .dnsq import cname_many
-from .enrich import resolve, rdap_many
+from .enrich import resolve_detail, rdap_many
 from .login import smart_login, fetch_subscription
 from .rawstore import save_raw
 from .models import Snapshot, Node, Finding
@@ -76,16 +76,19 @@ def _enrich_and_detect(airport: str, nodes: list[Node], detector: Detector):
     fut_map = {}
     with concurrent.futures.ThreadPoolExecutor(max_workers=16) as ex:
         for i, h in hosts:
-            fut_map[ex.submit(resolve, h)] = i
+            fut_map[ex.submit(resolve_detail, h)] = i
         pending = set(fut_map)
         try:
             for fut in concurrent.futures.as_completed(fut_map, timeout=600):
                 idx = fut_map[fut]
                 try:
-                    ips = fut.result(timeout=5)
+                    ips, alt = fut.result(timeout=5)
                 except Exception:
-                    ips = []
+                    ips, alt = [], []
                 nodes[idx].raw["_resolved_ips"] = ips
+                if alt:
+                    # 海外 DNS 才解析到的 IP（GeoDNS 分线的另一半），面板单独标注
+                    nodes[idx].raw["_ip_alt"] = alt
                 all_ips.update(ips)
                 pending.discard(fut)
         except concurrent.futures.TimeoutError:

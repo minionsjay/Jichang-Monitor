@@ -1033,6 +1033,32 @@
       h += "</div>";
     }
 
+    /* IP 与归属：一个机场解析出的全部地址（含 GeoDNS 海外视角补充） */
+    var iprows = a.ips || [];
+    if (iprows.length) {
+      var altN = 0;
+      iprows.forEach(function (r) { if (r[6]) altN++; });
+      h += '<div class="sub-h">IP 与归属（' + iprows.length + " 个地址" +
+        (altN ? '，其中 ' + altN + " 个只在海外 DNS 可见" : "") + "，按承载节点数排序）</div>";
+      h += '<div class="nodewrap"><table class="tbl compact nodetbl"><thead><tr>' +
+        '<th>解析 IP</th><th>netname</th><th>机构 / 运营方</th><th>国家/地区</th><th>ASN</th>' +
+        '<th class="num">承载节点</th><th>线路视角</th></tr></thead><tbody>';
+      iprows.forEach(function (r) {
+        var alt = r[6];
+        h += "<tr><td class=\"mono xsmall\">" + esc(r[0]) + "</td>" +
+          '<td class="mono xsmall dim">' + esc(r[1] || "—") + "</td>" +
+          '<td class="xsmall">' + esc(r[2] || "—") + "</td>" +
+          '<td class="xsmall dim">' + esc(r[3] || "—") + "</td>" +
+          '<td class="mono xxsmall dim">' + esc(r[5] || "—") + "</td>" +
+          '<td class="num mono xsmall">' + num(r[4] || 0) + "</td>" +
+          "<td>" + (alt ? '<span class="ipalt">海外独有</span>' : '<span class="xsmall dim">国内可见</span>') + "</td></tr>";
+      });
+      h += "</tbody></table></div>" +
+        '<div class="xsmall dim" style="margin:4px 0 10px">' +
+        "同一个域名问不同 DNS 会得到不同 A 记录（GeoDNS 分线）：国内 DNS 给一组国内落地，" +
+        "「海外独有」那几条只有问 1.1.1.1 才出现。</div>";
+    }
+
     /* 节点全量 */
     var rows = a.node_rows || [];
     if (rows.length) {
@@ -1045,9 +1071,13 @@
         var own = r[6] || r[5] || "—";
         var hot2 = own.indexOf("华为") === 0 ? ' class="hot"' : "";
         var ip = r[7] || "";
+        var nip = r[8] || 0;
+        var ipCell = ip
+          ? esc(ip) + (nip > 1 ? ' <span class="ipmore">+' + (nip - 1) + "</span>" : "")
+          : "未解析";
         h += '<tr><td class="nm xsmall">' + esc(r[0] || "—") + '</td><td class="xsmall nowrap"><i class="dotc" style="background:' +
           protoColor(r[1]) + ';margin-right:5px"></i>' + esc(r[1]) + '</td><td class="mono xsmall dim">' + esc(r[2]) + ":" + (r[3] || "") +
-          '</td><td class="mono xsmall' + (ip ? "" : " dim") + '">' + esc(ip || "未解析") + '</td><td class="xsmall dim"' + hot2 + ">" + esc(own) + "</td></tr>";
+          '</td><td class="mono xsmall' + (ip ? "" : " dim") + '">' + ipCell + '</td><td class="xsmall dim"' + hot2 + ">" + esc(own) + "</td></tr>";
       });
       h += "</tbody></table></div>";
     } else {

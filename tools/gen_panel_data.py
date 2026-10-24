@@ -448,6 +448,7 @@ def main():
         # 节点明细（只出必要字段）
         node_rows = []
         infra_cnt = {}
+        ip_agg = {}         # ip -> [ip, netname, owner, country, 节点数, asn, 是否海外视角独有]
         frag_n = 0          # 无协议碎片：scan-memory 用「域名:端口」正则捞到的残片，导不出去
         try:
             best = None
@@ -481,6 +482,25 @@ def main():
                     # 解析出的 IP：节点 server 多半是域名，真正的落地 IP 在 raw._resolved_ips，
                     # 不带上这一列，面板上就只看到 xxx.example.com:22063，完全看不出节点在哪。
                     _ips = (nd.get("raw") or {}).get("_resolved_ips") or []
+                    _rdap = (nd.get("raw") or {}).get("_rdap") or {}
+                    _alt = set((nd.get("raw") or {}).get("_ip_alt") or [])
+                    for _ip in _ips:
+                        tb = _rdap.get(_ip) or []
+                        e = ip_agg.get(_ip)
+                        if e:
+                            e[4] += 1
+                            if _ip in _alt:
+                                e[6] = 1
+                        else:
+                            ip_agg[_ip] = [
+                                _ip,
+                                str(tb[0] or "")[:32] if len(tb) > 0 else "",
+                                str(tb[1] or "")[:36] if len(tb) > 1 else "",
+                                str(tb[2] or "")[:16] if len(tb) > 2 else "",
+                                1,
+                                str(tb[3] or "")[:48] if len(tb) > 3 else "",
+                                1 if _ip in _alt else 0,
+                            ]
                     row = [
                         (nd.get("name") or "")[:48],
                         proto,
@@ -490,6 +510,7 @@ def main():
                         owner,
                         _infra_label(ikey) if ikey else "",
                         str(_ips[0])[:40] if _ips else "",
+                        len(_ips),
                     ]
                     node_rows.append(row)
         except Exception:
@@ -573,6 +594,8 @@ def main():
             "edge_n": sum(n for k, n in infra_cnt.items() if _infra_is_edge(k)),
             "hw_edge": infra_cnt.get("huawei", 0),
             "node_rows": node_rows,
+            # 该机场解析出的全部 IP + 归属（抽屉「IP 与归属」宽表用），按承载节点数降序
+            "ips": sorted(ip_agg.values(), key=lambda r: (-r[4], r[0]))[:300],
         })
         nodes_by[slug] = node_rows
 

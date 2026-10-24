@@ -10,14 +10,14 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 
 
-def resolve(host: str, timeout: float = 5.0) -> list[str]:
-    """域名 → IP 列表；本身是 IP 则原样返回；解析不到返回 []。
+_ALT_DNS = "1.1.1.1"     # 海外视角（国内 DNS 与它常给不同的 A 记录，见 GeoDNS）
+_ALT_TIMEOUT = 1.5
 
-    socket.getaddrinfo 无原生超时，用 ThreadPoolExecutor+future timeout 防止卡死。"""
-    if not host:
-        return []
-    if _is_ip(host):
-        return [host]
+
+def _getaddrinfo(host: str, timeout: float = 5.0) -> list[str]:
+    """系统解析器（Windows DNS Client）拿到的全部 A 记录，即国内视角。
+
+    getaddrinfo 无原生超时，用单线程池 + future timeout 防止卡死整批。"""
     import concurrent.futures
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
@@ -26,6 +26,37 @@ def resolve(host: str, timeout: float = 5.0) -> list[str]:
         return sorted({i[4][0] for i in infos})
     except Exception:
         return []
+
+
+def resolve_detail(host: str, timeout: float = 5.0) -> tuple[list[str], list[str]]:
+    """域名 → (全部 IP, 只有海外视角才解析到的 IP)。
+
+    为什么要两手：机场普遍用 GeoDNS/ECS 分线，国内 DNS 给一组国内落地、海外
+    DNS 给另一组。实测 xinaleye.owolist.cn：223.5.5.5 → 8 个腾讯/电信 IP，
+    1.1.1.1 → 只有 1 个 AWS 香港 IP。只用系统解析器会漏掉另一半。
+    """
+    if not host:
+        return ([], [])
+    if _is_ip(host):
+        return ([host], [])
+    # 给海外补充留出时间：调用方（collect）对单域名只等 5s，别让 getaddrinfo 吃满
+    ips = set(_getaddrinfo(host, min(timeout, 3.5)))
+    alt: list[str] = []
+    try:
+        from .dnsq import query as _dnsq_query
+        _cn, extra = _dnsq_query(host, _ALT_DNS, timeout=_ALT_TIMEOUT)
+        for ip in (extra or []):
+            if ip not in ips:
+                alt.append(ip)
+        ips.update(alt)
+    except Exception:
+        pass
+    return (sorted(ips), sorted(alt))
+
+
+def resolve(host: str, timeout: float = 5.0) -> list[str]:
+    """域名 → IP 列表（国产 + 海外两路视角取并集）；本身是 IP 则原样返回。"""
+    return resolve_detail(host, timeout)[0]
 
 
 def _is_ip(s: str) -> bool:
