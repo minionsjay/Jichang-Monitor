@@ -372,6 +372,14 @@ class Handler(SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):  # 静音，避免刷屏
         pass
 
+    def end_headers(self):
+        # 本地调试页：一律不缓存，避免改了 app.js 用户那边还是旧版
+        if not self.path.startswith("/api/"):
+            self.send_header("Cache-Control", "no-store, must-revalidate")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
+
     def _json(self, obj, code: int = 200) -> None:
         body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
         self.send_response(code)
