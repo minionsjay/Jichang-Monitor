@@ -246,6 +246,70 @@ def _fetch_cmd(slug: str) -> tuple[list[str], str]:
     return [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"], "pull"
 
 
+def _is_admin() -> bool:
+    """当前进程有没有管理员权限（读客户端内核内存需要）。"""
+    try:
+        import ctypes
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except Exception:
+        return False
+
+
+def _run_fetch_elevated(slug: str, job: dict, cmd: list[str]) -> None:
+    """以管理员权限跑一次扫描：弹 UAC → 用户点「是」→ 扫描在提权进程里跑。
+
+    为什么不能直接 Popen：读客户端内核内存要 PROCESS_VM_READ，
+    普通权限会拿到 error 5。所以这里借 Windows 的 UAC 提权，
+    把命令写成一个 .bat 由 PowerShell `Start-Process -Verb RunAs` 拉起，
+    stdout 重定向到文件（RunAs 不能直接接管道），再逐行读回来。
+    """
+    tmp = ROOT / ".tmp_scan"
+    tmp.mkdir(exist_ok=True)
+    log = tmp / (slug + ".log")
+    bat = tmp / (slug + ".bat")
+    if log.exists():
+        try:
+            log.unlink()
+        except OSError:
+            pass
+    # 路径全是 ASCII，.bat 用 GBK 写更稳妥；内容里不要出现中文
+    body = (
+        "@echo off\r\n"
+        'cd /d "%s"\r\n'
+        '"%s" -X utf8 run.py scan-memory --airport %s > "%s" 2>&1\r\n'
+        % (ROOT, sys.executable, slug, log)
+    )
+    bat.write_bytes(body.encode("gbk", "replace"))
+
+    with _job_lock:
+        job["tail"].append("需要管理员权限读取客户端内存，已请求提权 —— 请在弹出的 UAC 窗口点「是」\n")
+        job["elevated"] = True
+    ps = [
+        "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
+        "-Command",
+        'Start-Process -FilePath "%s" -Verb RunAs -Wait -WindowStyle Hidden' % bat,
+    ]
+    proc = subprocess.Popen(ps, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                            text=True, encoding="utf-8", errors="replace")
+    out, _ = proc.communicate(timeout=600)
+    for line in (out or "").splitlines():
+        if line.strip():
+            with _job_lock:
+                job["tail"].append(_scrub(line + "\n"))
+    if log.exists():
+        for line in log.read_text(encoding="utf-8", errors="replace").splitlines():
+            with _job_lock:
+                job["tail"].append(_scrub(line + "\n"))
+                job["tail"] = job["tail"][-60:]
+                job["lines"] += 1
+    ok = log.exists() and "0节点" not in log.read_text(encoding="utf-8", errors="replace")
+    with _job_lock:
+        job["state"] = "done" if ok else "failed"
+        job["exit"] = 0 if ok else 1
+    if ok:
+        _regen_panel_data(job)
+
+
 def _run_fetch(slug: str) -> None:
     job = _jobs[slug]
     env = dict(os.environ)
@@ -255,6 +319,19 @@ def _run_fetch(slug: str) -> None:
     cmd, mode = _fetch_cmd(slug)
     with _job_lock:
         job["mode"] = mode
+    if mode.startswith("scan-memory") and not _is_admin():
+        # 客户端型 + 没有管理员权限：走 UAC 提权，用户点一下「是」即可
+        try:
+            _run_fetch_elevated(slug, job, cmd)
+        except Exception as e:  # noqa: BLE001
+            with _job_lock:
+                job["state"] = "failed"
+                job["exit"] = -1
+                job["tail"].append("提权失败：" + _scrub(str(e)) + "\n")
+        finally:
+            with _job_lock:
+                job["ended_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        return
     try:
         proc = subprocess.Popen(
             cmd, cwd=str(ROOT), env=env,

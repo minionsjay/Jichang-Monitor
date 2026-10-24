@@ -31,8 +31,15 @@ def get_airport(name: str, path: str | None = None) -> dict:
     except Exception:                                        # noqa: BLE001
         cred = None
     if cred:
-        return {"name": name, "type": cred.get("type") or "auto",
-                "panel": cred.get("panel"), "from_credentials": True}
+        # 客户端型机场的 client 块（core_process / install_dir / package）也在 credentials.yaml 里，
+        # 回落时必须一并带出：否则 scan-memory 拿不到 core 名与安装目录，只能报「找不到进程」。
+        out = {"name": name, "type": cred.get("type") or "auto",
+               "panel": cred.get("panel"), "from_credentials": True}
+        if isinstance(cred.get("client"), dict):
+            out["client"] = dict(cred["client"])
+        if cred.get("sub_url"):
+            out["sub_url"] = cred["sub_url"]
+        return out
     raise KeyError(f"未知机场: {name}（可选: {', '.join(airports)}）")
 
 

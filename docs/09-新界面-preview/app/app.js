@@ -1142,7 +1142,7 @@ var API = { ok: false, reason: "" };
     if (!API.ok) { msg.textContent = API.reason; return; }
 
     btn.disabled = true;
-    msg.innerHTML = '<span class="spin"></span>正在拉取…';
+    msg.innerHTML = '<span class="spin"></span>正在开始…';
     log.style.display = "block";
     log.textContent = "";
 
@@ -1169,6 +1169,14 @@ var API = { ok: false, reason: "" };
       log.scrollTop = log.scrollHeight;
 
       if (j.state === "running") {
+        var m = (j.mode || "");
+        if (j.elevated) {
+          msg.innerHTML = '<span class="spin"></span>已请求管理员权限 · 请在弹出的 UAC 窗口点「是」';
+        } else if (m.indexOf("scan-memory") === 0) {
+          msg.innerHTML = '<span class="spin"></span>正在扫描客户端内存（' + m.replace("scan-memory · ", "") + '）…';
+        } else {
+          msg.innerHTML = '<span class="spin"></span>正在拉取订阅…';
+        }
         clearTimeout(fetchTimers[slug]);
         fetchTimers[slug] = setTimeout(function () { pollFetch(slug); }, 1200);
         return;
