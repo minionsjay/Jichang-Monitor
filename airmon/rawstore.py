@@ -23,6 +23,8 @@ import json
 import os
 import re
 import time
+
+from . import snapnames
 from typing import Any
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -37,7 +39,8 @@ def _now_iso() -> str:
 
 
 def _fname_ts() -> str:
-    return time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    """本地时间命名，与快照文件名保持一致（如 20261024-212028）。"""
+    return snapnames.fmt()
 
 
 def sniff_ext(text: str) -> str:

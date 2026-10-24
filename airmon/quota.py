@@ -26,6 +26,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
+from airmon import snapnames as _snapnames
 
 import yaml
 
@@ -33,7 +34,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 QUOTA_FILE = DATA_DIR / "quota.json"
 CREDENTIALS = PROJECT_ROOT / "credentials.yaml"
-SNAP_RE = re.compile(r"^\d{8}T\d{6}Z\.json$")
+SNAP_RE = _snapnames.SNAP_RE  # 新旧两种命名都认
 UA = "clash.meta/1.18.0"
 def _fallback_proxy():
     """直连失败时的兜底代理（自动探测，见 airmon/netcfg.py）。"""
@@ -92,9 +93,9 @@ def harvest_snapshots() -> dict[str, dict]:
     out: dict[str, dict] = {}
     now = datetime.now()
     for slug in _iter_dirs():
-        snaps = sorted(p for p in (DATA_DIR / slug).glob("*.json")
-                       if SNAP_RE.match(p.name))
-        for p in reversed(snaps):
+        # 新旧命名混存，必须按真实时间取最新（否则会拿到几个月前的旧文件）
+        snaps = [DATA_DIR / slug / n for n in _snapnames.names(DATA_DIR / slug, reverse=True)]
+        for p in snaps:
             try:
                 data = json.loads(p.read_text(encoding="utf-8"))
             except Exception:

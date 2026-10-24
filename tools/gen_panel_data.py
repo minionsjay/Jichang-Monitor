@@ -21,6 +21,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "data")
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
+from airmon import snapnames as _snapnames
 
 from airmon.infra import classify as _infra_classify, label as _infra_label, is_edge as _infra_is_edge  # noqa: E402
 OUT = os.path.join(ROOT, "docs", "09-新界面-preview", "app", "data.js")
@@ -104,7 +105,7 @@ def latest_ok_local(slug: str, limit: int = 8) -> str | None:
     """
     d = os.path.join(DATA, slug)
     try:
-        files = sorted((f for f in os.listdir(d) if re.match(r"\d{8}T\d{6}Z", f)), reverse=True)
+        files = _snapnames.names(d, reverse=True)  # 新旧命名混存，必须按真实时间排
     except OSError:
         return None
     for name in files[:limit]:
@@ -115,9 +116,8 @@ def latest_ok_local(slug: str, limit: int = 8) -> str | None:
             continue
         if not (snap.get("nodes") or []):
             continue
-        try:
-            t = datetime.strptime(name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-        except ValueError:
+        t = _snapnames.parse(name)
+        if t is None:
             continue
         return t.astimezone().strftime("%Y-%m-%d %H:%M")
     return None
@@ -132,7 +132,7 @@ def latest_snap_info(slug: str, limit: int = 12) -> dict:
     """
     d = os.path.join(DATA, slug)
     try:
-        files = sorted((f for f in os.listdir(d) if re.match(r"\d{8}T\d{6}Z", f)), reverse=True)
+        files = _snapnames.names(d, reverse=True)  # 新旧命名混存，必须按真实时间排
     except OSError:
         return {"ts": None, "nodes": 0, "age_h": None}
     now = datetime.now(timezone.utc)
@@ -144,9 +144,8 @@ def latest_snap_info(slug: str, limit: int = 12) -> dict:
         except Exception:
             continue
         nodes = len(snap.get("nodes") or [])
-        try:
-            t = datetime.strptime(name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-        except ValueError:
+        t = _snapnames.parse(name)
+        if t is None:
             continue
         age = round((now - t).total_seconds() / 3600.0, 1)
         ts = t.astimezone().strftime("%Y-%m-%d %H:%M")

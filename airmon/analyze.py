@@ -24,19 +24,22 @@ import re
 import sys
 from collections import Counter
 from datetime import datetime, timedelta, timezone
+from airmon import snapnames
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(_HERE, "data")
 CACHE_PATH = os.path.join(DATA_DIR, "analysis_cache.json")
 OUT_PATH = os.path.join(DATA_DIR, "analysis.json")
-SNAP_RE = re.compile(r"^(\d{8}T\d{6}Z)\.json$")
+SNAP_RE = snapnames.SNAP_RE  # 新旧两种命名都认，见 airmon/snapnames.py
 SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,40}$")
 
 DEFAULT_DAYS = 30
 
 
 def _snap_ts(stem: str) -> datetime:
-    return datetime.strptime(stem, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+    """文件名 -> 带时区 datetime（旧格式按 UTC、新格式按本地时间）。"""
+    got = snapnames.parse_stem(stem)
+    return got or datetime.now(timezone.utc)
 
 
 def _load_cache() -> dict:
@@ -71,7 +74,7 @@ def _scan_history(days: int) -> dict:
             m = SNAP_RE.match(fn)
             if not m:
                 continue
-            ts = _snap_ts(m.group(1))
+            ts = _snap_ts(fn)
             if ts < cutoff:
                 continue
             p = os.path.join(d, fn)
@@ -92,10 +95,10 @@ def _scan_history(days: int) -> dict:
                 except Exception:
                     continue
                 new_cache[key] = {"sig": sig, "n": n}
-            points.append((m.group(1), n))
+            points.append((fn, n))
         if not points:
             continue
-        points.sort()
+        points.sort(key=lambda p: snapnames.epoch(p[0]))
         churn = sum(abs(b - a) for (_, a), (_, b) in zip(points, points[1:]))
         zero_n = sum(1 for _, n in points if n == 0)
         out[slug] = {"points": points, "zero_n": zero_n, "churn": churn}
@@ -108,8 +111,7 @@ def _daily_series(hist: dict, days: int) -> tuple[list, dict, dict]:
     """dates(本地日 MM-DD), totals[], by_slug{} —— 每日取最后一份快照值。"""
     today = datetime.now().date()
     dates = [(today - timedelta(days=i)).strftime("%m-%d") for i in range(days - 1, -1, -1)]
-    day_key = lambda ts: datetime.strptime(ts, "%Y%m%dT%H%M%SZ")\
-        .replace(tzinfo=timezone.utc).astimezone().strftime("%m-%d")
+    day_key = lambda ts: snapnames.parse_stem(ts).astimezone().strftime("%m-%d")
     by_slug, totals = {}, {d: 0 for d in dates}
     zero_events = {}
     for slug, h in hist.items():
@@ -134,7 +136,7 @@ def _rdap_orgs() -> dict:
         d = os.path.join(DATA_DIR, slug)
         if not SLUG_RE.match(slug) or not os.path.isdir(d):
             continue
-        snaps = sorted(f for f in os.listdir(d) if SNAP_RE.match(f))
+        snaps = snapnames.names(d, reverse=False)  # 新旧命名混存，按真实时间
         # 最新「非空」快照
         chosen = None
         for fn in reversed(snaps):

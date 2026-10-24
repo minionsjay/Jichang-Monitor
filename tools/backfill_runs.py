@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
+
+from airmon import snapnames
 import glob
 import io
 import json
@@ -48,14 +50,13 @@ def collect_snaps(days: int) -> dict[str, list[tuple[dt.datetime, int]]]:
         if e.name.startswith("_") or e.name in ("backup", "subraw", "trash"):
             continue
         rows = []
-        for fp in glob.glob(os.path.join(e.path, "*Z.json")):
-            m = SNAP_RE.match(os.path.basename(fp))
-            if not m:
+        for fp in glob.glob(os.path.join(e.path, "*.json")):
+            if not SNAP_RE.match(os.path.basename(fp)):
                 continue
-            try:
-                ts = _utc(m.group(1))
-            except ValueError:
+            ep = snapnames.epoch(os.path.basename(fp))
+            if ep == float("-inf"):
                 continue
+            ts = dt.datetime.fromtimestamp(ep, dt.timezone.utc)
             if ts < cutoff:
                 continue
             try:

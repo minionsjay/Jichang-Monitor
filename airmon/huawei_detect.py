@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+from . import snapnames
 import io
 import json
 import os
@@ -44,7 +45,7 @@ OUT_FILE = DATA_DIR / "huawei_findings.json"
 
 # ---- 机场基建关联库（J5/J6 判据的底料） ------------------------------
 _SLUG_RE = re.compile(r"^[\w.\-]{1,40}$")
-_SNAP_RE = re.compile(r"^\d{8}T\d{6}Z\.json$")
+_SNAP_RE = snapnames.SNAP_RE  # 新旧两种命名都认
 _DOMAIN_RE = re.compile(r"^[a-zA-Z0-9\u4e00-\u9fa5][\w.\-\u4e00-\u9fa5]*\.[a-zA-Z\u4e00-\u9fa5]{2,24}$")
 
 
@@ -61,7 +62,7 @@ def load_airport_ips(data_dir: Path = DATA_DIR) -> dict[str, set[str]]:
     for d in sorted(data_dir.iterdir()):
         if not d.is_dir() or d.name.startswith(("_", ".")) or not _SLUG_RE.match(d.name):
             continue
-        snaps = sorted(f for f in d.glob("*.json") if _SNAP_RE.match(f.name))
+        snaps = [d / n for n in snapnames.names(d, reverse=False)]  # 按真实时间排
         picked = None
         for f in reversed(snaps):  # 最新优先，找第一份非空
             try:

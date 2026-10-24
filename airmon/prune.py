@@ -22,8 +22,9 @@ import shutil
 import time
 
 from .store import DATA_DIR, _ts_of
+from . import snapnames
 
-SNAP_RE = re.compile(r"^\d{8}T\d{6}Z\.json$")
+SNAP_RE = snapnames.SNAP_RE  # 新旧两种命名都认，别把新文件当垃圾
 ARCHIVE_DIR = os.path.join(DATA_DIR, "_archive")
 RUNLOG = os.path.join(DATA_DIR, "..", "run.log")
 RUNLOG_MAX = 20 * 1024 * 1024

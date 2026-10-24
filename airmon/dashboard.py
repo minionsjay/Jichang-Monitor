@@ -34,8 +34,9 @@ import yaml
 
 from . import store as _store
 from .store import list_snapshots, load
+from . import snapnames as _snapnames
 
-SNAP_RE = re.compile(r"^\d{8}T\d{6}Z\.json$")
+SNAP_RE = _snapnames.SNAP_RE  # 新旧两种命名都认
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATA_DIR = Path(_store.DATA_DIR)
 DEFAULT_OUT = PROJECT_ROOT / "dashboard" / "index.html"
@@ -70,13 +71,8 @@ def _scrub(s: str) -> str:
 # ---------------------------------------------------------------- 时间与文件名
 
 def _fname_ts(path: Path) -> datetime | None:
-    m = SNAP_RE.match(path.name)
-    if not m:
-        return None
-    try:
-        return datetime.strptime(path.stem, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
-    except ValueError:
-        return None
+    """文件名 -> 带时区 datetime（旧格式 UTC / 新格式本地时间，混存）。"""
+    return _snapnames.parse(path.name)
 
 
 def _local(dt: datetime | None) -> str | None:

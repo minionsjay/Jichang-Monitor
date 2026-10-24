@@ -34,6 +34,12 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from airmon import snapnames as _snapnames  # noqa: E402
+
+
 def _rawstore():
     """延迟导入 airmon.rawstore：只有看原文时才需要。"""
     if str(ROOT) not in sys.path:
@@ -41,8 +47,6 @@ def _rawstore():
     from airmon import rawstore
     return rawstore
 
-
-ROOT = Path(__file__).resolve().parents[1]
 APP = ROOT / "docs" / "09-新界面-preview" / "app"
 DATA = ROOT / "data"
 
@@ -167,7 +171,7 @@ def latest_ok_local(slug: str, limit: int = 8) -> str:
     """最近一次真拿到节点的时间（扫该机场最近几份快照，别用诊断文件的旧值）。"""
     d = DATA / slug
     try:
-        names = sorted((n for n in os.listdir(d) if re.match(r"\d{8}T\d{6}Z", n)), reverse=True)
+        names = _snapnames.names(d, reverse=True)  # 新旧命名混存，按真实时间排
     except OSError:
         return ""
     for name in names[:limit]:
@@ -178,10 +182,8 @@ def latest_ok_local(slug: str, limit: int = 8) -> str:
             continue
         if not (snap.get("nodes") or []):
             continue
-        try:
-            t = datetime.datetime.strptime(name[:16], "%Y%m%dT%H%M%SZ").replace(
-                tzinfo=datetime.timezone.utc)
-        except ValueError:
+        t = _snapnames.parse(name)
+        if t is None:
             continue
         return t.astimezone().strftime("%Y-%m-%d %H:%M")
     return ""

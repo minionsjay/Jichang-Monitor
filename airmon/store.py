@@ -6,6 +6,7 @@ import json
 import os
 from datetime import datetime, timezone
 
+from . import snapnames
 from .models import Snapshot, Node
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,8 +21,13 @@ def save(snap: Snapshot) -> str:
     """原子写：先写 .tmp 再 os.replace，避免写一半崩溃/并发读到半份 JSON。"""
     d = os.path.join(DATA_DIR, snap.airport)
     os.makedirs(d, exist_ok=True)
-    ts = snap.ts.replace(":", "").replace("-", "")
-    path = os.path.join(d, f"{ts}.json")
+    # 文件名用**本地时间** 20261024-212028.json（见 airmon/snapnames.py）：
+    # 以前是 UTC 的 20261024T132028Z.json，肉眼看像随机串，其实是 8 小时前的 UTC。
+    try:
+        _when = datetime.fromisoformat(snap.ts.replace("Z", "+00:00"))
+    except ValueError:
+        _when = datetime.now()
+    path = os.path.join(d, f"{snapnames.fmt(_when)}.json")
     tmp = path + ".tmp"
     with open(tmp, "w", encoding="utf-8") as f:
         json.dump(snap.to_dict(), f, ensure_ascii=False, indent=2)
@@ -35,7 +41,9 @@ def list_snapshots(airport: str) -> list[str]:
     if not airport:
         return []
     d = os.path.join(DATA_DIR, airport)
-    return sorted(glob.glob(os.path.join(d, "*.json")))
+    # 新旧两种命名混存（20261024T132028Z.json / 20261024-212028.json），
+    # 纯字符串排序会把新格式整体排到旧格式后面 —— 必须按解析出的时间排。
+    return snapnames.paths(d, reverse=False)
 
 
 def load(path: str) -> dict:
@@ -44,13 +52,9 @@ def load(path: str) -> dict:
 
 
 def _ts_of(path: str) -> float | None:
-    """从快照文件名 YYYYMMDDTHHMMSSZ.json 解析 epoch；非法名返回 None。"""
-    base = os.path.basename(path)
-    try:
-        dt = datetime.strptime(base.split(".")[0], "%Y%m%dT%H%M%SZ")
-        return dt.replace(tzinfo=timezone.utc).timestamp()
-    except Exception:
-        return None
+    """从快照文件名解析 epoch（兼容 UTC 旧名与本地时间新名）；非法名返回 None。"""
+    e = snapnames.epoch(os.path.basename(path))
+    return None if e == float("-inf") else e
 
 
 def diff_latest(airport: str, min_gap_hours: float = 2.0) -> dict | None:
