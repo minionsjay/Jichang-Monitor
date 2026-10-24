@@ -357,6 +357,7 @@ def main():
         # 节点明细（只出必要字段）
         node_rows = []
         infra_cnt = {}
+        frag_n = 0          # 无协议碎片：scan-memory 用「域名:端口」正则捞到的残片，导不出去
         try:
             best = None
             best_ts = ""
@@ -376,6 +377,8 @@ def main():
             if best:
                 for nd in best:
                     proto = (nd.get("protocol") or "unknown").lower()
+                    if proto in ("", "unknown"):
+                        frag_n += 1
                     owner, ikey = "", ""
                     rd = (nd.get("raw") or {}).get("_rdap") or {}
                     for _ip, tup in rd.items():
@@ -425,8 +428,10 @@ def main():
             "slug": slug,
             "name_cn": (names.get(slug) or {}).get("cn_short") or (names.get(slug) or {}).get("cn") or "",
             "state": state,
-            "nodes": nodes,
+            "nodes": max(0, nodes - frag_n),   # 可用节点=有协议；unknown 碎片单列
+            "snap_total": nodes,
             "exported": exported,
+            "frag": frag_n,
             "protos": ix.get("protos") or {},
             "via": "内存扫描" if (ix.get("node_source") == "client_nodes") else ("快照" if ix else "无数据"),
             "days": days,
@@ -482,6 +487,8 @@ def main():
         "d": cnt(lambda a: a["state"] == "D"),
         "nodes": sum(a["nodes"] for a in airports),
         "exported": sum(a["exported"] for a in airports),
+        "frag": sum(a.get("frag") or 0 for a in airports),
+        "snap_nodes": sum(a.get("snap_total") or 0 for a in airports),
         "with_nodes": cnt(lambda a: a["nodes"] > 0),
         "with_export": cnt(lambda a: a["exported"] > 0),
         "expired": cnt(lambda a: isinstance(a["days"], (int, float)) and a["days"] < 0),
