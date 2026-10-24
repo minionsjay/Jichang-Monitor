@@ -185,7 +185,7 @@ def round_status() -> dict:
         "status": d.get("status"),
         "started_at": d.get("started_at"),
         "ended_at": d.get("ended_at"),
-        "running": (DATA / "run.lock").exists(),
+        "running": _run_lock_holder() is not None,
         "pull_ok": d.get("pull_ok"),
         "pull_fail": d.get("pull_fail"),
         "nodes_total": d.get("nodes_total"),
@@ -370,11 +370,50 @@ def _run_fetch(slug: str) -> None:
             job["ended_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def _pid_alive(pid) -> bool:
+    """Windows 安全探活（绝不用 os.kill(pid,0)：Windows 语义是 TerminateProcess）。"""
+    try:
+        import ctypes
+        k32 = ctypes.windll.kernel32
+        h = k32.OpenProcess(0x1000, False, int(pid))
+        if not h:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            return bool(k32.GetExitCodeProcess(h, ctypes.byref(code))) and code.value == 259
+        finally:
+            k32.CloseHandle(h)
+    except Exception:
+        return False
+
+
+def _run_lock_holder():
+    """返回仍在跑的轮次信息；僵尸锁（进程已死）会被就地清掉并返回 None。"""
+    lp = DATA / "run.lock"
+    if not lp.exists():
+        return None
+    info = {}
+    try:
+        info = json.loads(lp.read_text(encoding="utf-8"))
+    except Exception:
+        info = {}
+    pid = info.get("pid")
+    if pid and _pid_alive(pid):
+        return info
+    try:
+        lp.unlink()
+        print("[锁] 清理僵尸锁（pid=%s 已不在）" % pid, flush=True)
+    except Exception as e:
+        print("[锁] 僵尸锁清理失败: %s" % e, flush=True)
+    return None
+
+
 def start_fetch(slug: str) -> dict:
     if not re.match(r"^[a-z0-9._-]{2,40}$", slug or ""):
         return {"ok": False, "error": "slug 不合法"}
-    if (DATA / "run.lock").exists():
-        return {"ok": False, "error": "定时轮正在跑（data/run.lock 存在），等这轮结束再点"}
+    holder = _run_lock_holder()
+    if holder:
+        return {"ok": False, "error": "定时轮正在跑（pid=%s，起于 %s），等这轮结束再点" % (holder.get("pid"), holder.get("at"))}
     with _job_lock:
         cur = _jobs.get(slug)
         if cur and cur["state"] == "running":
