@@ -114,6 +114,29 @@ def _mask_url(url: str) -> str:
     return "%s://%s%s%s" % (u.scheme, host, path, query)
 
 
+def _sub_auth_state(slug: str) -> dict | None:
+    """限时订阅开关型机场的面板令牌时效（JWT 的 exp，不验签、不联网）。"""
+    try:
+        import base64
+        import json as _j
+        import time as _t
+        creds = _load_yaml("credentials.yaml")
+        acct = ((creds.get("accounts") or {}) if isinstance(creds, dict) else {}).get(slug) or {}
+        tok = acct.get("auth_token") or ""
+        if not tok:
+            return None
+        seg = tok.split(".")
+        if len(seg) < 2:
+            return None
+        pad = "=" * (-len(seg[1]) % 4)
+        exp = int(_j.loads(base64.urlsafe_b64decode(seg[1] + pad)).get("exp") or 0)
+        if not exp:
+            return None
+        return {"hours": round((exp - _t.time()) / 3600.0, 1), "ok": exp > _t.time()}
+    except Exception:
+        return None
+
+
 def airport_detail(slug: str, reveal: bool = False) -> dict:
     creds = _load_yaml("credentials.yaml")
     reg = _load_yaml("airports.yaml")
@@ -140,6 +163,7 @@ def airport_detail(slug: str, reveal: bool = False) -> dict:
 
     return {
         "slug": slug,
+        "sub_auto": _sub_auth_state(slug),
         "name": ent.get("display") or slug,
         "type": ent.get("type") or ("client" if core else "subscription"),
         "core": core,
