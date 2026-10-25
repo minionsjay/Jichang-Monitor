@@ -153,6 +153,9 @@ def airport_detail(slug: str, reveal: bool = False) -> dict:
     core = ""
     if isinstance(ent.get("client"), dict):
         core = ent["client"].get("core_process") or ""
+    # 有的机场把 client 块登记在 credentials.yaml（credentials 才是主名册）
+    if not core and isinstance(acc.get("client"), dict):
+        core = acc["client"].get("core_process") or ""
 
     health = _load_json(DATA / "sub_health.json", {}).get(slug) or {}
     ps = (_load_json(DATA / "panel_state.json", {}) or {}).get(slug) or {}
@@ -349,11 +352,17 @@ def _fetch_cmd(slug: str) -> tuple[list[str], str]:
     core = ""
     if isinstance(ent.get("client"), dict):
         core = ent["client"].get("core_process") or ""
+    # 有的机场（青云梯）只把 client 块登记在 credentials.yaml，airports.yaml 里没有
+    if not core and isinstance(acc.get("client"), dict):
+        core = acc["client"].get("core_process") or ""
+    # 有内核客户端（如青云梯、DOVE）时，"订阅"这条路对它就是死的：即使
+    # credentials 里留着旧的 sub_url，也已经过不去（青云梯订阅端点要人机验证、
+    # DOVE 订阅只回占位节点）。所以只要挂了客户端，就一律走提取，不走 pull。
     is_client = (acc.get("type") == "client") or bool(core) or not acc.get("sub_url")
-    if is_client and not acc.get("sub_url"):
+    if is_client and (bool(core) or not acc.get("sub_url")):
         cmd = [sys.executable, "-X", "utf8", "run.py", "scan-memory", "--airport", slug]
         if _no_admin_needed(slug):
-            return cmd, "离线解包（免提权）"
+            return cmd, "本地提取（免提权）"
         return cmd, "scan-memory" + ((" · " + core) if core else "")
     return [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"], "pull"
 
@@ -433,8 +442,10 @@ def _no_admin_needed(slug: str) -> bool:
     try:
         from airmon import config as _cfg
         from airmon import dovex as _dx
-        ap = _cfg.get_airport(slug) or {}
-        return bool(_dx.available(ap.get("client") or {}))
+        from airmon import qingyunti as _qyt
+        cli = (_cfg.get_airport(slug) or {}).get("client") or {}
+        # DOVE：解密落盘包；青云梯：用手上已有的抓包结果（都不碰进程内存）
+        return bool(_dx.available(cli)) or bool(_qyt.available(slug, cli))
     except Exception:                                        # noqa: BLE001
         return False
 

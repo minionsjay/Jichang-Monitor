@@ -327,3 +327,27 @@ python -X utf8 run.py scan-memory --airport dovex -v   # 自动优先走这条�
 `service.internal` 内网名，必须带 `dialer-proxy: DOVE` 并在 yaml 里给出 `DOVE`
 入口组（4 个 AWS/移动入口），否则导出的配置连不通。** `airmon/nodeset.py` 已保留
 该字段并自动生成 `proxy-groups`，`dove-core.exe -t` 校验通过。
+
+## 客户端型机场：青云梯用本地抓包（免提权、免开客户端）
+
+青云梯把整份 mihomo 配置经本地管道交给内核 `ApexCore.exe`。`qyt_capture_config.py`
+用 Frida hook `ws2_32!WriteFile` 在那一瞬间复制一份（窗口隐藏、不点登录/连接，跑完自动收尾）：
+
+```bash
+cd 客户端逆向/青云梯-极速版/工具
+python qyt_capture_config.py --secs 40   # 抓（约 40 秒，需登录态还在）
+python qyt_export_nodes.py               # 转 yaml/txt/json
+```
+
+拿到 `qyt_config.json` 后，主流程直接吃它：
+
+```bash
+python -X utf8 -m airmon.qingyunti --probe   # 看手上这份抓了多久
+python -X utf8 run.py scan-memory --airport qingyunti   # 自动优先用抓包结果
+```
+
+`airmon/qingyunti.py` 会把它转成 `data/client_nodes/qingyunti.json`（62 个 vless，
+带 uuid / flow / servername），`nodeset` 合并后导出的 yaml 可直接喂 mihomo。
+
+**时效**：`servername`（TLS SNI）每次订阅都重新随机，server/port/uuid 不变。
+超过 36 小时会标 stale 并提示重抓（40 秒）。

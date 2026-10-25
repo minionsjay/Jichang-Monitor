@@ -188,6 +188,22 @@ import re as _re
 _MEM_HINT = _re.compile("mem|内存|exe|进程", _re.I)
 
 
+_client_src: dict = {}
+
+
+def _via_of(slug: str, ix: dict) -> str:
+    """这套节点是怎么来的（面板「获取方式」那一列）。"""
+    src = _client_src.get(slug, "")
+    low = src.lower()
+    if "bundle" in low:
+        return "本地配置解包"        # DOVE：解密落盘的 MHBNDL 包
+    if "qyt" in low or "capture" in low:
+        return "本地抓包"            # 青云梯：Frida 截内核配置
+    if _MEM_HINT.search(src) or (ix or {}).get("node_source") == "client_nodes":
+        return "客户端内存"
+    return "快照" if ix else "无数据"
+
+
 def load_client_sources():
     """data/client_nodes/<slug>.json 里的 source（判断这套节点是怎么来的）。"""
     out = {}
@@ -490,6 +506,7 @@ def main():
     runs_hist = load_runs(20)
     subraw_ix = load_subraw_index()
     proxy_ix, proxy_meta = load_proxy_need()
+    global _client_src
     _client_src = load_client_sources()
     sub_closed = load_sub_closed()
     sub_auth = load_sub_auth()
@@ -647,10 +664,7 @@ def main():
             "exported": exported,
             "frag": _frag_ix,        # 无协议碎片（内存扫描只拿到域名+端口）
             "protos": ix.get("protos") or {},
-            "via": ("本地配置解包" if "bundle" in _client_src.get(slug, "").lower()
-                    else "客户端内存" if (_MEM_HINT.search(_client_src.get(slug, ""))
-                                          or ix.get("node_source") == "client_nodes")
-                    else ("快照" if ix else "无数据")),
+            "via": _via_of(slug, ix),
             "days": days,
             "expire": q.get("expire_date"),
             "total_gb": q.get("total_gb"),

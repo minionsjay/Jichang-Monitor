@@ -338,9 +338,10 @@ def _nodes_from_bundle(slug: str, r: dict, detector: Detector):
     except Exception as e:  # noqa: BLE001
         print(f"    [{slug}] 富化跳过（{str(e)[:50]}）", flush=True)
     snap = _Snapshot(airport=slug, ts=store.now_iso(),
-                     source="bundle:%s" % os.path.basename(r.get("dat") or "DOVE.tauri.dat"),
+                     source=r.get("snapshot_source")
+                     or "bundle:%s" % os.path.basename(r.get("dat") or "DOVE.tauri.dat"),
                      nodes=nodes, findings=[], meta={"bundle_name": r.get("bundle_name") or ""})
-    _finish(slug, snap, "bundle:dove")
+    _finish(slug, snap, r.get("finish_tag") or "bundle:dove")
     return True
 
 
@@ -369,6 +370,23 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
                 print(f"    [{slug}] 离线解包失败（{_r.get('error', '')[:60]}），改用内存扫描", flush=True)
     except Exception as _e:  # noqa: BLE001
         print(f"    [{slug}] 离线解包异常（{str(_e)[:60]}），改用内存扫描", flush=True)
+
+    # 优先级 0.5：抓包缓存（青云梯这类把整份配置从管道交给内核的客户端）。
+    # 抓包结果在 客户端逆向/青云梯-极速版/工具/qyt_config.json，带 uuid/flow/servername，
+    # 比读进程内存完整；既然手上有就不必再提权读内存（SNI 会随订阅轮换，久了要重抓）。
+    try:
+        from airmon import qingyunti as _qyt
+        if _qyt.available(slug, client_cfg):
+            _r2 = _qyt.ingest(slug)
+            if _r2.get("ok") and _r2.get("count"):
+                print(f"    [{slug}] 用抓包缓存：{_r2['count']} 节点，抓于 "
+                      f"{_r2['captured_at']}（{_r2['age_hours']} 小时前）"
+                      + ("，已超 %d 小时建议重抓" % _qyt.STALE_HOURS if _r2.get("stale") else ""),
+                      flush=True)
+                if _nodes_from_bundle(slug, _r2, detector):
+                    return
+    except Exception as _e:  # noqa: BLE001
+        print(f"    [{slug}] 抓包缓存不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
 
     core_process = client_cfg.get("core_process", "")
     if not core_process:
@@ -971,6 +989,21 @@ def cmd_scan_memory(args):
                 print(f"离线解包失败（{_r.get('error', '')[:60]}），改用内存扫描", flush=True)
     except Exception as _e:  # noqa: BLE001
         print(f"离线解包异常（{str(_e)[:60]}），改用内存扫描", flush=True)
+
+    # 优先级 0.5：抓包缓存（青云梯）
+    try:
+        from airmon import qingyunti as _qyt
+        if _qyt.available(args.airport, _cfg):
+            _r2 = _qyt.ingest(args.airport)
+            if _r2.get("ok") and _r2.get("count"):
+                print(f"用抓包缓存：{_r2['count']} 节点，抓于 {_r2['captured_at']}"
+                      f"（{_r2['age_hours']} 小时前）"
+                      + ("，已超 %d 小时建议重抓" % _qyt.STALE_HOURS if _r2.get("stale") else ""),
+                      flush=True)
+                if _nodes_from_bundle(args.airport, _r2, detector):
+                    return
+    except Exception as _e:  # noqa: BLE001
+        print(f"抓包缓存不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
 
     def _find_pid(proc_name):
         try:
