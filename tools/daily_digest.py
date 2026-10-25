@@ -69,75 +69,95 @@ def load_panel() -> dict:
         return {}
 
 
+def _short_reason(r: str) -> str:
+    """把长原因压成一句能一眼看懂的话（微信一屏就那几行）。"""
+    r = (r or "").replace("\n", " ").strip()
+    if not r:
+        return "无说明"
+    # 套餐过期优先说
+    if "过期" in r:
+        m = re.search(r"(\d{4})-(\d{2})-(\d{2})", r)
+        if m:
+            return "套餐 %s-%s 过期" % (m.group(2).lstrip("0"), m.group(3).lstrip("0"))
+        return "套餐已过期"
+    if "已停用" in r:
+        if "过期" in r:
+            return "已停用 · 套餐过期"
+        m = re.search(r"已停用[：:]\s*([^；;。]{0,10})", r)
+        return "已停用 · " + m.group(1).strip() if m else "已停用"
+    first = re.split(r"[；;。]", r)[0].strip()
+    first = re.sub(r"^订阅(（[^）]*）)?", "", first)
+    first = re.sub(r"^(manual-url 路线|server-fetch 路线)", "", first).strip()
+    first = first.replace("HTTP ", "").replace(" 网关超时", " 超时")
+    return first[:15]
+
+
 def build(d: dict) -> tuple[str, str]:
-    """把 panel 数据拼成（标题, 纯文本正文）。"""
+    """把 panel 数据拼成（标题, 纯文本正文）—— 目标是「一屏看完、扫一眼知道该干什么」。"""
     t = d.get("totals") or {}
     ap = d.get("airports") or []
-    now = time.localtime()
-    day = time.strftime("%m-%d", now)
+    day = time.strftime("%m-%d", time.localtime())
     hw = t.get("hw") or 0
+    BAR = "━" * 18
 
-    title = "机场日报 %s · %s家 / %s节点%s" % (
-        day, t.get("airports") or "?", t.get("nodes") or "?", (" / ⚠华为%d" % hw) if hw else "")
+    title = "机场日报 %s · %s家/%s节点%s" % (
+        day, t.get("airports") or "?", t.get("nodes") or "?", (" / 华为%d" % hw) if hw else "")
 
-    L = ["【机场日报 %s】" % time.strftime("%Y-%m-%d %H:%M"), ""]
-    L.append("机场 %s 家：" % (t.get("airports") or "?"))
-    L.append("· 可用 %s · 异常 %s · 仅客户端 %s · 断流 %s" % (
-        t.get("ok") or 0, t.get("b") or 0, t.get("c") or 0, t.get("d") or 0))
-    L.append("· 节点 %s 个，可导出配置 %s 个（另有 %s 条无协议碎片）" % (
-        t.get("nodes") or 0, t.get("exported") or 0, t.get("frag") or 0))
+    L = ["📊 机场日报 %s" % day, ""]
+    L.append("🟢 可用 %-2s   🟡 异常 %-2s   🔴 断流 %s" % (
+        t.get("ok") or 0, t.get("b") or 0, t.get("d") or 0))
+    L.append("📦 节点 %s　可导出 %s" % (t.get("nodes") or 0, t.get("exported") or 0))
+    extra = []
     if t.get("stale"):
-        L.append("· 快照超 6 小时：%s 家" % t.get("stale"))
+        extra.append("陈旧 %s" % t.get("stale"))
     if t.get("expired"):
-        L.append("· 套餐已过期：%s 家" % t.get("expired"))
+        extra.append("过期 %s" % t.get("expired"))
+    if extra:
+        L.append("⏱ " + "　".join(extra) + " 家")
 
-    # 异常 / 断流机场（带原因）
+    # 华为单独一行，最显眼
+    if hw:
+        L.append("☁️ ⚠ 华为云命中 %d 条 —— 去面板看" % hw)
+    else:
+        L.append("☁️ 华为云命中 0")
+
+    # 需要处理：只列最关键，一家一行
     bad = [a for a in ap if a.get("state") in ("B", "D")]
     bad.sort(key=lambda x: (x.get("state") != "D", -(x.get("nodes") or 0)))
     if bad:
         L.append("")
-        L.append("需要你处理（%d 家）：" % len(bad))
-        for a in bad[:8]:
-            nm = a.get("name_cn") or a.get("slug")
-            why = (a.get("reason") or "").strip().replace("\n", " ")
-            if len(why) > 46:
-                why = why[:46] + "…"
-            L.append("· %s（%s）%s" % (nm, "断流" if a.get("state") == "D" else "异常", why))
-        if len(bad) > 8:
-            L.append("· …另有 %d 家" % (len(bad) - 8))
-
-    # 协议分布 Top5
-    pr = [(str(k), v) for k, v in (d.get("protos") or []) if str(k) != "unknown"]
-    pr.sort(key=lambda x: -x[1])
-    if pr:
+        L.append(BAR)
+        L.append("❗ 需要处理 %d 家" % len(bad))
         L.append("")
-        L.append("协议分布：" + " / ".join(
-            "%s %d" % (PROTO_CN.get(k, k), v) for k, v in pr[:5]))
+        for a in bad[:7]:
+            nm = (a.get("name_cn") or a.get("slug") or "")[:10]
+            dot = "🔴" if a.get("state") == "D" else "🟡"
+            L.append("%s %s · %s" % (dot, nm, _short_reason(a.get("reason"))))
+        if len(bad) > 7:
+            L.append("　 …另有 %d 家" % (len(bad) - 7))
 
-    # 地区分布 Top6（先把 US / 美国 这类同义键合并）
-    _geo: dict[str, int] = {}
+    # 协议 / 地区：各一行，Top5
+    pr = [(str(k), int(v or 0)) for k, v in (d.get("protos") or []) if str(k) != "unknown"]
+    pr.sort(key=lambda x: -x[1])
+    _geo: dict = {}
     for k, v in (d.get("geos") or []):
         k = str(k)
         if k == "未知":
             continue
-        nm = GEO_CN.get(k, k)
-        _geo[nm] = _geo.get(nm, 0) + int(v or 0)
+        nmk = GEO_CN.get(k, k)
+        _geo[nmk] = _geo.get(nmk, 0) + int(v or 0)
     ge = sorted(_geo.items(), key=lambda x: -x[1])
-    if ge:
-        L.append("地区分布：" + " / ".join("%s %d" % (k, v) for k, v in ge[:6]))
 
-    # 华为
-    L.append("")
-    led = d.get("hwLedger") or {}
-    cur = (led.get("current") or {}).get("by_type") or {}
-    if hw:
-        L.append("⚠ 华为云命中 %d 条（A%s/B%s/C%s 类）—— 看面板「华为云」页" % (
-            hw, cur.get("A", 0), cur.get("B", 0), cur.get("C", 0)))
-    else:
-        L.append("华为云命中：0（49 家节点没有一个落在华为云段）")
+    if pr or ge:
+        L.append("")
+        L.append(BAR)
+        if pr:
+            L.append("🔧 协议　" + " · ".join("%s %d" % (k, v) for k, v in pr[:5]))
+        if ge:
+            L.append("🌍 地区　" + " · ".join("%s %d" % (k, v) for k, v in ge[:5]))
 
     L.append("")
-    L.append("面板：http://127.0.0.1:57010/index.html")
+    L.append("🔗 http://127.0.0.1:57010")
     return title, "\n".join(L)
 
 
