@@ -344,69 +344,128 @@
   /* ------------------------------------------------------------ 华为云 */
   function renderHuawei() {
     var v = $("#v-hw");
-    var hw = D.hw || {};
-    var sum = hw.summary || {};
-    var ents = hw.entities || [];
+    var L = D.hwLedger || null;
+    if (!L) {
+      v.innerHTML = '<div class="sec"><div class="sec-b"><div class="hint">还没有台账。执行 ' +
+        '<span class="mono">python -X utf8 tools/huawei_ledger.py</span> 生成 data/huawei_ledger.json 后刷新。</div></div></div>';
+      return;
+    }
+    var byType = (L.current || {}).by_type || {};
+    var hist = L.history || {};
+    var byDim = hist.by_dimension || {};
+    var byAp = hist.by_airport || {};
+    var domRev = hist.domain_review || {};
+    var sc = L.scanned || {};
+    var hitNow = (byType.A || 0) + (byType.B || 0) + (byType.C || 0);
+    var histTotal = (byDim.rdap_name || 0) + (byDim.asn || 0) + (byDim.domain || 0) + (byDim.cidr || 0);
+    var apN = Object.keys(byAp).length;
 
+    var derived = hist.fronting_derived_hits || {};
+    var derivedN = 0;
+    Object.keys(derived).forEach(function (k) { derivedN += derived[k]; });
     var cards = [
-      { lb: "关联实体", vl: sum.entities_total || 0, ft: "会话特征聚类后" },
-      { lb: "强关联", vl: sum.strong || 0, ft: "level=strong" },
-      { lb: "中等关联", vl: sum.mid || 0, ft: "level=mid" },
-      { lb: "输入会话", vl: hw.input_sessions != null ? hw.input_sessions : (hw.lib || {}).ip_dom_entries || 0, ft: "机场库条目 " + num((hw.lib || {}).ip_dom_entries || 0) }
+      { lb: "当前命中", vl: hitNow, ft: "本轮 " + num(sc.airports || 0) + " 家 / " + num(sc.nodes || 0) + " 节点" },
+      { lb: "历史命中（干净）", vl: histTotal, ft: "近 " + num(sc.history_days || 30) + " 天 · 已剔除假命中" },
+      { lb: "已剔除的假命中", vl: derivedN + (domRev.total || 0), ft: "前置/碎片带出 " + num(derivedN) + " + domain 误报 " + num(domRev.total || 0) },
+      { lb: "大厂域前置", vl: hist.fronting_hits || 0, ft: "单列，不算「机场在华为云」" }
     ];
-
     var h = '<div class="hw-cards">';
     cards.forEach(function (c, i) {
       h += '<div class="hw-c"><div class="lb">' + esc(c.lb) + '</div><div class="vl" data-hw="' + i + '">0</div><div class="ft">' + esc(c.ft) + "</div></div>";
     });
     h += "</div>";
 
-    h += '<div class="sec"><div class="sec-h"><h2>判定维度</h2>' +
-      '<span class="n">' + esc(hw.generated_at || "—") + "</span></div><div class=\"sec-b\"><div class=\"judges\">";
-    String(hw.judges || "").split(" ").forEach(function (j) {
-      if (j) h += '<span class="pill">' + esc(j) + "</span>";
-    });
-    h += "</div><div class=\"mt8 hint\">" + esc(hw.scope || "") + "</div></div></div>";
+    /* 用当前引擎重扫的结果 */
+    h += '<div class="sec mt14"><div class="sec-h"><h2>本轮重扫结果</h2>' +
+      '<span class="n">' + esc(L.engine || "") + "</span></div><div class=\"sec-b\">" +
+      '<div class="grid2"><div><dl class="kv">' +
+      "<dt>A 真在华为云</dt><dd>" + num(byType.A || 0) + " 条</dd>" +
+      "<dt>B 经华为 CDN</dt><dd>" + num(byType.B || 0) + " 条</dd>" +
+      "<dt>C 大厂域前置</dt><dd>" + num(byType.C || 0) + " 条</dd>" +
+      "<dt>D 无佐证</dt><dd>" + num(byType.D || 0) + " 条</dd>" +
+      "</dl></div><div class=\"small fg2\" style=\"line-height:1.9\">" +
+      (hitNow === 0
+        ? "<b>本轮 0 命中</b>：47 家的节点 IP 没有一家落在华为云段，也没有域名 CNAME 到华为 CDN、没有借大厂域前置。"
+        : "<b>本轮 " + num(hitNow) + " 条命中</b>：明细见下表。") +
+      '<div class="mt8 hint">判定用快照里已存的解析结果（_resolved_ips / _cnames / _rdap），不重新联网，所以结果是确定的，不是抽样。</div>' +
+      "</div></div></div></div>";
 
-    h += '<div class="sec mt14"><div class="sec-h"><h2>关联实体</h2>' +
-      '<span class="n">' + num(ents.length) + " 条</span></div>" +
+    /* 四类语义 */
+    var types = L.types || {};
+    h += '<div class="sec mt14"><div class="sec-h"><h2>四类分别是什么</h2><span class="n">别把四件事混成一个数</span></div>' +
+      '<div class="sec-b"><div class="small fg2" style="line-height:2">';
+    [["A", "真在华为云"], ["B", "经华为 CDN"], ["C", "大厂域前置"], ["D", "无佐证"]].forEach(function (t) {
+      h += "<div><b class=\"mono\">" + t[0] + "</b> " + esc(t[1]) + "：" + esc(types[t[0]] || "") + "</div>";
+    });
+    h += "</div><div class=\"mt8 hint\">C 类（大厂域前置）单列：节点连接目标本身就是 chat.deepseek.com / www.apple.com 这类大厂域名，解析出的 IP 是大厂自己的服务器，与机场无关。协议不明、raw 里没有完整配置的节点（内存碎片把解析 IP 当成 server）也不计入。</div></div></div>";
+
+    /* 当前命中明细 */
+    var cur = (L.current || {}).findings || [];
+    h += '<div class="sec mt14"><div class="sec-h"><h2>本轮命中明细</h2><span class="n">' + num(cur.length) + " 条</span></div>" +
       '<div class="sec-b tight"><div class="tbl-wrap"><table class="tbl compact"><thead><tr>' +
-      '<th>目标</th><th class="num">会话</th><th class="num">流量</th><th class="num">评分</th><th>等级</th><th>命中机场</th><th>依据</th>' +
+      "<th>机场</th><th>类型</th><th>维度</th><th>命中</th><th>证据</th><th>位置</th><th>置信</th>" +
       "</tr></thead><tbody>";
-    if (!ents.length) {
-      h += '<tr><td colspan="7" class="dim">本轮没有关联实体。华为云检测依赖会话特征，需要长连接样本才会命中。</td></tr>';
+    if (!cur.length) {
+      h += '<tr><td colspan="7" class="dim">本轮 0 命中，历史上（近 ' + num(sc.history_days || 30) + ' 天）剔除假命中后也是 0 条。' +
+        '同一个引擎在更早的 400 天窗口里扫出过 276 条 rdap 命中，说明它确实有检出能力——现在没有，是真的没有。</td></tr>';
     }
-    ents.forEach(function (e) {
+    cur.slice(0, 60).forEach(function (f) {
       h += "<tr>" +
-        '<td class="nm mono">' + esc(e.dst || "—") + "</td>" +
-        '<td class="num">' + num(e.sessions || 0) + "</td>" +
-        '<td class="num">' + esc(bytesMB(e.bytes)) + "</td>" +
-        '<td class="num">' + num(e.score || 0) + "</td>" +
-        '<td>' + pill(e.level === "strong" ? "pill d" : "pill b", esc(e.level || "—")) + "</td>" +
-        '<td class="xsmall">' + esc((e.hits || []).join("、") || "—") + "</td>" +
-        '<td class="xsmall dim">' + esc((e.why || []).join(" · ") || "—") + "</td></tr>";
+        '<td class="nm">' + esc(f.airport) + "</td>" +
+        "<td>" + pill(f.type === "A" ? "pill d" : (f.type === "B" ? "pill b" : "pill t"), esc(f.type || "—")) + "</td>" +
+        '<td class="mono xsmall">' + esc(f.dimension || "—") + "</td>" +
+        '<td class="xsmall">' + esc(f.rule || "—") + "</td>" +
+        '<td class="xsmall mono">' + esc(f.evidence || "—") + "</td>" +
+        '<td class="xsmall dim">' + esc(f.context || "—") + "</td>" +
+        '<td class="xsmall">' + esc(f.confidence || "—") + "</td></tr>";
     });
     h += "</tbody></table></div></div></div>";
 
-    var lib = hw.lib || {};
+    /* 历史台账 */
+    var apList = Object.keys(byAp).map(function (k) { return [k, byAp[k]]; })
+      .sort(function (a, b) { return b[1].total - a[1].total; });
+    h += '<div class="sec mt14"><div class="sec-h"><h2>历史台账</h2>' +
+      '<span class="n">' + num(histTotal) + " 条 / " + num(apN) + " 家</span></div>" +
+      '<div class="sec-b tight"><div class="tbl-wrap"><table class="tbl compact"><thead><tr>' +
+      "<th>机场</th><th class=\"num\">合计</th><th class=\"num\">rdap</th><th class=\"num\">asn</th><th class=\"num\">domain</th>" +
+      "<th>首次</th><th>末次</th><th>结论</th></tr></thead><tbody>";
+    if (!apList.length) {
+      h += '<tr><td colspan="8" class="dim">近 ' + num(sc.history_days || 30) + ' 天没有任何一家机场的节点落在华为云。' +
+        '扫了 ' + num(sc.history_snapshots || 0) + ' 份历史快照，剔除了 ' + num(derivedN) + ' 条前置/碎片带出的假命中。</td></tr>';
+    }
+    apList.forEach(function (r) {
+      var slug = r[0], a = r[1];
+      var verdict = a.rdap_name + a.asn > 0
+        ? (a.last >= "2026-10-20" ? "近期仍有" : "已迁出华为云")
+        : "仅 domain 命中（已判误报）";
+      h += "<tr>" +
+        '<td class="nm">' + esc(slug) + "</td>" +
+        '<td class="num">' + num(a.total) + "</td>" +
+        '<td class="num">' + num(a.rdap_name) + "</td>" +
+        '<td class="num">' + num(a.asn) + "</td>" +
+        '<td class="num">' + num(a.domain) + "</td>" +
+        '<td class="xsmall">' + esc(a.first || "—") + "</td>" +
+        '<td class="xsmall">' + esc(a.last || "—") + "</td>" +
+        '<td class="xsmall dim">' + esc(verdict) + "</td></tr>";
+    });
+    h += "</tbody></table></div></div></div>";
+
+    /* domain 复核 + 旧数据作废 */
     h += '<div class="grid2 mt14">' +
-      '<div class="sec"><div class="sec-h"><h2>机场库覆盖</h2><span class="n">拿什么去比对</span></div><div class="sec-b">' +
-      '<dl class="kv">' +
-      "<dt>覆盖机场</dt><dd>" + num(lib.airports || 0) + " 家</dd>" +
-      "<dt>IP·域条目</dt><dd>" + num(lib.ip_dom_entries || 0) + " 条</dd>" +
-      "<dt>域名条目</dt><dd>" + num(lib.domains || 0) + " 条（CNAME 维尚空）</dd>" +
-      "<dt>输入会话</dt><dd>" + (hw.input_sessions != null ? hw.input_sessions : "—") + " 段</dd>" +
-      "</dl><div class=\"mt8 hint\">库由快照 server 字段与 RDAP 归属汇总而来；域名维为空时，只能靠 IP 匹配，漏报会偏多。</div></div></div>" +
-      '<div class="sec"><div class="sec-h"><h2>六个判定维度</h2><span class="n">命中越多分越高</span></div><div class="sec-b">' +
-      '<div class="small fg2" style="line-height:2">' +
-      "<div><b class=\"mono\">J1</b> 长连接：单条 TCP 持续 30 分钟以上</div>" +
-      "<div><b class=\"mono\">J2</b> 高位端口：非 80/443 的高位端口出网</div>" +
-      "<div><b class=\"mono\">J3</b> 扇入：同一目标被多个源地址连接</div>" +
-      "<div><b class=\"mono\">J4</b> 字节比：上传远大于下载（隧道特征）</div>" +
-      "<div><b class=\"mono\">J5</b> 机场 IP：目标命中机场节点 IP 库</div>" +
-      "<div><b class=\"mono\">J6</b> 机场域名：目标命中机场域名库</div>" +
-      "</div><div class=\"mt8 hint\">本轮只有 " + num(sum.entities_total || 0) + " 条实体：样本里长连接少，命中就少，这属于检出力问题而不是「没有」。</div></div></div>" +
-      "</div>";
+      '<div class="sec"><div class="sec-h"><h2>domain 维度复核</h2><span class="n">误报根因</span></div><div class="sec-b">' +
+      '<div class="small fg2" style="line-height:1.9">' +
+      "<div>历史 domain 命中 <b>" + num(domRev.total || 0) + "</b> 条，其中 <b>" + num(domRev.glued_or_invalid || 0) + "</b> 条的证据根本不是合法域名。</div>" +
+      '<div class="mt8 hint">' + esc(domRev.verdict || "") + "</div>" +
+      '<div class="mt8 mono xsmall" style="line-height:1.7;word-break:break-all">' +
+      "cdnhwcljk104.comcdnhwclxu105.comcdnhwcbqs106.comdoh.pub" +
+      "<br>↑ 客户端内存里四个域名连写、分隔符丢失，按子串匹配就命中了 cdnhwc" +
+      "</div></div></div></div>" +
+      '<div class="sec"><div class="sec-h"><h2>旧流量式检测已撤下</h2><span class="n">那行数据是假的</span></div><div class="sec-b">' +
+      '<div class="small fg2" style="line-height:1.9">' +
+      "<div>之前这里显示过一条 <span class=\"mono\">152.69.227.30 · strong · applegame</span>，来源是 <span class=\"mono\">data/huawei_findings.json</span>。</div>" +
+      "<div class=\"mt8\">查证：该 IP 的 RDAP 是 <b>ORACLE-MY / Oracle Corporation</b>、AS31898 韩国春川，<b>不是华为</b>；而且那份文件的 format 是 <span class=\"mono\">generic-csv</span>，是当年按样例格式造的输入，不是真实 VPC 流日志。所以整个「会话特征 + 评分」面板都撤了，换成左边这套基于快照 IP/CNAME 的可复核台账。</div>" +
+      '<div class="mt8 hint">要恢复流量式检测，得先有真实的 VPC 流日志（华为云 LTS/VPC 流日志导出），否则算出来的分数没有意义。</div>' +
+      "</div></div></div></div>";
 
     v.innerHTML = h;
     $$("[data-hw]", v).forEach(function (n) {

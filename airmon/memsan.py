@@ -344,6 +344,28 @@ SKIP_IPS = {
     '127.0.0.1', '0.0.0.0',
 }
 
+# 内存里多个域名连写（分隔符丢失）的特征：label 以 com/net/org 等 TLD 开头、
+# 后面还接着字母数字，例如 comcdnhwclxu105 / comdoh
+_GLUED_RE = re.compile(r"(?:com|net|org|cn|xyz|top|vip|cc|info)[a-z]{2,}", re.I)
+
+
+def _bad_server(host: str) -> bool:
+    """server 明显不是可连接的地址（拼接串 / 超长 / 含非法字符）。"""
+    h = (host or "").strip()
+    if not h or len(h) > 253:
+        return True
+    if any(ch in h for ch in ' \t\r\n"\'\\/@'):
+        return True
+    labels = h.lower().split(".")
+    if len(labels) < 2:
+        return False          # 纯 IP 或短主机名，交给别的规则
+    for lab in labels[:-1]:
+        m = _GLUED_RE.match(lab)
+        if m and len(m.group(0)) < len(lab):
+            return True
+    return False
+
+
 
 def _balanced_seq(text: str, start: int, open_ch: str, close_ch: str, max_len: int = 8_000_000):
     """从 text[start] 的开括号起做配平（跳过字符串内的括号），返回完整片段。"""
@@ -569,6 +591,11 @@ def extract_nodes(found_items: list[dict]) -> list[Node]:
                 if not n.raw.get("password"):
                     n.raw["password"] = common_pw
 
+    # 丢掉内存里读出来的垃圾 server：客户端会把内置的域名常量表整段放在内存里，
+    # 扫描时可能把多个域名连成一段（分隔符丢失），形如
+    #   cdnhwcljk104.comcdnhwclxu105.comcdnhwcbqs106.comdoh.pub
+    # 这类串既不能连、也不该进快照污染检测与导出。
+    nodes = {k: v for k, v in nodes.items() if not _bad_server(v.server)}
     return list(nodes.values())
 
 

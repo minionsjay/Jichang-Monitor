@@ -345,6 +345,7 @@ def main():
     dom_all = load_domains()
     last_run = jload(os.path.join(DATA, "last_run.json"), {}) or {}
     hw = jload(os.path.join(DATA, "huawei_findings.json"), {}) or {}
+    hw_ledger = jload(os.path.join(DATA, "huawei_ledger.json"), None)
     probe = (jload(os.path.join(DATA, "probe.json"), {}) or {}).get("per_airport") or {}
     idc = (jload(os.path.join(DATA, "idc_profile.json"), {}) or {}).get("per_airport") or {}
     cv = (jload(os.path.join(DATA, "client_versions.json"), {}) or {}).get("airports") or {}
@@ -692,6 +693,8 @@ def main():
             "entities": (hw.get("entities") or [])[:20],
             "scope": hw.get("scope"),
         },
+        # 新台账（detect.py 五维 + huawei_cdn_relay + fronting），替代上面的流量式检测
+        "hwLedger": hw_ledger,
         "series": {"dates": dates, "values": values},
         "protos": an.get("proto_global") or [],
         "geos": an.get("geo_global") or [],
