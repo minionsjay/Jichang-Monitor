@@ -727,6 +727,27 @@ def _all_slugs() -> set:
     return out
 
 
+def _regen_light() -> dict:
+    """只跑面板数据生成器（不跑 nodeset）。
+
+    新增机场后必须立刻重生 data.js，否则前端 reloadData 拿到的还是旧数据，
+    表现就是「已加入监控，但总览里看不到它」。
+    """
+    try:
+        env = dict(os.environ)
+        env["PYTHONIOENCODING"] = "utf-8"
+        r = subprocess.run(
+            [sys.executable, "-X", "utf8", "tools/gen_panel_data.py"],
+            cwd=str(ROOT), env=env, capture_output=True, text=True,
+            encoding="utf-8", errors="replace", timeout=300,
+        )
+        ok = r.returncode == 0 and "LEAK-CHECK CLEAN" in (r.stdout or "")
+        head = (r.stdout or "").strip().splitlines()[0][:140] if (r.stdout or "").strip() else ""
+        return {"ok": ok, "summary": head, "err": (r.stderr or "")[-300:] if not ok else ""}
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "summary": "", "err": "%s: %s" % (type(e).__name__, e)}
+
+
 def add_airport(p: dict) -> dict:
     """注册新机场：校验 → 备份 → 调 run.py add-airport → 回读校验。
 
@@ -788,8 +809,12 @@ def add_airport(p: dict) -> dict:
     if slug not in got:
         return {"ok": False, "error": "写入后没在配置里找到 %s" % slug, "log": out}
 
+    # 立刻重生 data.js：否则「添加成功但总览看不到」（前端 reloadData 只能拿到旧数据）
+    reg = _regen_light()
+
     return {"ok": True, "slug": slug, "display": display, "backup": backup,
-            "has_sub": bool(sub), "log": out}
+            "has_sub": bool(sub), "regen": "ok" if reg.get("ok") else "fail",
+            "regen_summary": reg.get("summary") or "", "log": out}
 
 
 def save_sub_url(slug: str, url: str) -> dict:

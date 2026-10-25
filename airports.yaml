@@ -182,12 +182,14 @@ airports:
     扫 SSRDOG.exe 主进程) + monitor-net。 '
   panel: https://comsla-1.dog-sla01.store
   type: client
-- name: quqiuquan
+- client:
+    core_process: QQT
+    data_dir: C:\Users\minions\AppData\Roaming\QQT\QQT
+    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\QQT
+    keep_alive: true
+    package: qqt
+    persistent: true
   display: 全球通(QQT)
-  type: client
-  enabled: true
-  homepage: https://9988qqt.com
-  panel: https://backendapi.cniw4-dcc3vq.com
   domains:
   - 9988qqt.com
   - vpn8.vip
@@ -195,13 +197,9 @@ airports:
   - fixunlink.com
   - cniw4-dcc3vq.com
   - trafficmanager.net
-  client:
-    core_process: QQT
-    data_dir: C:\Users\minions\AppData\Roaming\QQT\QQT
-    install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\QQT
-    package: qqt
-    keep_alive: true
-    persistent: true
+  enabled: true
+  homepage: https://9988qqt.com
+  name: quqiuquan
   notes: 'QQT客户端。qqt.exe单进程+nfxcore.dll内嵌核心。数据ENCv3加密。采集: scan-memory。
 
     登录页只记邮箱不记密码 → ui_login: qqt 用 airmon/uiauto.py 自动输密码+登录+点连接
@@ -211,22 +209,22 @@ airports:
     /api/v2/bootstrap, 需 X-Airport-ID: AIRPORT_3596D3D5323B (多租户), /api/v2/query
 
     为RSA密钥+签名加密通道(key/register注册设备公钥), 逆向成本高, UI路线已够用。'
-- name: velochron
-  display: Velochron
+  panel: https://backendapi.cniw4-dcc3vq.com
   type: client
-  enabled: true
-  homepage: https://www.velochronnet.com
-  panel: https://api.9aero.com
+- client:
+    core_process: nanocore
+    dpapi_file: C:\Users\minions\AppData\Local\Velochron\secure_store\secure_sub_config_active_a_v2.bin
+    dpapi_stale_hours: 48
+    install_dir: C:\Program Files\Velochron
+    package: Velochron
+  display: Velochron
   domains:
   - velochronnet.com
   - 9aero.com
   - velochron.com
-  client:
-    core_process: nanocore
-    install_dir: C:\Program Files\Velochron
-    package: Velochron
-    dpapi_file: C:\Users\minions\AppData\Local\Velochron\secure_store\secure_sub_config_active_a_v2.bin
-    dpapi_stale_hours: 48
+  enabled: true
+  homepage: https://www.velochronnet.com
+  name: velochron
   notes: 'Velochron.exe+nanocore.exe双进程(nanocore是常驻服务)。v2board API+硬件设备认证
 
     (device/attest: server/fetch只给元数据, subscribe_url对非认证客户端404)。
@@ -240,16 +238,32 @@ airports:
     客户端打不开问题: app signature not trusted → 从velochronnet.com重装后已恢复
 
     (win_bundle_sig_cache_v1 正常, app_signature_policy windows:false)。'
-- name: letsvpn
-  display: 快连VPN(LetsVPN)
+  panel: https://api.9aero.com
   type: client
-  enabled: false
-  homepage: https://letsvpn.world
-  domains:
-  - letsvpn.world
-  client:
+- client:
     core_process: LetsPRO
     install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\letsvpn
-    persistent: true
     keep_alive: true
-  notes: 快连VPN. .NET WPF. 需管理员权限. 约12个外网节点+4个国内中转. 套餐已过期（2026-10-25 用户确认）→ 已停用采集；续费后在 airports.yaml 把 enabled 改回 true。
+    persistent: true
+  display: 快连VPN(LetsVPN)
+  domains:
+  - letsvpn.world
+  enabled: false
+  homepage: https://letsvpn.world
+  name: letsvpn
+  notes: 快连VPN. .NET WPF. 需管理员权限. 约12个外网节点+4个国内中转. 套餐已过期（2026-10-25 用户确认）→ 已停用采集；续费后在
+    airports.yaml 把 enabled 改回 true。
+  type: client
+- display: glados
+  domains:
+  - glados.rocks
+  - glados.one
+  - glados.cloud
+  enabled: true
+  homepage: https://glados.rocks/
+  name: glados
+  panel: https://glados.rocks/
+  subscription:
+    url: https://update.glados-config.com/mihomo/790984/83d9868/299389/glados.yaml
+    user_agent: clash.meta
+  type: direct

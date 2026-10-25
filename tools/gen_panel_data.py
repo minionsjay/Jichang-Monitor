@@ -554,8 +554,10 @@ def main():
         reg[slug] = {
             "type": item.get("type") or "sub",
             "enabled": item.get("enabled", True),
-            "panel": (item.get("panel") or "").split("/")[0] or "",
-            "homepage": (item.get("homepage") or "").split("/")[0] or "",
+            # 注意：值里可能带 scheme（新加的机场是 https://x.com/），
+            # 先剥掉 scheme 再取第一段，否则会变成 "https:"。
+            "panel": _re.sub(r"^https?://", "", (item.get("panel") or "")).split("/")[0],
+            "homepage": _re.sub(r"^https?://", "", (item.get("homepage") or "")).split("/")[0],
             "domains": doms,
             "client": (item.get("client") or {}).get("name") if isinstance(item.get("client"), dict) else None,
             "notes": (item.get("notes") or "")[:400],
@@ -793,8 +795,12 @@ def main():
             "has_sub": bool(cred_sub.get(slug)),
             "channel": _channel_of(slug, r, c, _via_of(slug, ix), cred_sub.get(slug),
                                    sub_probe.get(slug) or {}, nodes, state),
-            "doms_all": (dom_all.get(slug) or {}).get("domains") or [],
-            "doms_n": (dom_all.get(slug) or {}).get("n") or 0,
+            # 域名全集（data/domains.json 只覆盖 10-18 那批 47 家）；新加的机场
+            # 还没做域名挖掘，就用 airports.yaml 里登记的 domains 兜底，免得抽屉空着。
+            "doms_all": (dom_all.get(slug) or {}).get("domains")
+                        or [{"d": d, "ok": None, "title": "", "src": "airports.yaml"}
+                            for d in (r.get("domains") or [])[:20]],
+            "doms_n": (dom_all.get(slug) or {}).get("n") or len(r.get("domains") or []),
             "doms_alive": (dom_all.get(slug) or {}).get("alive") or 0,
             "panel": r.get("panel") or cred_panel.get(slug, ""),
             "homepage": r.get("homepage") or "",

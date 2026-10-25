@@ -1198,9 +1198,13 @@ function renderLibrary() {
       }
       _fMsg('<b style="color:var(--green)">已加入监控：</b>' + esc(d.display || d.slug) +
         "（" + esc(d.slug) + "）" + (d.has_sub ? "" : " · 没有订阅链接，将走面板登录或客户端") +
-        (go ? " · 正在获取节点…" : " · 下一轮定时任务会带上它"), "ok");
+        (go ? " · 正在获取节点…"
+            : (d.regen === "ok"
+                ? " · 已进入总览（暂无节点，等定时任务或点卡片里的「获取节点」）"
+                : " · 配置已写入，但面板数据没重生成功，稍后手动刷新一次")), "ok");
       if (!go) {
-        setTimeout(function () { closeModal(); reloadData(); }, 1200);
+        /* 服务端已经把 data.js 重生过了，这里 reloadData 就能看到新卡片 */
+        setTimeout(function () { closeModal(); reloadData(); toast("已加入总览：" + (d.display || d.slug)); }, 900);
         return;
       }
       fetch("api/fetch/" + encodeURIComponent(d.slug), { method: "POST" })
