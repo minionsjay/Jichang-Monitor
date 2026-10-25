@@ -51,7 +51,7 @@ APP = ROOT / "docs" / "09-新界面-preview" / "app"
 DATA = ROOT / "data"
 
 # 日志脱敏：先抹整条 URL，再保底拦凭据形状
-SCRUB_URL = re.compile(r"https?://\S+")
+SCRUB_URL = re.compile(r"https?://(?!127\.0\.0\.1|localhost|\[::1\])\S+")
 SCRUB_KEYS = re.compile(r"(?i)(token|password|passwd|uuid|aead_key|auth_token|psk)\s*[=:]\s*\S+")
 
 _jobs: dict[str, dict] = {}
@@ -352,6 +352,8 @@ def _fetch_cmd(slug: str) -> tuple[list[str], str]:
     is_client = (acc.get("type") == "client") or bool(core) or not acc.get("sub_url")
     if is_client and not acc.get("sub_url"):
         cmd = [sys.executable, "-X", "utf8", "run.py", "scan-memory", "--airport", slug]
+        if _no_admin_needed(slug):
+            return cmd, "离线解包（免提权）"
         return cmd, "scan-memory" + ((" · " + core) if core else "")
     return [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"], "pull"
 
@@ -425,6 +427,18 @@ def _run_fetch_elevated(slug: str, job: dict, cmd: list[str]) -> None:
         _regen_panel_data(job)
 
 
+def _no_admin_needed(slug: str) -> bool:
+    """有些客户端型机场能从磁盘直接解出完整配置（如 DOVE 的 MHBNDL 包），
+    根本不用读进程内存 —— 这条路不需要管理员权限，就别弹 UAC。"""
+    try:
+        from airmon import config as _cfg
+        from airmon import dovex as _dx
+        ap = _cfg.get_airport(slug) or {}
+        return bool(_dx.available(ap.get("client") or {}))
+    except Exception:                                        # noqa: BLE001
+        return False
+
+
 def _run_fetch(slug: str) -> None:
     job = _jobs[slug]
     env = dict(os.environ)
@@ -436,7 +450,7 @@ def _run_fetch(slug: str) -> None:
     cmd, mode = _fetch_cmd(slug)
     with _job_lock:
         job["mode"] = mode
-    if mode.startswith("scan-memory") and not _is_admin():
+    if mode.startswith("scan-memory") and not _is_admin() and not _no_admin_needed(slug):
         # 客户端型 + 没有管理员权限：走 UAC 提权，用户点一下「是」即可
         try:
             _run_fetch_elevated(slug, job, cmd)
