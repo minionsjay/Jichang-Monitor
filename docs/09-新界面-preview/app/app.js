@@ -74,7 +74,12 @@
 
   /* ------------------------------------------------------------ 状态 */
   var S = { view: "ov", q: "", al: "all", lib: "all", siteQ: "", siteMon: false, kn: "all", nd: null, ndProto: "all", density: "m", group: "", drawn: {} };
-  try { var _g0 = localStorage.getItem("airmon.group"); if (_g0 === "channel") S.group = "channel"; } catch (e) {}
+  /* 默认就用「状态 + 通道」两级聚合：绿的一坨、里面再按通道分簇 */
+  S.group = "channel";
+  try {
+    var _g0 = localStorage.getItem("airmon.group");
+    if (_g0 === "") S.group = "";
+  } catch (e) {}
 
   var T = D.totals || {};
   var APTS = D.airports || [];
@@ -162,19 +167,37 @@
     return h;
   }
 
-  function buildChannelGroups() {
+  /* 一级=状态（绿/黄/蓝/红），二级=获取通道。
+     先让同状态的聚在一起（用户一眼看「绿的都在这」），组内再按通道分簇。 */
+  var ST_CAPS = [
+    ["A", "可用", "ok"],
+    ["B", "异常", "b"],
+    ["C", "仅客户端", "c"],
+    ["D", "断流", "d"]
+  ];
+
+  function buildStateChannelGroups() {
     var out = "";
-    CHANNELS.forEach(function (c) {
-      var list = SORTED.filter(function (a) { return (a.channel || "无数据") === c.k; });
-      if (!list.length) return;
-      list.sort(function (x, y) {
-        var d = (ST_ORDER[x.state] == null ? 9 : ST_ORDER[x.state]) - (ST_ORDER[y.state] == null ? 9 : ST_ORDER[y.state]);
-        return d || (y.nodes || 0) - (x.nodes || 0);
+    ST_CAPS.forEach(function (st) {
+      var byState = SORTED.filter(function (a) { return a.state === st[0]; });
+      if (!byState.length) return;
+      out += '<div class="mxgroup stg"><div class="mxg-h">' +
+        '<span class="dot ' + st[2] + '"></span><b>' + esc(st[1]) + "</b>" +
+        '<span class="n">' + num(byState.length) + " 家</span>" +
+        '<span class="mxg-d">' + esc(st[0] === "A" ? "订阅/抓包/解包/内存任一路拿到节点，可导出配置"
+          : st[0] === "B" ? "入口还在但采集卡住，或只有碎片节点"
+          : st[0] === "C" ? "订阅不通、必须走客户端"
+          : "无新节点落地或被停用") + "</span></div>";
+
+      CHANNELS.forEach(function (c) {
+        var list = byState.filter(function (a) { return (a.channel || "无数据") === c.k; });
+        if (!list.length) return;
+        list.sort(function (x, y) { return (y.nodes || 0) - (x.nodes || 0); });
+        out += '<div class="mxg-sub"><b>' + esc(c.k) + "</b><span>" + num(list.length) + " 家</span>" +
+          '<span class="mxg-d">' + esc(c.d) + "</span></div>" +
+          '<div class="matrix" data-d="' + S.density + '">' + list.map(cellHtml).join("") + "</div>";
       });
-      out += '<div class="mxgroup"><div class="mxg-h"><b>' + esc(c.k) + "</b>" +
-        '<span class="n">' + num(list.length) + " 家</span>" +
-        '<span class="mxg-d">' + esc(c.d) + "</span></div>" +
-        '<div class="matrix" data-d="' + S.density + '">' + list.map(cellHtml).join("") + "</div></div>";
+      out += "</div>";
     });
     return out || '<div class="empty">没有机场</div>';
   }
@@ -204,7 +227,7 @@
 
     /* 矩阵 */
     h += '<div class="sec"><div class="sec-h"><h2>机场矩阵</h2>' +
-      '<span class="n">' + num(APTS.length) + " 家 · " + (S.group === "channel" ? "按获取通道分组" : "按状态排序") + "</span>" +
+      '<span class="n">' + num(APTS.length) + " 家 · " + (S.group === "channel" ? "按状态 → 获取通道 两级聚合" : "按状态排序") + "</span>" +
       '<span class="sp"></span>' +
       '<div class="row small dim" style="gap:12px">' +
       '<span class="row" style="gap:5px">' + dot("ok") + "可用 " + T.ok + "</span>" +
@@ -214,7 +237,7 @@
       '<span class="row" style="gap:5px"><i class="cl inline">客</i>只能用客户端获取</span>' +
       "</div>" +
       '<div class="dseg dseg-g" role="group" aria-label="分组方式">' +
-      [["", "按状态"], ["channel", "按通道"]].map(function (kv) {
+      [["", "按状态"], ["channel", "状态 + 通道"]].map(function (kv) {
         return '<button class="dseg-b' + ((S.group || "") === kv[0] ? " on" : "") + '" data-g="' + kv[0] + '">' + kv[1] + "</button>";
       }).join("") +
       "</div>" +
@@ -226,7 +249,7 @@
       "</div></div>";
     h += '<div class="sec-b">';
     if (S.group === "channel") {
-      h += buildChannelGroups();
+      h += buildStateChannelGroups();
     } else {
       h += '<div class="matrix" id="mx" data-d="' + S.density + '">' + SORTED.map(cellHtml).join("") + "</div>";
     }
