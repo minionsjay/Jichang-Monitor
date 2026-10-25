@@ -377,9 +377,12 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     try:
         from airmon import qingyunti as _qyt
         if _qyt.available(slug, client_cfg):
-            _r2 = _qyt.ingest(slug)
+            print(f"    [{slug}] 抓取青云梯配置（约 40 秒：拉起客户端 → 拦截内核配置 → 自动收尾）…",
+                  flush=True)
+            _r2 = _qyt.prepare(slug, client_cfg)
             if _r2.get("ok") and _r2.get("count"):
-                print(f"    [{slug}] 用抓包缓存：{_r2['count']} 节点，抓于 "
+                _via = "实时抓取" if _r2.get("via") == "capture" else "抓包缓存"
+                print(f"    [{slug}] 用{_via}：{_r2['count']} 节点，抓于 "
                       f"{_r2['captured_at']}（{_r2['age_hours']} 小时前）"
                       + ("，已超 %d 小时建议重抓" % _qyt.STALE_HOURS if _r2.get("stale") else ""),
                       flush=True)
@@ -994,9 +997,12 @@ def cmd_scan_memory(args):
     try:
         from airmon import qingyunti as _qyt
         if _qyt.available(args.airport, _cfg):
-            _r2 = _qyt.ingest(args.airport)
+            print("抓取青云梯配置（约 40 秒：拉起客户端 → 拦截内核配置 → 自动收尾）…",
+                  flush=True)
+            _r2 = _qyt.prepare(args.airport, _cfg)
             if _r2.get("ok") and _r2.get("count"):
-                print(f"用抓包缓存：{_r2['count']} 节点，抓于 {_r2['captured_at']}"
+                _via = "实时抓取" if _r2.get("via") == "capture" else "抓包缓存"
+                print(f"用{_via}：{_r2['count']} 节点，抓于 {_r2['captured_at']}"
                       f"（{_r2['age_hours']} 小时前）"
                       + ("，已超 %d 小时建议重抓" % _qyt.STALE_HOURS if _r2.get("stale") else ""),
                       flush=True)

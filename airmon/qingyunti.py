@@ -67,8 +67,10 @@ def config_path() -> str:
 
 
 def available(slug: str = "qingyunti", client_cfg: dict | None = None) -> bool:
-    """能不能直接导入：认得这台机场 + 手上有一份抓包结果。"""
-    return _slug_ok(slug, client_cfg) and bool(config_path())
+    """能不能拿到配置：认得这台机场，且（手上有抓包结果 或 抓包脚本还在）。"""
+    if not _slug_ok(slug, client_cfg):
+        return False
+    return bool(config_path()) or os.path.exists(CAPTURE_PY)
 
 
 def age_hours(path: str = "") -> float:
@@ -147,6 +149,46 @@ def capture(secs: int = 40, slug: str = "qingyunti") -> dict:
     res["capture_log"] = log[-1200:]
     res["capture_rc"] = r.returncode
     return res
+
+
+CAPTURE_MODE_ENV = "AIRMON_QYT_CAPTURE"   # always(默认) / auto / never
+FRESH_HOURS = 6          # auto 模式下，缓存比这新就不重抓
+
+
+def _mode() -> str:
+    m = (os.environ.get(CAPTURE_MODE_ENV) or "always").strip().lower()
+    return m if m in ("always", "auto", "never") else "always"
+
+
+def prepare(slug: str = "qingyunti", client_cfg: dict | None = None,
+            secs: int = 40) -> dict:
+    """点一次按钮时该做什么：默认**真去抓**一份新的，而不是读旧缓存。
+
+    - always（默认）：每次都拉起客户端抓一份（约 40 秒）→ 失败才退回缓存
+    - auto：缓存比 FRESH_HOURS 新就直接用，否则抓
+    - never：只读缓存（CI / 不想被打断客户端时用）
+    返回 ingest() 结构，额外带 via = capture / cache / cache-fallback。
+    """
+    if not _slug_ok(slug, client_cfg):
+        return {"ok": False, "error": "这台不是青云梯"}
+    mode = _mode()
+    age = age_hours()
+    if mode == "never":
+        r = ingest(slug); r["via"] = "cache"; return r
+    if mode == "auto" and 0 <= age <= FRESH_HOURS:
+        r = ingest(slug); r["via"] = "cache"; return r
+    cap = capture(secs, slug)          # capture() 里已经 ingest 过
+    if cap.get("ok") and cap.get("count"):
+        cap["via"] = "capture"
+        return cap
+    alt = ingest(slug)                 # 抓失败 → 退回手上的旧缓存，别让这次变 0
+    if alt.get("ok") and alt.get("count"):
+        alt["via"] = "cache-fallback"
+        alt["capture_error"] = (cap.get("error") or ("rc=%s" % cap.get("capture_rc")))
+        alt["capture_log"] = cap.get("capture_log", "")[-600:]
+        return alt
+    cap["via"] = "capture"
+    return cap
 
 
 def main(argv=None) -> int:

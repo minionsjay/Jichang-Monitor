@@ -365,7 +365,8 @@ def _fetch_cmd(slug: str) -> tuple[list[str], str]:
     if is_client and (bool(core) or not acc.get("sub_url")):
         cmd = [sys.executable, "-X", "utf8", "run.py", "scan-memory", "--airport", slug]
         if _no_admin_needed(slug):
-            return cmd, "本地提取（免提权）"
+            return cmd, ("本地抓包（实时 40s · 免提权）" if slug == "qingyunti"
+                         else "本地配置解包（免提权）")
         return cmd, "scan-memory" + ((" · " + core) if core else "")
     return [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"], "pull"
 
