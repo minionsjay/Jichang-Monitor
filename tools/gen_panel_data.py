@@ -492,6 +492,7 @@ def main():
             "homepage": (item.get("homepage") or "").split("/")[0] or "",
             "domains": doms,
             "client": (item.get("client") or {}).get("name") if isinstance(item.get("client"), dict) else None,
+            "notes": (item.get("notes") or "")[:400],
         }
 
     an_rdap = an.get("rdap") or {}
@@ -662,6 +663,15 @@ def main():
         elif sh_state:
             reason = sh.get("reason") or ""
             action = sh.get("action") or ""
+
+        # 已停用（用户确认过期 / 主动下线）→ 不再采集，显式说明原因与恢复办法
+        if r.get("enabled") is False and exported <= 0:
+            state = "D"
+            _all = (r.get("notes") or "").strip()
+            _m = _re.search(r"[^.；;。\n]{0,40}?(?:过期|停用|下线|到期)[^.；;。\n]{0,40}", _all) if _all else None
+            _hit = (_m.group(0).strip().strip(". ") if _m else "")
+            reason = "已停用：%s" % (_hit or (_all[:80] if _all else "用户已下线该机场，不再采集"))
+            action = "续费后在 airports.yaml 把 enabled 改回 true"
 
         # 快照有节点但全是无协议碎片（内存扫描只拿到域名+端口）→ 拿不到可用节点，不能算「可用」
         if nodes <= 0 and state in ("A", "B") and not (days is not None and days < 0):

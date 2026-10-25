@@ -243,7 +243,7 @@ airports:
 - name: letsvpn
   display: 快连VPN(LetsVPN)
   type: client
-  enabled: true
+  enabled: false
   homepage: https://letsvpn.world
   domains:
   - letsvpn.world
@@ -252,4 +252,4 @@ airports:
     install_dir: E:\Hermes-Agent\Jichang-Monitor\jichang-ruanjian\letsvpn
     persistent: true
     keep_alive: true
-  notes: 快连VPN. .NET WPF. 需管理员权限. 约12个外网节点+4个国内中转.
+  notes: 快连VPN. .NET WPF. 需管理员权限. 约12个外网节点+4个国内中转. 套餐已过期（2026-10-25 用户确认）→ 已停用采集；续费后在 airports.yaml 把 enabled 改回 true。

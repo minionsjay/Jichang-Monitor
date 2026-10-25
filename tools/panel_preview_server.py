@@ -562,9 +562,25 @@ def _run_lock_holder():
     return None
 
 
+def _airport_enabled(slug: str) -> bool:
+    """airports.yaml 里 enabled=false 的机场不再采集（套餐过期/主动下线）。"""
+    try:
+        import yaml
+        with open(os.path.join(ROOT, "airports.yaml"), encoding="utf-8") as f:
+            d = yaml.safe_load(f) or {}
+        for a in d.get("airports") or []:
+            if a.get("name") == slug:
+                return bool(a.get("enabled", True))
+    except Exception:
+        pass
+    return True
+
+
 def start_fetch(slug: str) -> dict:
     if not re.match(r"^[a-z0-9._-]{2,40}$", slug or ""):
         return {"ok": False, "error": "slug 不合法"}
+    if not _airport_enabled(slug):
+        return {"ok": False, "error": "该机场已停用（套餐过期），不再采集；续费后在 airports.yaml 把 enabled 改回 true"}
     holder = _run_lock_holder()
     if holder:
         return {"ok": False, "error": "定时轮正在跑（pid=%s，起于 %s），等这轮结束再点" % (holder.get("pid"), holder.get("at"))}
