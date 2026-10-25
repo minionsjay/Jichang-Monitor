@@ -175,7 +175,7 @@ def load_runs(limit: int = 20):
             "client_scanned": r.get("client_scanned"),
             "airports_active": r.get("airports_active"),
             "nodes_total": r.get("nodes_total"),
-            "hw_findings": r.get("hw_findings"),
+            "hw_findings": None,   # 历史轮次口径已废，见 hw_ledger
             "stale_n": r.get("stale_n"),
             "failed": (r.get("failed") or [])[:60],
             "trigger": r.get("trigger") or "manual",
@@ -333,6 +333,21 @@ def parse_run_log(path, want=60):
     return out
 
 
+def _hw_now(led):
+    """当前华为命中数 = 台账里 A/B/C 三类之和。
+
+    旧的 data/huawei_findings.json 是 generic-csv 样例造出来的（那条 152.69.227.30
+    实为 Oracle），不再用于计数。
+    """
+    if not led:
+        return 0
+    bt = ((led.get("current") or {}).get("by_type")) or {}
+    try:
+        return sum(int(bt.get(k) or 0) for k in ("A", "B", "C"))
+    except Exception:
+        return 0
+
+
 def main():
     sub = load_sub_health()
     names = load_names()
@@ -392,7 +407,7 @@ def main():
         "pull_fail": last_run.get("pull_fail") if not isinstance(last_run.get("pull_fail"), list) else len(last_run.get("pull_fail")),
         "airports_active": last_run.get("airports_active"),
         "nodes_total": last_run.get("nodes_total"),
-        "hw_findings": last_run.get("hw_findings"),
+        "hw_findings": _hw_now(hw_ledger),
         "stale": (last_run.get("stale_over_6h") or [])[:20] if isinstance(last_run.get("stale_over_6h"), list) else [],
     }
 
@@ -621,7 +636,7 @@ def main():
         "expired": cnt(lambda a: isinstance(a["days"], (int, float)) and a["days"] < 0),
         "expiring30": cnt(lambda a: isinstance(a["days"], (int, float)) and 0 <= a["days"] <= 30),
         "stale": cnt(lambda a: isinstance(a["stale_h"], (int, float)) and a["stale_h"] > 6),
-        "hw": (hw.get("summary") or {}).get("entities_total") or 0,
+        "hw": _hw_now(hw_ledger),
     }
 
     # 需要人工
