@@ -1,5 +1,6 @@
 # Sensitive data - never commit
 credentials.yaml
+/airports.yaml
 notify.yaml
 data/
 # airmon.nodeset 导出的节点文件（含真实 server/password/uuid，绝不入库）
@@ -58,3 +59,12 @@ data/subraw/
 # 临时实验目录/文件（逆向与探针产物，不入库）
 .tmp_*/
 tools/_ui_probe.mjs
+
+# 逆向工具的临时产物（含节点凭据）
+/niceh-nodes.yaml
+/profile_config.yaml
+/raw_setup_config.json
+/runtime_config.yaml
+/summary.json
+/capture_log.txt
+/wandacloud-*.yaml

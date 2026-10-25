@@ -202,6 +202,8 @@ def _via_of(slug: str, ix: dict) -> str:
         return "本地配置解包"        # DOVE：解密落盘的 MHBNDL 包
     if "qyt" in low or "capture" in low or "hhy-rpc" in low or "rpc" in low:
         return "本地抓包"            # 青云梯/好好云：Frida 截本地 IPC 配置
+    if "wandacloud-yaml" in low:
+        return "本地抓取"            # 万达云：Frida 截内核 YAML 解析入参
     if "velo_api" in low:
         return "API 登录"            # 账号登机场 API 换订阅（velochron）
     if low.startswith("win_client"):
@@ -510,7 +512,8 @@ def _channel_of(slug, reg, cred, via, sub_url, probe, nodes, state):
     if reg.get("enabled") is False or cred.get("enabled") is False:
         return "已停用"
     v = via or ""
-    if "抓包" in v:
+    # 万达云的 via 是「本地抓取」（Frida 截内核 YAML 解析入参），与抓包同属本地拦截
+    if "抓包" in v or "本地抓取" in v:
         return "本地抓包"
     if "解包" in v:
         return "本地解包"

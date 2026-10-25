@@ -369,6 +369,8 @@ def _fetch_cmd(slug: str) -> tuple[list[str], str]:
                 return cmd, "本地抓包（实时 40s · 免提权）"
             if slug in ("hhy", "haohaoyun", "niceh"):
                 return cmd, "本地 RPC 抓取（实时 3s · 免提权）"
+            if slug in ("wandacloud", "wdy", "wandayun"):
+                return cmd, "本地配置抓取（实时 45-60s · 免提权）"
             return cmd, "本地配置解包（免提权）"
         return cmd, "scan-memory" + ((" · " + core) if core else "")
     return [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"], "pull"
@@ -452,8 +454,10 @@ def _via_label(slug):
     src = str(d.get("source") or "")
     if "bundle" in src:                                  # dove-bundle: / bundle:
         return "本地配置解包"
-    if "capture" in src:                                 # qyt-capture:
+    if "capture" in src or "hhy-rpc" in src:             # qyt-capture: / hhy-rpc:
         return "本地抓包"
+    if "wandacloud-yaml" in src:                         # 万达云：Frida 截 YAML 解析入参
+        return "本地抓取"
     return "客户端内存" if src else ""
 
 
@@ -465,10 +469,11 @@ def _no_admin_needed(slug: str) -> bool:
         from airmon import dovex as _dx
         from airmon import hhy as _hhy
         from airmon import qingyunti as _qyt
+        from airmon import wandacloud as _wd
         cli = (_cfg.get_airport(slug) or {}).get("client") or {}
-        # DOVE：解密落盘包；青云梯/好好云：本地拦配置（都不碰进程内存）
+        # DOVE：解密落盘包；青云梯/好好云/万达云：本地拦配置（都不碰进程内存）
         return (bool(_dx.available(cli, slug)) or bool(_qyt.available(slug, cli))
-                or bool(_hhy.available(slug, cli)))
+                or bool(_hhy.available(slug, cli)) or bool(_wd.available(slug, cli)))
     except Exception:                                        # noqa: BLE001
         return False
 

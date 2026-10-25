@@ -418,6 +418,25 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     except Exception as _e:  # noqa: BLE001
         print(f"    [{slug}] 抓包缓存不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
 
+    # 优先级 0.6：wandacloud / 万达云（含 wdy）YAML 解析入口 dump（约 45-60 秒，免提权）
+    try:
+        from airmon import wandacloud as _wd
+        if _wd.available(slug, client_cfg):
+            print(f"    [{slug}] 抓取万达云配置（约 45-60 秒：Frida 截内核 YAML 解析入参）…",
+                  flush=True)
+            _rd = _wd.prepare(slug, client_cfg)
+            if _rd.get("ok") and _rd.get("count"):
+                _vd = "实时抓取" if _rd.get("via") == "capture" else "抓包缓存"
+                if _rd.get("via") == "cache-fallback":
+                    print(f"    [{slug}] \u26a0 实时抓取失败（{str(_rd.get('capture_error'))[:70]}），"
+                          f"退回旧缓存", flush=True)
+                print(f"    [{slug}] 用{_vd}：{_rd['count']} 节点，抓于 "
+                      f"{_rd['captured_at']}（{_rd['age_hours']} 小时前）", flush=True)
+                if _nodes_from_bundle(slug, _rd, detector):
+                    return
+    except Exception as _e:  # noqa: BLE001
+        print(f"    [{slug}] 万达云抓取不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
+
     # 优先级 0.55：hhy（好好云）本地 RPC 抓取（约 2-3 秒，免提权）
     try:
         from airmon import hhy as _hhy
@@ -1061,6 +1080,24 @@ def cmd_scan_memory(args):
                     return
     except Exception as _e:  # noqa: BLE001
         print(f"抓包缓存不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
+
+    # 优先级 0.6：wandacloud / 万达云（含 wdy）YAML 解析入口 dump（约 45-60 秒，免提权）
+    try:
+        from airmon import wandacloud as _wd
+        if _wd.available(args.airport, _cfg):
+            print("抓取万达云配置（约 45-60 秒：Frida 截内核 YAML 解析入参）…", flush=True)
+            _rd2 = _wd.prepare(args.airport, _cfg)
+            if _rd2.get("ok") and _rd2.get("count"):
+                _vd2 = "实时抓取" if _rd2.get("via") == "capture" else "抓包缓存"
+                if _rd2.get("via") == "cache-fallback":
+                    print(f"\u26a0 实时抓取失败（{str(_rd2.get('capture_error'))[:70]}），退回旧缓存",
+                          flush=True)
+                print(f"用{_vd2}：{_rd2['count']} 节点，抓于 {_rd2['captured_at']}"
+                      f"（{_rd2['age_hours']} 小时前）", flush=True)
+                if _nodes_from_bundle(args.airport, _rd2, detector):
+                    return
+    except Exception as _e:  # noqa: BLE001
+        print(f"万达云抓取不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
 
     # 优先级 0.55：hhy（好好云）本地 RPC 抓取（约 2-3 秒，免提权）
     try:

@@ -28,7 +28,7 @@ airports:
   panel: https://muniu.app/user
   subscription:
     drop_dir: null
-    url: https://45.137.181.128/777/ninja/R1xD07bkFwa7ys94
+    url: <订阅链接：含 token，不入库>
     user_agent: Clash V-Ninja
   type: client
 - display: 牧牛 V-Ninja 隐藏池
@@ -37,7 +37,7 @@ airports:
   notes: ninja私有协议+GeoDNS藏落地；用 watch/ingest-profile 摄入，勿与 muniu(老订阅池)混
   subscription:
     drop_dir: null
-    url: https://45.137.181.128/777/ninja/R1xD07bkFwa7ys94
+    url: <订阅链接：含 token，不入库>
   type: client
 - display: ByWave
   domains:
@@ -46,7 +46,7 @@ airports:
   name: bywave
   notes: data.csv 中唯一完全可用、最新注册(2026-01)，疑当前主力
   subscription:
-    url: null
+    url: <订阅链接：含 token，不入库>
     user_agent: clash.meta
   type: direct
 - client:
@@ -68,7 +68,7 @@ airports:
   notes: SSPanel(0dy4.com)+FlClash变种客户端0dcloud；订阅服务器43.135.28.238返回504/占位；需scan-memory(管理员)提取节点
   panel: https://www.0dy4.com
   subscription:
-    url: null
+    url: <订阅链接：含 token，不入库>
     user_agent: clash.meta
   type: client
 - display: jsqpro (v2board 面板)
@@ -79,7 +79,7 @@ airports:
   notes: 华为线索=面板托管在华为云 218.245.99.148(HWCSNET)；已被墙
   panel: https://registered.jsqpro.store
   subscription:
-    url: null
+    url: <订阅链接：含 token，不入库>
     user_agent: clash.meta
   type: direct
 - display: 强大集团
@@ -89,7 +89,7 @@ airports:
   name: qiangda
   notes: 电信四川落地；与快鸟123 共用节点 IP 114.80.8.206；2026-10-17 恢复启用（订阅 12 轮全活）
   subscription:
-    url: null
+    url: <订阅链接：含 token，不入库>
     user_agent: clash.meta
   type: direct
 - display: 快鸟123
@@ -99,7 +99,7 @@ airports:
   name: kuainiao
   notes: 原面板被墙；2026-10-17 恢复启用（订阅 12 轮全活）
   subscription:
-    url: null
+    url: <订阅链接：含 token，不入库>
     user_agent: clash.meta
   type: direct
 - client:
@@ -129,7 +129,7 @@ airports:
     '
   panel: https://521wdy.xiongmao139.cn
   subscription:
-    url: https://sub0530.wdyserver.com/cgi-bin/get/api/domain/ip/access?token=YOUR_TOKEN
+    url: <订阅链接：含 token，不入库>
     user_agent: ClashMeta/1.18.0
   type: client
 - client:
@@ -159,7 +159,7 @@ airports:
     '
   panel: https://scesa.apiv2.a047.com
   subscription:
-    url: https://scesa.web.ak005.com/api/v1/client/subscribe?token=YOUR_TOKEN
+    url: <订阅链接：含 token，不入库>
     user_agent: clash.meta
   type: client
 - client:
@@ -264,6 +264,13 @@ airports:
   name: glados
   panel: https://glados.rocks/
   subscription:
-    url: https://update.glados-config.com/mihomo/790984/83d9868/299389/glados.yaml
+    url: <订阅链接：含 token，不入库>
+    user_agent: clash.meta
+  type: direct
+- display: ikuuu
+  enabled: true
+  name: ikuuu
+  subscription:
+    url: <订阅链接：含 token，不入库>
     user_agent: clash.meta
   type: direct
