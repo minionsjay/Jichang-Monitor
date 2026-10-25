@@ -1240,3 +1240,6 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
 .mxg-h .n { font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
 .mxg-d { font-size: 11.5px; color: var(--dim2); }
 .mxgroup .matrix { margin-bottom: 2px; }
+
+.ok-t { color: var(--green); font-variant-numeric: tabular-nums; }
+.bad-t { color: var(--red); }

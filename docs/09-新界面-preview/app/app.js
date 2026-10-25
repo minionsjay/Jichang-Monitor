@@ -664,7 +664,35 @@
         (a.probe_ok != null ? pill("pill", "探活 " + a.probe_ok + "/" + ((a.probe_ok || 0) + (a.probe_fail || 0))) : "") +
         "</div></div>";
     });
-    h += "</div></div></div>";
+    h += "</div></div>";
+
+    /* 免费 / 白菜价：没买，只监控域名是否还活着 */
+    var fw = D.sitesFree || [];
+    if (fw.length) {
+      var fwAt = fw[0].at ? String(fw[0].at).slice(0, 10) : "—";
+      var dead = fw.filter(function (x) { return !x.ok; }).length;
+      h += '<div class="sec mt14"><div class="sec-h"><h2>免费 / 白菜价机场</h2>' +
+        '<span class="n">' + fw.length + " 家 · 探测于 " + esc(fwAt) + (dead ? " · " + dead + " 家不可达" : "") + "</span>" +
+        '<span class="sp"></span><span class="xsmall dim">没有账号，只监控官网域名是否还活着；确认要用的再去注册</span></div>' +
+        '<div class="sec-b tight"><table class="tbl compact"><thead><tr>' +
+        '<th>名称</th><th>类型</th><th class="num">状态</th><th>站点标题</th><th>说明</th><th>网址</th>' +
+        "</tr></thead><tbody>";
+      fw.forEach(function (x) {
+        h += "<tr>" +
+          '<td class="nm">' + esc(x.name) + "</td>" +
+          "<td>" + pill("pill " + (x.tier === "cheap" ? "b" : "v"), x.tier === "cheap" ? "白菜价" : "免费") + "</td>" +
+          '<td class="num">' + (x.ok ? '<span class="ok-t">' + esc(String(x.status || 200)) + "</span>"
+                                    : '<span class="bad-t">' + esc(String(x.status || "不可达")) + "</span>") + "</td>" +
+          '<td class="xsmall">' + esc(x.title || "—") + "</td>" +
+          '<td class="xsmall dim">' + esc(x.note || "—") + "</td>" +
+          '<td class="xsmall"><a href="https://' + esc(String(x.url || "").replace(/^\/+/, "")) + '" target="_blank" rel="noopener noreferrer">' +
+            esc(String(x.url || "").replace(/\/$/, "")) + "</a></td>" +
+          "</tr>";
+      });
+      h += "</tbody></table></div></div>";
+    }
+
+    h += "</div>";
 
     v.innerHTML = h;
     $$("#libChips .chip", v).forEach(function (b) {

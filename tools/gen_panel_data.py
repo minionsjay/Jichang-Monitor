@@ -9,6 +9,8 @@
 from __future__ import annotations
 
 import io
+import html as _html
+import yaml
 import json
 import os
 import re
@@ -437,6 +439,13 @@ def parse_run_log(path, want=60):
     return out
 
 
+def _clean_title(t):
+    """站点标题：解 HTML 实体，并去掉未解完的 &#...; 残片。"""
+    v = _html.unescape(str(t or ""))
+    v = _re.sub(r"&#[0-9]*;?|&[a-zA-Z]+;", "", v).strip()
+    return v[:80]
+
+
 def _channel_of(slug, reg, cred, via, sub_url, probe, nodes, state):
     """获取通道分类：总览「按通道分组」用，把不能用订阅链接拿的归到一起。
 
@@ -502,6 +511,32 @@ def main():
     cv = (jload(os.path.join(DATA, "client_versions.json"), {}) or {}).get("airports") or {}
     kn = jload(os.path.join(DATA, "knowledge.json"), []) or []
     sites = jload(os.path.join(DATA, "sites_digest.json"), []) or []
+    # 免费/白菜价机场（没买，只监控域名是否还活着）——清单在 freewatch.yaml，探测结果在 data/sitewatch.json
+    free_watch = []
+    try:
+        _fw = yaml.safe_load(io.open(os.path.join(ROOT, "freewatch.yaml"), encoding="utf-8"))
+        if isinstance(_fw, dict):
+            _fw = _fw.get("sites") or _fw.get("targets") or []
+        _sw = (jload(os.path.join(DATA, "sitewatch.json"), {}) or {})
+        _sw_at = _sw.get("at") or ""
+        _sw_map = {str(r.get("name")): r for r in (_sw.get("results") or []) if isinstance(r, dict)}
+        for it in (_fw or []):
+            if not isinstance(it, dict):
+                continue
+            _r = _sw_map.get(str(it.get("name"))) or {}
+            free_watch.append({
+                "name": str(it.get("name") or "")[:40],
+                "url": _re.sub(r"^https?://", "", str(it.get("url") or ""))[:120],
+                "tier": str(it.get("tier") or "free"),
+                "note": str(it.get("note") or "")[:160],
+                "ok": bool(_r.get("ok")),
+                "status": _r.get("status"),
+                "via": _r.get("via"),
+                "title": _clean_title(_r.get("title")) if _r.get("ok") else "",
+                "at": _sw_at,
+            })
+    except Exception as _e:
+        free_watch = []
     rdap_cache = jload(os.path.join(DATA, "rdap_cache.json"), {}) or {}
 
     # airports.yaml 注册表
@@ -880,6 +915,7 @@ def main():
         "rdap": an_rdap,
         "knowledge": kn_out,
         "sites": sites_out,
+        "sitesFree": free_watch,
         "clients": [dict(slug=slug, **{k: v for k, v in (c or {}).items() if k in ("client", "local_ver", "latest_ver", "status", "note", "node_pull")}) for slug, c in cv.items()],
         "logTail": parse_run_log(os.path.join(ROOT, "run.log")),
         "runs": runs_hist,

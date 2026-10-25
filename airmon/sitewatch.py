@@ -37,7 +37,11 @@ def _proxy_dict():
 def _probe(url: str):
     """返回 (status, title, via)；直连失败走本地代理重试。"""
     last = "ERR"
-    for label, ph in (("direct", {"http": None, "https": None}), ("proxy", PROXY)):
+    _px = _proxy_dict()
+    _tries = [("direct", {"http": None, "https": None})]
+    if _px:
+        _tries.append(("proxy", _px))
+    for label, ph in _tries:
         try:
             ctx = ssl.create_default_context()
             ctx.check_hostname = False

@@ -53,3 +53,6 @@ seeds.txt
 .tmp_shots/
 # 订阅原始响应（含节点密码/uuid，绝不上传）
 data/subraw/
+# 临时实验目录/文件（逆向与探针产物，不入库）
+.tmp_*/
+tools/_ui_probe.mjs
