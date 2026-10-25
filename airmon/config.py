@@ -65,6 +65,9 @@ def load_credentials(path: str | None = None) -> dict:
             "cookie": acct.get("cookie"),      # JS节点页机场：浏览器登录态
             "base": acct.get("base"),          # 该机场后台域名（cookie 类用）
             "max_id": acct.get("max_id", 300),
+            # 面板登录令牌（JWT）：限时订阅开关型机场用它自动「开启订阅」，
+            # 见 airmon/subopen.py。只存 token，不存密码（密码登录要过 CF Turnstile）。
+            "auth_token": acct.get("auth_token"),
             # 客户端配置（也可在 airports.yaml 的 client 字段里配）
             "client": acct.get("client"),     # {package, install_dir, core_process, data_dir}
         }

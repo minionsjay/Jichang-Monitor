@@ -220,6 +220,42 @@ def _reach_kind(d, direct_key, proxy_key):
     return None
 
 
+def load_sub_auth():
+    """限时订阅开关型机场的面板令牌时效：{slug: {hours: float, ok: bool}}。
+
+    令牌就是浏览器 localStorage 里的 pu:auth（JWT），存在 credentials.yaml 的
+    <机场>.auth_token。这里只算 exp 距离现在几小时，不联网、不验签。
+    """
+    path = os.path.join(ROOT, "credentials.yaml")
+    out = {}
+    try:
+        import base64
+        import json as _j
+        import time as _t
+        import yaml
+        with io.open(path, encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        for slug, acct in ((data.get("accounts") or {})).items():
+            tok = (acct or {}).get("auth_token")
+            if not tok:
+                continue
+            exp = 0
+            try:
+                seg = tok.split(".")
+                if len(seg) >= 2:
+                    pad = "=" * (-len(seg[1]) % 4)
+                    exp = int(_j.loads(base64.urlsafe_b64decode(seg[1] + pad)).get("exp") or 0)
+            except Exception:
+                exp = 0
+            if exp:
+                out[slug] = {"hours": round((exp - _t.time()) / 3600.0, 1), "ok": exp > _t.time()}
+            else:
+                out[slug] = {"hours": -1, "ok": False}
+    except Exception:
+        return {}
+    return out
+
+
 def load_sub_closed():
     """订阅「限时开关」被机场关掉的：data/sub_closed.json（run.py 写的）。
 
@@ -434,6 +470,7 @@ def main():
     subraw_ix = load_subraw_index()
     proxy_ix, proxy_meta = load_proxy_need()
     sub_closed = load_sub_closed()
+    sub_auth = load_sub_auth()
     airports = []
     for slug in slugs:
         sh = sub.get(slug) or {}
@@ -599,6 +636,7 @@ def main():
             "last_ok": latest_ok_local(slug),
             "raw": subraw_ix.get(slug) or None,
             "sub_closed": sub_closed.get(slug) or None,
+            "sub_auto": sub_auth.get(slug) or None,
             "proxy": proxy_ix.get(slug) or None,
             "stale_h": stale_h,
             "stability": stab.get("pct"),

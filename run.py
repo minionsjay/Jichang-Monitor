@@ -572,14 +572,27 @@ def _pull_one(slug: str, cred: dict, detector: Detector):
         last_err = None
         from airmon.login import SubscriptionClosed as _SubClosed
         closed = False
+        opened = False
         for attempt in (1, 2):
             try:
                 snap = collect_from_url(slug, cred["sub_url"], detector,
                                         cred.get("user_agent", "clash.meta"))
                 break
             except _SubClosed as e:
-                # 限时订阅开关：重试无用，直接把状态写清楚
+                # 限时订阅开关（如 ss-id）：链接默认关闭、开启后 10 分钟有效，但 token 不变，
+                # 所以只要用面板的 auth_token 把开关打开，原链接立刻能拉。开一次就够，不反复试。
                 last_err = e
+                if not opened:
+                    opened = True
+                    try:
+                        from airmon.subopen import open_for as _open_sub
+                        _ok, _msg, _ = _open_sub(slug, cred)
+                    except Exception as _oe:
+                        _ok, _msg, _ = False, str(_oe)[:60]
+                    if _ok:
+                        print(f"    [{slug}] 订阅是限时开关，已自动开启（{_msg}），立刻重拉", flush=True)
+                        continue
+                    print(f"    [{slug}] 订阅关闭，自动开启失败：{_msg}", flush=True)
                 closed = True
                 break
             except Exception as e:
