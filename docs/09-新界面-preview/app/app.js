@@ -159,6 +159,9 @@
       var cls = stCls(a.state);
       var clOnly = a.type === "client" && !a.has_sub;
       var expired = a.days != null && a.days < 0;
+      /* 订阅「限时开关」被机场关掉：不是故障，是面板上的开关到点自动关。
+         拉取会拿到 403，重试无用；节点还是上一轮的，所以状态不动，只加个提示标。 */
+      var subc = a.sub_closed && a.sub_closed.at;
       var tip = a.slug + " · " + stName(a.state) + " · 节点 " + num(a.nodes) + " 个（有协议）" +
         (a.frag ? "\n另有 " + num(a.frag) + " 条无协议残片（内存扫描只拿到域名+端口，导不进配置）" : "") +
         (clOnly ? "\n只能用客户端获取（没有可用的订阅地址）" : "") +
@@ -171,7 +174,9 @@
         '<span class="ct">' + (a.nodes ? num(a.nodes) : "0") + "</span>" +
         '<span class="ft">' +
           '<span class="st"><span class="stw">' + esc(stName(a.state)) + "</span>" +
-            (expired ? '<i class="xd" aria-label="套餐已到期">到期</i>' : "") + "</span>" +
+            (expired ? '<i class="xd" aria-label="套餐已到期">到期</i>' : "") +
+            (subc ? '<i class="xd subc" title="订阅开关被机场关闭（' + esc(a.sub_closed.at) +
+              '）——面板里的订阅开启是限时的，重新开启后再拉">订阅关闭</i>' : "") + "</span>" +
           '<span class="ex' + (a.exported ? "" : (expired ? " bad" : " dim")) + '">' + exTxt + "</span>" +
         "</span>" +
         "</button>";
@@ -1044,6 +1049,10 @@
       '<button class="btn xs" id="apFileYaml">导出配置</button>' +
       '<span class="small dim">密码/uuid/令牌已打码</span></div>';
 
+    if (a.sub_closed && a.sub_closed.at) {
+      kv.unshift(["订阅状态", '<span class="bad">关闭中（' + esc(a.sub_closed.at) +
+        "）</span> · 面板里的订阅开启是限时的，去面板重新开启后再点「获取节点」"]);
+    }
     h += '<dl class="kv">';
     kv.forEach(function (p) { h += "<dt>" + p[0] + "</dt><dd>" + p[1] + "</dd>"; });
     h += "</dl>";

@@ -220,6 +220,22 @@ def _reach_kind(d, direct_key, proxy_key):
     return None
 
 
+def load_sub_closed():
+    """订阅「限时开关」被机场关掉的：data/sub_closed.json（run.py 写的）。
+
+    这类机场的订阅链接没过期，是面板上的开关到点自动关，拉取会拿到 403。
+    它不是故障，所以单独一个字段，面板上跟「异常」区分开：状态仍然是它的真实状态，
+    只是多一个「订阅关闭中 · 去面板开启」的提醒。
+    """
+    path = os.path.join(DATA, "sub_closed.json")
+    try:
+        with io.open(path, encoding="utf-8") as fh:
+            d = json.load(fh)
+        return d if isinstance(d, dict) else {}
+    except Exception:
+        return {}
+
+
 def load_proxy_need():
     """data/proxy_need.json -> (slug -> {sub,panel}, 元信息)。只出分类词，不出 URL。"""
     j = jload(os.path.join(DATA, "proxy_need.json"), {}) or {}
@@ -417,6 +433,7 @@ def main():
     runs_hist = load_runs(20)
     subraw_ix = load_subraw_index()
     proxy_ix, proxy_meta = load_proxy_need()
+    sub_closed = load_sub_closed()
     airports = []
     for slug in slugs:
         sh = sub.get(slug) or {}
@@ -581,6 +598,7 @@ def main():
             "action": action,
             "last_ok": latest_ok_local(slug),
             "raw": subraw_ix.get(slug) or None,
+            "sub_closed": sub_closed.get(slug) or None,
             "proxy": proxy_ix.get(slug) or None,
             "stale_h": stale_h,
             "stability": stab.get("pct"),

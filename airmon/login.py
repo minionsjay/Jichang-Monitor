@@ -480,6 +480,15 @@ def discover_panel(domains: list[str], timeout: int = 8) -> tuple[str, str] | No
     return detect_panel(cands[:20], timeout)
 
 
+class SubscriptionClosed(Exception):
+    """订阅链接被机场主动关闭（401/403）。
+
+    不少机场面板上的「开启订阅」是个限时开关（常见 10 分钟）：开启期外请求会返回
+    403/401 或空体。这不是网络故障、也不是脚本 bug，重试没有意义——要去面板重新开启。
+    单独一个异常类型，是为了让上层把「订阅关闭中」和「拉取失败」分成两种状态。
+    """
+
+
 def fetch_subscription(url: str, user_agent: str = "clash.meta",
                        timeout: int = 30) -> tuple[str, dict]:
     """用 Clash UA 抓订阅内容，返回 (text, 关键响应头)。5xx / SSL / 连接错误重试。"""
@@ -498,6 +507,10 @@ def fetch_subscription(url: str, user_agent: str = "clash.meta",
             break
         if attempt < 2:
             time.sleep(2)
+    if r.status_code in (401, 403):
+        raise SubscriptionClosed(
+            f"订阅链接被机场关闭（HTTP {r.status_code}）——面板里的订阅开关是限时的，"
+            f"需要在面板上重新开启后再拉")
     r.raise_for_status()
     meta = {h: r.headers[h] for h in
             ("subscription-userinfo", "profile-update-interval") if h in r.headers}

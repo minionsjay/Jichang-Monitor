@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import argparse
+import io
 import sys
 
 import csv
@@ -408,8 +409,50 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
             pass
 
 
+def _clear_closed(slug: str):
+    """这一轮拉成功了，就把 sub_closed.json 里的关闭标记删掉。"""
+    import json as _json
+    path = os.path.join(store.DATA_DIR, "sub_closed.json")
+    if not os.path.exists(path):
+        return
+    try:
+        with io.open(path, encoding="utf-8") as fh:
+            cur = _json.load(fh)
+        if isinstance(cur, dict) and slug in cur:
+            cur.pop(slug, None)
+            with io.open(path, "w", encoding="utf-8") as fh:
+                fh.write(_json.dumps(cur, ensure_ascii=False, indent=1))
+    except Exception:
+        pass
+
+
+def _record_closed(slug: str, msg: str):
+    """把「订阅开关关闭」这种非故障状态记到 data/sub_closed.json。
+
+    它不进 failed 统计：机场没坏、脚本没坏，只是订阅处在关闭窗口里。
+    面板读这个文件，把卡片标成「订阅关闭中 · 去面板开启」。
+    """
+    import json as _json
+    from datetime import datetime as _dt
+    path = os.path.join(store.DATA_DIR, "sub_closed.json")
+    try:
+        with io.open(path, encoding="utf-8") as fh:
+            cur = _json.load(fh)
+    except Exception:
+        cur = {}
+    if not isinstance(cur, dict):
+        cur = {}
+    cur[slug] = {"at": _dt.now().astimezone().strftime("%Y-%m-%d %H:%M:%S"), "reason": msg[:200]}
+    try:
+        with io.open(path, "w", encoding="utf-8") as fh:
+            fh.write(_json.dumps(cur, ensure_ascii=False, indent=1))
+    except Exception:
+        pass
+
+
 def _finish(slug: str, snap, kind: str):
     from collections import Counter
+    _clear_closed(slug)
     path = store.save(snap)
     print(f"[成功] {slug} ({kind}): {len(snap.nodes)} 节点, "
           f"{len(snap.findings)} 华为命中")
@@ -527,10 +570,17 @@ def _pull_one(slug: str, cred: dict, detector: Detector):
                            getattr(_rq.exceptions, "ChunkedEncodingError", ()))
         snap = None
         last_err = None
+        from airmon.login import SubscriptionClosed as _SubClosed
+        closed = False
         for attempt in (1, 2):
             try:
                 snap = collect_from_url(slug, cred["sub_url"], detector,
                                         cred.get("user_agent", "clash.meta"))
+                break
+            except _SubClosed as e:
+                # 限时订阅开关：重试无用，直接把状态写清楚
+                last_err = e
+                closed = True
                 break
             except Exception as e:
                 last_err = e
@@ -543,6 +593,10 @@ def _pull_one(slug: str, cred: dict, detector: Detector):
         if snap is not None:
             _finish(slug, snap, "manual-url")
             return  # sub_url成功就结束，不需要再启动客户端
+        if closed:
+            print(f"    [{slug}] 订阅关闭中（面板上的订阅开关限时，需重新开启），跳过登录尝试")
+            _record_closed(slug, str(last_err))
+            return
         print(f"    [{slug}] 订阅URL失败({str(last_err)[:50]})，尝试面板登录...")
         # 继续走下面的登录流程
 

@@ -1167,6 +1167,14 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
   letter-spacing: .02em;
 }
 .cell .stx { color: var(--red); }
+/* 订阅「限时开关」被机场关掉：和「到期」同形但走灰蓝，避免红色被当成故障 */
+.cell .xd.subc {
+  color: #b9c2d6;
+  background: rgba(124, 132, 147, .22);
+  border-color: rgba(124, 132, 147, .55);
+}
+.bad { color: var(--red); font-weight: 600; }
+
 .cell .stx { color: var(--red); }
 .cell.exp::before { background: var(--red); }
 /* 紧凑档：状态行被隐藏，到期标记改贴右下角，保证任何密度都看得见 */
