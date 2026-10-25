@@ -1,0 +1,35 @@
+# 复制为 notify.yaml 后填自己的地址（notify.yaml 已在 .gitignore，不会入库）
+#
+# ── 通道一：企业微信群机器人（推荐，消息进「企业微信」App，能同步到微信）
+#    群设置 → 群机器人 → 添加 → 复制 Webhook 地址
+#    channels:
+#      - type: wecom
+#        url: https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=xxxx
+#
+# ── 通道二：Server酱 https://sct.ftqq.com/ （微信扫码，免费每天 5 条）
+#    channels:
+#      - type: serverchan
+#        token: SCTxxxxx
+#
+# ── 通道三：PushPlus https://www.pushplus.plus/ （微信扫码，免费额度更宽）
+#    channels:
+#      - type: pushplus
+#        token: xxxxxxxxxxxx
+#
+# ── 通道四：自定义 webhook（Bark / 飞书 / 钉钉 / n8n 都行，POST {"title","text","md"}）
+#    channels:
+#      - type: webhook
+#        url: https://example.com/hook
+
+enabled: true
+huawei: true      # 华为云命中就推（默认开）
+fronting: false   # 大厂域名前置不推（不是华为，噪音）
+run_fail: false   # 整轮采集失败也推
+
+channels:
+  - type: wecom
+    url: ""
+  - type: serverchan
+    token: ""
+  - type: pushplus
+    token: ""

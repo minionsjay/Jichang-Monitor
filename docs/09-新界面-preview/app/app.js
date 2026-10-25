@@ -203,6 +203,34 @@
     return out || '<div class="empty">没有机场</div>';
   }
 
+  /* 导出今日节点：POST api/export → 服务端跑 tools/export_today.py 并打包 zip */
+  function exportToday(btn) {
+    if (btn.disabled) return;
+    btn.disabled = true;
+    var old = btn.textContent;
+    btn.textContent = "导出中…";
+    fetch("api/export", { method: "POST" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        btn.disabled = false;
+        btn.textContent = old;
+        if (!j || !j.ok) { toast((j && j.error) || "导出失败", { ms: 7000, kind: "bad" }); return; }
+        var kb = j.zip_size ? Math.round(j.zip_size / 1024) : 0;
+        toast("已导出 " + j.exported + " 个节点 · " + j.airports.length + " 家 · " + kb + " KB", { ms: 9000 });
+        var a2 = document.getElementById("exp-link");
+        if (a2) {
+          a2.href = j.download;
+          a2.textContent = "下载 " + (j.zip || "zip").split("/").pop();
+          a2.style.display = "";
+        }
+      })
+      .catch(function (err) {
+        btn.disabled = false;
+        btn.textContent = old;
+        toast("导出失败：" + err, { ms: 7000, kind: "bad" });
+      });
+  }
+
   function renderOverview(force) {
     var v = $("#v-ov");
     if (S.drawn.ov && !force) { v.style.display = "block"; return; }
@@ -237,6 +265,10 @@
       '<span class="row" style="gap:5px">' + dot("d") + "断流 " + T.d + "</span>" +
       '<span class="row" style="gap:5px"><i class="cl inline">客</i>只能用客户端获取</span>' +
       "</div>" +
+      '<span class="row" style="gap:6px">' +
+      '<button class="btn xs" id="exp-today" title="把今天所有机场能导出的节点汇成一份配置并打包 zip">导出今日节点</button>' +
+      '<a class="btn xs" id="exp-link" style="display:none">下载 zip</a>' +
+      "</span>" +
       '<div class="dseg dseg-g" role="group" aria-label="分组方式">' +
       [["", "按状态"], ["channel", "状态 + 通道"]].map(function (kv) {
         return '<button class="dseg-b' + ((S.group || "") === kv[0] ? " on" : "") + '" data-g="' + kv[0] + '">' + kv[1] + "</button>";
@@ -265,6 +297,7 @@
       c.addEventListener("click", function () { openDrawer(c.getAttribute("data-slug")); });
     });
     $$(".dseg-b", v).forEach(function (b) {
+      if (b.hasAttribute("data-g")) return; // 分组按钮由下面的监听器处理
       b.addEventListener("click", function () { S.density = b.getAttribute("data-d"); renderOverview(true); });
     });
     $$(".dseg-g .dseg-b", v).forEach(function (b) {
@@ -274,6 +307,8 @@
         renderOverview(true);
       });
     });
+    var eb = $("#exp-today", v);
+    if (eb) eb.addEventListener("click", function () { exportToday(eb); });
     countOnce("ov-airports", $('[data-cnt="0"]', v), T.airports);
     countOnce("ov-ok", $('[data-cnt="1"]', v), T.ok);
     countOnce("ov-b", $('[data-cnt="2"]', v), T.b);

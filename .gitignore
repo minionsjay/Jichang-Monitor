@@ -1,8 +1,10 @@
 # Sensitive data - never commit
 credentials.yaml
+notify.yaml
 data/
 # airmon.nodeset 导出的节点文件（含真实 server/password/uuid，绝不入库）
 nodes/
+exports/
 *.log
 
 # Python

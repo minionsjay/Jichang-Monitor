@@ -41,6 +41,12 @@ def emit(airport: str, findings: list[Finding], changes: dict | None = None):
     print(block)
     with open(ALERT_LOG, "a", encoding="utf-8") as f:
         f.write(block + "\n")
+    # 推到 IM（notify.yaml 没配就静默跳过；任何异常都不许影响采集主流程）
+    try:
+        from .notify import notify_findings
+        notify_findings(airport, findings)
+    except Exception as _e:
+        print("[推送] 跳过（%s: %s）" % (type(_e).__name__, _e))
 
 
 def stale_report(max_hours: float = 6.0, airports: list[str] | None = None) -> list[str]:

@@ -1657,6 +1657,24 @@ def cmd_all(args):
                 print("[状态表] 本机没有 openpyxl，本轮跳过")
     except Exception as _e:
         print(f"[状态表生成失败，忽略] {_e}")
+    # 5.13/5 每日同步（日报 + 节点清单 → Git；含凭据的配置默认不推）
+    try:
+        import time as _t13
+        _md13 = os.path.join(_root, "docs", "每日摘要", _t13.strftime("%Y%m%d") + ".md")
+        _fresh13 = os.path.isfile(_md13) and (_t13.time() - os.path.getmtime(_md13)) < 12 * 3600
+        if _fresh13:
+            print("[5.13] 每日同步：今天已同步过，跳过")
+        else:
+            _h13(step="5.13 每日同步")
+            _r13 = subprocess.run([sys.executable, "-X", "utf8",
+                                   os.path.join(_root, "tools", "sync_daily.py")],
+                                  cwd=_root, capture_output=True, timeout=300)
+            _o13 = (_r13.stdout or b"").decode("utf-8", "replace")
+            for _ln in _o13.strip().splitlines()[-3:]:
+                print("[5.13] " + _ln.strip())
+    except Exception as _e13:  # noqa: BLE001
+        print("[5.13] 每日同步失败（忽略）：%s: %s" % (type(_e13).__name__, _e13))
+
     # 5.12/5 面板数据（docs/09-新界面-preview/app/data.js）
     # 少了这一步，定时轮跑完只有 runs.json 更新了，面板读的还是旧 data.js ——
     # 用户会以为「这一轮根本没跑」。必须每轮重生成，运行记录/总览才会一起换新。

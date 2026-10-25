@@ -23,7 +23,6 @@ import argparse
 import datetime
 import io
 import json
-import re
 import os
 import re
 import shutil
@@ -960,6 +959,67 @@ def save_sub_url(slug: str, url: str) -> dict:
     }
 
 
+# ---------------------------------------------------------------- 导出今日节点
+EXPORTS = ROOT / "exports"
+
+
+def _export_mod():
+    """按文件路径加载 tools/export_today.py（同进程调用，省一次冷启动）。"""
+    import importlib.util
+
+    f = ROOT / "tools" / "export_today.py"
+    spec = importlib.util.spec_from_file_location("airmon_export_today", str(f))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def _zip_dir(d: Path) -> Path:
+    import zipfile
+
+    z = d.parent / (d.name + ".zip")
+    with zipfile.ZipFile(z, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as zf:
+        for f in sorted(d.rglob("*")):
+            if f.is_file():
+                zf.write(f, f.relative_to(d.parent).as_posix())
+    return z
+
+
+def export_today(day: str | None = None) -> dict:
+    try:
+        mod = _export_mod()
+        res = mod.export_day(day)
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}
+    if not res.get("ok"):
+        return res
+    try:
+        d = ROOT / res["out_dir"]
+        z = _zip_dir(d)
+        res["zip"] = z.relative_to(ROOT).as_posix()
+        res["zip_size"] = z.stat().st_size
+        res["download"] = "/api/download?name=" + z.name
+    except Exception as e:  # noqa: BLE001
+        res["zip_error"] = "%s: %s" % (type(e).__name__, e)
+    return res
+
+
+_DL_NAME = re.compile(r"^[0-9A-Za-z._-]{4,80}\.zip$")
+
+
+def download_path(name: str) -> Path | None:
+    """只允许 exports/ 下的 zip，彻底杜绝路径穿越。"""
+    if not name or not _DL_NAME.match(name):
+        return None
+    p = (EXPORTS / name).resolve()
+    try:
+        if not str(p).startswith(str(EXPORTS.resolve())):
+            return None
+    except Exception:  # noqa: BLE001
+        return None
+    return p if p.is_file() else None
+
+
 # ---------------------------------------------------------------- HTTP
 class Handler(SimpleHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
@@ -1000,6 +1060,28 @@ class Handler(SimpleHTTPRequestHandler):
             except Exception:  # noqa: BLE001
                 st["alerts"] = {}
             self._json(st)
+            return True
+
+        if parts[:2] == ["api", "export"] and len(parts) == 2:
+            if self.command != "POST":
+                self._json({"ok": False, "error": "用 POST"}, 405)
+                return True
+            self._json(export_today(q.get("day", [None])[0]))
+            return True
+
+        if parts[:2] == ["api", "download"] and len(parts) == 2:
+            p = download_path(q.get("name", [""])[0])
+            if p is None:
+                self._json({"ok": False, "error": "文件不存在"}, 404)
+                return True
+            data = p.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/zip")
+            self.send_header("Content-Length", str(len(data)))
+            self.send_header("Content-Disposition", 'attachment; filename="%s"' % p.name)
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            self.wfile.write(data)
             return True
 
         if parts[:2] == ["api", "airport"] and len(parts) == 3:
@@ -1095,6 +1177,8 @@ def main(argv: list[str] | None = None) -> int:
     print("  POST /api/sub            改订阅地址 → 写回 credentials.yaml（先备份）")
     print("  /api/raw/<slug>          最近一份订阅原文（JWT/密码/uuid 已打码）")
     print("  /api/file/<slug>?kind=   打码后的 原文 raw / 快照 snap / 导出配置 yaml")
+    print("  POST /api/export         导出今天所有节点 → exports/<日期>.zip")
+    print("  GET  /api/download?name= 下载上面那个 zip")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:
