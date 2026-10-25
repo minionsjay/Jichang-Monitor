@@ -73,7 +73,7 @@
   function dot(cls) { return '<i class="dot ' + cls + '"></i>'; }
 
   /* ------------------------------------------------------------ 状态 */
-  var S = { view: "ov", q: "", al: "all", lib: "all", kn: "all", nd: null, ndProto: "all", density: "m", group: "", drawn: {} };
+  var S = { view: "ov", q: "", al: "all", lib: "all", siteQ: "", siteMon: false, kn: "all", nd: null, ndProto: "all", density: "m", group: "", drawn: {} };
   try { var _g0 = localStorage.getItem("airmon.group"); if (_g0 === "channel") S.group = "channel"; } catch (e) {}
 
   var T = D.totals || {};
@@ -626,7 +626,46 @@
   }
 
   /* ------------------------------------------------------------ 机场库 */
-  function renderLibrary() {
+  function _siteList() {
+  var q = String(S.siteQ || "").toLowerCase();
+  var out = (D.sites || []).slice();
+  if (S.siteMon) out = out.filter(function (x) { return /已监控|域命中/.test(x.rel || ""); });
+  if (q) {
+    out = out.filter(function (x) {
+      return (String(x.name || "") + " " + String(x.dom || "") + " " + String(x.protos || "") + " " + String(x.cat || "")).toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  out.sort(function (a, b) {
+    var am = /已监控|域命中/.test(a.rel || "") ? 0 : 1;
+    var bm = /已监控|域命中/.test(b.rel || "") ? 0 : 1;
+    if (am !== bm) return am - bm;
+    return String(b.date || "").localeCompare(String(a.date || ""));
+  });
+  return out;
+}
+
+function fillSiteBody() {
+  var tb = $("#siteBody");
+  if (!tb) return;
+  var h = "";
+  _siteList().forEach(function (x) {
+    var rel = String(x.rel || "");
+    var mine = /已监控|域命中/.test(rel);
+    var dom = String(x.dom || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+    h += "<tr>" +
+      '<td class="nm">' + esc(x.name || "—") + "</td>" +
+      '<td class="xsmall dim">' + esc(x.cat || "—") + "</td>" +
+      '<td class="xsmall">' + (dom ? '<a href="https://' + esc(dom) + '" target="_blank" rel="noopener noreferrer">' + esc(dom) + "</a>" : "—") + "</td>" +
+      '<td class="num xsmall dim">' + esc(String(x.date || "—").slice(0, 10)) + "</td>" +
+      '<td class="xsmall dim">' + esc(x.free || "—") + "</td>" +
+      '<td class="xsmall dim">' + esc(x.protos || "—") + "</td>" +
+      "<td>" + (mine ? pill("pill ok", rel.replace(/;/g, " · ")) : '<span class="xsmall dim">未监控</span>') + "</td>" +
+      "</tr>";
+  });
+  tb.innerHTML = h || '<tr><td colspan="7" class="dim xsmall">没有匹配的记录</td></tr>';
+}
+
+function renderLibrary() {
     var v = $("#v-lib");
     var q = S.q.toLowerCase();
     var list = APTS.filter(function (a) {
@@ -666,6 +705,21 @@
     });
     h += "</div></div>";
 
+    /* 推荐站档案：从评测站爬的 319 条 */
+    var sites = D.sites || [];
+    if (sites.length) {
+      var mon = sites.filter(function (x) { return /已监控|域命中/.test(x.rel || ""); }).length;
+      h += '<div class="sec mt14"><div class="sec-h"><h2>推荐站档案</h2>' +
+        '<span class="n">' + sites.length + " 条 · 其中 " + mon + " 条与在监控的机场对得上</span>" +
+        '<span class="sp"></span>' +
+        '<input id="siteQ" class="qin" type="search" placeholder="搜机场名 / 域名 / 协议" value="' + esc(S.siteQ || "") + '">' +
+        '<button class="chip' + (S.siteMon ? " on" : "") + '" id="siteMon">只看对得上的 (' + mon + ")</button>" +
+        "</div>" +
+        '<div class="sec-b tight"><div class="libsite"><table class="tbl compact"><thead><tr>' +
+        "<th>机场名</th><th>栏目</th><th>域名</th><th>日期</th><th>套餐线索</th><th>协议</th><th>与我方关系</th>" +
+        "</tr></thead><tbody id=\"siteBody\"></tbody></table></div></div></div>";
+    }
+
     /* 免费 / 白菜价：没买，只监控域名是否还活着 */
     var fw = D.sitesFree || [];
     if (fw.length) {
@@ -698,6 +752,18 @@
     $$("#libChips .chip", v).forEach(function (b) {
       b.addEventListener("click", function () { S.lib = b.getAttribute("data-lib"); renderLibrary(); });
     });
+
+    if ($("#siteBody")) {
+      fillSiteBody();
+      var qi = $("#siteQ");
+      if (qi) qi.addEventListener("input", function () { S.siteQ = qi.value; fillSiteBody(); });
+      var mb = $("#siteMon");
+      if (mb) mb.addEventListener("click", function () {
+        S.siteMon = !S.siteMon;
+        mb.classList.toggle("on", S.siteMon);
+        fillSiteBody();
+      });
+    }
     $$(".card", v).forEach(function (c) {
       c.addEventListener("click", function () { openDrawer(c.getAttribute("data-slug")); });
     });

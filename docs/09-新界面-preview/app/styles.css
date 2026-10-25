@@ -1243,3 +1243,11 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
 
 .ok-t { color: var(--green); font-variant-numeric: tabular-nums; }
 .bad-t { color: var(--red); }
+
+/* 推荐站档案：319 行，限高滚动 + 吸顶表头 */
+.libsite { max-height: 424px; overflow: auto; overscroll-behavior: contain; }
+.libsite table.tbl { margin: 0; }
+.libsite thead th { position: sticky; top: 0; z-index: 2; background: var(--panel, #11151d); }
+.qin { background: var(--bg2, #0d1117); border: 1px solid var(--line); border-radius: 6px; color: var(--fg);
+  font: inherit; font-size: 12px; padding: 4px 8px; width: 190px; }
+.qin:focus { outline: none; border-color: var(--blue, #5c8bff); }
