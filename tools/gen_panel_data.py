@@ -184,6 +184,27 @@ def load_runs(limit: int = 20):
     return out
 
 
+import re as _re
+_MEM_HINT = _re.compile("mem|内存|exe|进程", _re.I)
+
+
+def load_client_sources():
+    """data/client_nodes/<slug>.json 里的 source（判断这套节点是怎么来的）。"""
+    out = {}
+    d = os.path.join(ROOT, "data", "client_nodes")
+    if not os.path.isdir(d):
+        return out
+    for fn in os.listdir(d):
+        if not fn.endswith(".json"):
+            continue
+        try:
+            j = json.load(io.open(os.path.join(d, fn), encoding="utf-8"))
+        except Exception:
+            continue
+        out[fn[:-5]] = str((j or {}).get("source") or "")
+    return out
+
+
 def load_subraw_index():
     """每家机场最近一份订阅原始响应的元信息（不含正文）。"""
     ix = jload(os.path.join(ROOT, "data", "subraw", "index.json"), {}) or {}
@@ -469,6 +490,7 @@ def main():
     runs_hist = load_runs(20)
     subraw_ix = load_subraw_index()
     proxy_ix, proxy_meta = load_proxy_need()
+    _client_src = load_client_sources()
     sub_closed = load_sub_closed()
     sub_auth = load_sub_auth()
     airports = []
@@ -625,7 +647,10 @@ def main():
             "exported": exported,
             "frag": _frag_ix,        # 无协议碎片（内存扫描只拿到域名+端口）
             "protos": ix.get("protos") or {},
-            "via": "内存扫描" if (ix.get("node_source") == "client_nodes") else ("快照" if ix else "无数据"),
+            "via": ("本地配置解包" if "bundle" in _client_src.get(slug, "").lower()
+                    else "客户端内存" if (_MEM_HINT.search(_client_src.get(slug, ""))
+                                          or ix.get("node_source") == "client_nodes")
+                    else ("快照" if ix else "无数据")),
             "days": days,
             "expire": q.get("expire_date"),
             "total_gb": q.get("total_gb"),

@@ -310,3 +310,20 @@ panel_preview_server / backfill_runs）已统一。
 三个都走 `GET /api/file/<slug>?kind=raw|snap|yaml`，正文一律**打码**：JWT、`password`/`uuid`/`auth`/`token`/`key`
 替换成 `<已隐藏>`，`source` 里的订阅主机名隐掉前缀（`https://<已隐藏>.yuji.homes`）。
 `订阅原文` 对走 `server-fetch` API 的机场会返回「没有原文」——那种分支吃的是 JSON API 响应，没有订阅文本。
+
+## 客户端型机场：DOVE 不打开客户端也能拿节点（2026-10-25）
+
+DOVE（dovex.cc）的配置落盘在 `%APPDATA%\DOVE.tauri\DOVE.tauri.dat`，是 `MHBNDL`
+容器（v1.18）：`MHBNDL\0\0` + 版本字节 + 8 位随机盐 + 16B nonce + 4B 长度(LE) +
+AES-256-GCM 密文与 tag。密钥是**硬编码在 dove-core 里的常量**
+`mihomo-bundle-key-v1-32bytes-!!!`，所以不用起客户端、不用 UAC、不用读进程内存就能解：
+
+```bash
+python -X utf8 -m airmon.dovex --probe      # 看能不能解、proxies 多少
+python -X utf8 run.py scan-memory --airport dovex -v   # 自动优先走这条路
+```
+
+解出来是完整 mihomo YAML（62 个 vless）。**关键点：58 个节点的 `server` 是
+`service.internal` 内网名，必须带 `dialer-proxy: DOVE` 并在 yaml 里给出 `DOVE`
+入口组（4 个 AWS/移动入口），否则导出的配置连不通。** `airmon/nodeset.py` 已保留
+该字段并自动生成 `proxy-groups`，`dove-core.exe -t` 校验通过。

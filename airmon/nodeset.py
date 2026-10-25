@@ -122,6 +122,12 @@ def _unique(name: str, seen: set[str]) -> str:
     return name
 
 
+# 通用透传字段：不属于任何单一协议的必填项，但缺了节点就不可用。
+# dialer-proxy 典型例子：DOVE 的节点全是 service.internal（内网名），必须靠
+# `dialer-proxy: DOVE` 先连入口组，服务端才代理解析 —— 这个字段丢了，导出即为废配置。
+_PASSTHROUGH = ("dialer-proxy", "interface-name", "routing-mark", "ip-version", "tfo")
+
+
 # ---------------------------------------------------------------- 节点 → Clash
 
 def _proxy_of(node: dict) -> tuple[dict | None, str]:
@@ -161,6 +167,13 @@ def _proxy_of(node: dict) -> tuple[dict | None, str]:
             v = bool(v)
         p[k] = v
 
+    for k in _PASSTHROUGH:
+        if k in p:
+            continue
+        v = raw.get(k)
+        if v not in _EMPTY:
+            p[k] = v
+
     # 旧版 parse 只留了 ws-path/ws-headers（值是真值）：折叠成标准的 ws-opts
     if "ws-opts" not in p and proto in ("vmess", "vless", "trojan"):
         path, headers = raw.get("ws-path"), raw.get("ws-headers")
@@ -185,7 +198,25 @@ def _clash_text(slug: str, proxies: list[dict], gen: str,
     if not proxies:
         why = "、".join(f"{k}×{v}" for k, v in skipped.most_common()) or "无节点"
         head.append(f"# 本机场没有可导出的节点（{why}），proxies 留空，等机场换协议/换订阅")
-    body = yaml.safe_dump({"proxies": proxies}, allow_unicode=True, sort_keys=False,
+    # 有 dialer-proxy 引用时，被引用的组必须同时存在，否则 mihomo 加载会报
+    # "proxy group not found"。用「server 不是内网名」的节点当组成员（即入口节点）。
+    refs = sorted({p.get("dialer-proxy") for p in proxies if p.get("dialer-proxy")})
+    groups = []
+    for ref in refs:
+        members = [p["name"] for p in proxies
+                   if p.get("dialer-proxy") != ref
+                   and "internal" not in str(p.get("server") or "").lower()]
+        if members:
+            groups.append({"name": ref, "type": "url-test", "proxies": members,
+                           "url": "http://www.gstatic.com/generate_204",
+                           "interval": 1200, "tolerance": 100, "timeout": 10000})
+    doc = {"proxies": proxies}
+    if groups:
+        doc["proxy-groups"] = groups
+        head.append("# 其中 %d 个节点靠 dialer-proxy 走入口组 %s（server 是内网名，单独导出去连不通）"
+                    % (len([p for p in proxies if p.get("dialer-proxy")]),
+                       "、".join(g["name"] for g in groups)))
+    body = yaml.safe_dump(doc, allow_unicode=True, sort_keys=False,
                           default_flow_style=False, width=1 << 20)
     return "\n".join(head) + "\n" + body
 

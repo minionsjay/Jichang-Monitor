@@ -302,10 +302,74 @@ def _merge_client_nodes(slug: str, snap):
     return snap
 
 
+def _nodes_from_bundle(slug: str, r: dict, detector: Detector):
+    """把「离线解包的客户端配置」写成一份快照，走与内存扫描相同的落盘链路。
+
+    解出来的节点带全字段（type/server/port/uuid/servername/reality-opts/dialer-proxy），
+    所以 raw 里整份塞进去：nodeset 导出时按协议能不能转来决定「可导出」，
+    面板的节点表也能直接读 uuid 之类（展示时按白名单，不会把密码吐出去）。
+    """
+    import json as _json
+    from airmon.models import Node as _Node, Snapshot as _Snapshot
+    from airmon.collect import _enrich_and_detect as _enrich
+
+    nodes = []
+    with io.open(r["path"], encoding="utf-8") as f:
+        j = _json.load(f)
+    for p in (j.get("nodes") or []):
+        if not isinstance(p, dict):
+            continue
+        srv = (p.get("server") or "").strip()
+        try:
+            port = int(p.get("port") or 0)
+        except Exception:
+            port = 0
+        raw = {k: v for k, v in p.items() if k not in ("name", "type", "server", "port")}
+        raw["source"] = r.get("source") or "dove-bundle"
+        raw["_complete"] = True
+        nodes.append(_Node(name=(p.get("name") or "node-%s" % port),
+                           protocol=(p.get("type") or "unknown"),
+                           server=srv, port=port, raw=raw))
+    if not nodes:
+        return False
+    # service.internal 这类内网名解析不了，enrich 会快速失败；4 个入口是真域名，能查 RDAP
+    try:
+        _enrich(slug, nodes, detector)
+    except Exception as e:  # noqa: BLE001
+        print(f"    [{slug}] 富化跳过（{str(e)[:50]}）", flush=True)
+    snap = _Snapshot(airport=slug, ts=store.now_iso(),
+                     source="bundle:%s" % os.path.basename(r.get("dat") or "DOVE.tauri.dat"),
+                     nodes=nodes, findings=[], meta={"bundle_name": r.get("bundle_name") or ""})
+    _finish(slug, snap, "bundle:dove")
+    return True
+
+
 def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
-    """自动启动客户端 → 等待 → scan-memory → keep_alive控制关闭。"""
+    """自动启动客户端 → 等待 → scan-memory → keep_alive控制关闭。
+
+    例外：DOVE 这类把整份配置加密落盘的客户端，先试**离线解包**——不启动客户端、
+    不需要管理员权限，还能拿到带 uuid/reality-opts 的完整节点（内存扫描只能捞到
+    IP:端口 碎片）。解包不成就退回原来的内存扫描。
+    """
     import subprocess as _sp
     import time as _time
+
+    # 优先级 0：离线解包（DOVE 的 DOVE.tauri.dat）
+    try:
+        from airmon import dovex as _dovex
+        if _dovex.available(client_cfg):
+            print(f"    [{slug}] 先试离线解包 DOVE.tauri.dat（不用启动客户端）...", flush=True)
+            _r = _dovex.extract(slug, client_cfg)
+            if _r.get("ok") and _r.get("count"):
+                print(f"    [{slug}] 解包成功：{_r['count']} 节点 {_r['protos']}，bundle={_r['bundle_name']}",
+                      flush=True)
+                if _nodes_from_bundle(slug, _r, detector):
+                    return
+            else:
+                print(f"    [{slug}] 离线解包失败（{_r.get('error', '')[:60]}），改用内存扫描", flush=True)
+    except Exception as _e:  # noqa: BLE001
+        print(f"    [{slug}] 离线解包异常（{str(_e)[:60]}），改用内存扫描", flush=True)
+
     core_process = client_cfg.get("core_process", "")
     if not core_process:
         return
@@ -885,6 +949,28 @@ def cmd_scan_memory(args):
     import time as _time
     detector = Detector()
     client_name = args.client or args.airport
+
+    # 优先级 0：离线解包（DOVE 的 DOVE.tauri.dat）。
+    # 不用启动客户端、不需要管理员权限，还能拿到带 uuid/reality-opts 的完整节点；
+    # 内存扫描对这类客户端只能捞到 IP:端口 碎片。解包不成就照旧往下走。
+    try:
+        from airmon import dovex as _dovex
+        _cfg = {}
+        try:
+            _cfg = (get_airport(args.airport) or {}).get("client") or {}
+        except Exception:
+            _cfg = {}
+        if _dovex.available(_cfg):
+            print("先试离线解包 DOVE.tauri.dat（不用启动客户端）...", flush=True)
+            _r = _dovex.extract(args.airport, _cfg)
+            if _r.get("ok") and _r.get("count"):
+                print(f"解包成功：{_r['count']} 节点 {_r['protos']}，bundle={_r['bundle_name']}", flush=True)
+                if _nodes_from_bundle(args.airport, _r, detector):
+                    return
+            else:
+                print(f"离线解包失败（{_r.get('error', '')[:60]}），改用内存扫描", flush=True)
+    except Exception as _e:  # noqa: BLE001
+        print(f"离线解包异常（{str(_e)[:60]}），改用内存扫描", flush=True)
 
     def _find_pid(proc_name):
         try:
