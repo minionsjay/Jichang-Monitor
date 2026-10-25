@@ -1114,13 +1114,14 @@ function renderLibrary() {
   }
 
   /* ------------------------------------------------------------ 弹窗与轻提示 */
-  function toast(msg) {
+  function toast(msg, o) {
     var t = $("#toast");
     if (!t) return;
+    o = o || {};
     t.textContent = msg;
-    t.className = "on";
+    t.className = "on" + (o.kind === "bad" ? " bad" : "");
     clearTimeout(t._h);
-    t._h = setTimeout(function () { t.className = ""; }, 3400);
+    t._h = setTimeout(function () { t.className = ""; }, o.ms || 3400);
   }
 
   function openModal(title, text) {
@@ -1511,6 +1512,23 @@ var API = { ok: false, reason: "" };
             });
           }
           API.sig = sig;
+
+          /* 新命中熔断提示：alerts.log 是拉取那一刻就写的，而 data.js 要等轮次收尾。
+             服务端看到新「华为命中」会自动重生面板数据，这里只负责立刻告诉用户。*/
+          var al = j.alerts || null;
+          if (al && al.sig) {
+            if (API.alertsSig && API.alertsSig !== al.sig) {
+              if (al.hw > 0) {
+                toast("华为相关命中 " + al.hw + " 条（" + (al.airport || "—") + "）· 面板数据已自动更新",
+                  { ms: 9000, kind: "bad" });
+                reloadData();
+              } else if (al.fronting > 0) {
+                toast("检测到大厂域前置 " + al.fronting + " 条（不算华为云）：" + (al.airport || "—"),
+                  { ms: 7000 });
+              }
+            }
+            API.alertsSig = al.sig;
+          }
           if (S.view === "run" && RENDER.run) RENDER.run();
         }).catch(function () {});
       })

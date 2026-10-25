@@ -727,6 +727,69 @@ def _all_slugs() -> set:
     return out
 
 
+_ALERT_STATE = {"sig": "", "last_regen": 0.0}
+
+
+def alerts_probe() -> dict:
+    """看 alerts.log 尾部最后一块，判断「刚才有没有新命中」。
+
+    面板数据（data.js）只在轮次收尾才重生，但命中是在拉取那一刻就写进
+    alerts.log 的。这里给前端一个轻量信号：新告警出现 → 立刻提示 + 重生面板。
+    """
+    path = ROOT / "data" / "alerts.log"
+    out = {"mtime": 0, "at": "", "airport": "", "hw": 0, "fronting": 0, "sig": ""}
+    try:
+        st = path.stat()
+        out["mtime"] = int(st.st_mtime)
+        with open(str(path), "rb") as f:
+            f.seek(max(0, st.st_size - 12000))
+            tail = f.read().decode("utf-8", "replace")
+    except Exception:
+        return out
+    blocks = [b for b in tail.split("===== ") if b.strip()]
+    if not blocks:
+        return out
+    blk = blocks[-1]
+    head = blk.splitlines()[0] if blk.splitlines() else ""
+    parts = [x.strip() for x in head.split("|")]
+    if len(parts) >= 2:
+        out["at"] = parts[0]
+        out["airport"] = parts[1].replace("=", "").strip()
+    for line in blk.splitlines()[1:]:
+        ls = line.strip()
+        if ls.startswith("华为关联命中"):
+            digits = "".join(ch for ch in ls if ch.isdigit())
+            out["hw"] = int(digits) if digits else 0
+        elif ls.startswith("大厂域前置"):
+            digits = "".join(ch for ch in ls if ch.isdigit())
+            out["fronting"] = int(digits) if digits else 0
+    out["sig"] = "%s|%s|%s|%s" % (out["mtime"], out["airport"], out["hw"], out["fronting"])
+    return out
+
+
+def _maybe_regen_for_alerts() -> None:
+    """检测到新命中就重生一次面板数据（5 分钟冷却，避免每次轮询都跑）。"""
+    ap = alerts_probe()
+    sig = ap.get("sig") or ""
+    if not sig or sig == _ALERT_STATE.get("sig"):
+        return
+    _ALERT_STATE["sig"] = sig
+    if not ap.get("hw"):
+        return  # 只有「华为命中」值得立刻刷新；大厂域前置不动面板
+    now = time.time()
+    if now - float(_ALERT_STATE.get("last_regen") or 0) < 300:
+        return
+    _ALERT_STATE["last_regen"] = now
+
+    def _run():
+        try:
+            _regen_light()
+        except Exception:  # noqa: BLE001
+            pass
+
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def _regen_light() -> dict:
     """只跑面板数据生成器（不跑 nodeset）。
 
@@ -930,7 +993,13 @@ class Handler(SimpleHTTPRequestHandler):
         q = parse_qs(u.query)
 
         if parts[:2] == ["api", "status"]:
-            self._json(round_status())
+            st = round_status()
+            try:
+                st["alerts"] = alerts_probe()
+                _maybe_regen_for_alerts()
+            except Exception:  # noqa: BLE001
+                st["alerts"] = {}
+            self._json(st)
             return True
 
         if parts[:2] == ["api", "airport"] and len(parts) == 3:

@@ -189,6 +189,11 @@ class Detector:
         return None
 
     def check_cidr(self, ip: str) -> str | None:
+        """静态 17 段兜底 + 动态 ASN 前缀表。
+
+        静态表只覆盖华为云的一小部分；转售/二次分配的 IP 在 RDAP 里
+        netname 可能不写 HWCSNET，这时只有「IP 属于华为公告前缀」还能判定。
+        """
         try:
             addr = ipaddress.ip_address(ip)
         except ValueError:
@@ -196,6 +201,12 @@ class Detector:
         for net in self.networks:
             if addr.version == net.version and addr in net:
                 return str(net)
+        try:
+            from .hwprefix import contains as _hw_contains
+            if _hw_contains(ip):
+                return "huawei-asn"
+        except Exception:  # noqa: BLE001
+            pass
         return None
 
     def check_domain(self, domain: str) -> str | None:

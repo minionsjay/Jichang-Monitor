@@ -1937,6 +1937,21 @@ def main():
             print(f"[代理] 使用 {_pu}")
     except Exception:  # noqa: BLE001
         pass
+
+    # 华为云 IP 前缀表：每天从 stat.ripe.net 刷新一次（AS55990/136907/137876）。
+    # 静态 huawei.yaml 只有 17 段，靠它兜底会漏掉转售/二次分配的华为云 IP。
+    try:
+        import json as _json
+        from airmon import hwprefix as _hwpf
+        if _hwpf.should_refresh():
+            _hwpf.refresh()
+            print("[前缀] 华为云 ASN 前缀表已刷新 %s" % _json.dumps(_hwpf.summary(), ensure_ascii=False))
+        else:
+            _sh = _hwpf.summary()
+            print("[前缀] 华为云 ASN 前缀表 %.1fh 前更新（%d 段 v4 / %d 段 v6）"
+                  % (_sh.get("age_h") or 0, _sh.get("v4_spans") or 0, _sh.get("v6_spans") or 0))
+    except Exception as _e:
+        print("[前缀] 前缀表刷新失败（沿用缓存）：%s" % _e)
     # Windows下强制UTF-8输出，避免GBK编码错误
     import sys as _sys
     if _sys.platform == "win32":

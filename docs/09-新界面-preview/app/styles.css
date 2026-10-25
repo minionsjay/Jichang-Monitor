@@ -1277,3 +1277,6 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
 .mxg-sub b { font-size: 12px; color: var(--fg2, #b4bcc9); font-weight: 600; }
 .mxg-sub > span { font-size: 11px; color: var(--dim); }
 .mxg-sub .mxg-d { font-size: 10.5px; color: var(--dim); flex: 1; text-align: right; opacity: .85; }
+
+/* 告警类 toast：红底，比普通提示更显眼 */
+#toast.bad { background: #3a1418; border-color: var(--red, #f0555c); color: #ffd9dc; }
