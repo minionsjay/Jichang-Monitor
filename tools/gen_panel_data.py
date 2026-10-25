@@ -198,8 +198,8 @@ def _via_of(slug: str, ix: dict) -> str:
     low = src.lower()
     if "bundle" in low:
         return "本地配置解包"        # DOVE：解密落盘的 MHBNDL 包
-    if "qyt" in low or "capture" in low:
-        return "本地抓包"            # 青云梯：Frida 截内核配置
+    if "qyt" in low or "capture" in low or "hhy-rpc" in low or "rpc" in low:
+        return "本地抓包"            # 青云梯/好好云：Frida 截本地 IPC 配置
     if _MEM_HINT.search(src) or (ix or {}).get("node_source") == "client_nodes":
         return "客户端内存"
     return "快照" if ix else "无数据"

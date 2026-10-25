@@ -365,8 +365,11 @@ def _fetch_cmd(slug: str) -> tuple[list[str], str]:
     if is_client and (bool(core) or not acc.get("sub_url")):
         cmd = [sys.executable, "-X", "utf8", "run.py", "scan-memory", "--airport", slug]
         if _no_admin_needed(slug):
-            return cmd, ("本地抓包（实时 40s · 免提权）" if slug == "qingyunti"
-                         else "本地配置解包（免提权）")
+            if slug == "qingyunti":
+                return cmd, "本地抓包（实时 40s · 免提权）"
+            if slug in ("hhy", "haohaoyun", "niceh"):
+                return cmd, "本地 RPC 抓取（实时 3s · 免提权）"
+            return cmd, "本地配置解包（免提权）"
         return cmd, "scan-memory" + ((" · " + core) if core else "")
     return [sys.executable, "-X", "utf8", "run.py", "pull", "--airport", slug, "-v"], "pull"
 
@@ -460,10 +463,12 @@ def _no_admin_needed(slug: str) -> bool:
     try:
         from airmon import config as _cfg
         from airmon import dovex as _dx
+        from airmon import hhy as _hhy
         from airmon import qingyunti as _qyt
         cli = (_cfg.get_airport(slug) or {}).get("client") or {}
-        # DOVE：解密落盘包；青云梯：用手上已有的抓包结果（都不碰进程内存）
-        return bool(_dx.available(cli)) or bool(_qyt.available(slug, cli))
+        # DOVE：解密落盘包；青云梯/好好云：本地拦配置（都不碰进程内存）
+        return (bool(_dx.available(cli)) or bool(_qyt.available(slug, cli))
+                or bool(_hhy.available(slug, cli)))
     except Exception:                                        # noqa: BLE001
         return False
 

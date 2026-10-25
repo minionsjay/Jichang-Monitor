@@ -395,6 +395,25 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     except Exception as _e:  # noqa: BLE001
         print(f"    [{slug}] 抓包缓存不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
 
+    # 优先级 0.55：hhy（好好云）本地 RPC 抓取（约 2-3 秒，免提权）
+    try:
+        from airmon import hhy as _hhy
+        if _hhy.available(slug, client_cfg):
+            print(f"    [{slug}] 抓取好好云配置（约 2-3 秒：Frida 截内核 RPC 帧 → 自动收尾）…",
+                  flush=True)
+            _r3 = _hhy.prepare(slug, client_cfg)
+            if _r3.get("ok") and _r3.get("count"):
+                _v3 = "实时抓取" if _r3.get("via") == "capture" else "抓包缓存"
+                if _r3.get("via") == "cache-fallback":
+                    print(f"    [{slug}] ⚠ 实时抓取失败（{str(_r3.get('capture_error'))[:70]}），"
+                          f"退回旧缓存", flush=True)
+                print(f"    [{slug}] 用{_v3}：{_r3['count']} 节点，抓于 "
+                      f"{_r3['captured_at']}（{_r3['age_hours']} 小时前）", flush=True)
+                if _nodes_from_bundle(slug, _r3, detector):
+                    return
+    except Exception as _e:  # noqa: BLE001
+        print(f"    [{slug}] 好好云抓包不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
+
     core_process = client_cfg.get("core_process", "")
     if not core_process:
         return
@@ -1017,6 +1036,25 @@ def cmd_scan_memory(args):
                     return
     except Exception as _e:  # noqa: BLE001
         print(f"抓包缓存不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
+
+    # 优先级 0.55：hhy（好好云）本地 RPC 抓取（约 2-3 秒，免提权）
+    try:
+        from airmon import hhy as _hhy
+        if _hhy.available(args.airport, _cfg):
+            print("抓取好好云配置（约 2-3 秒：Frida 截内核 RPC 帧 → 自动收尾）…",
+                  flush=True)
+            _r3 = _hhy.prepare(args.airport, _cfg)
+            if _r3.get("ok") and _r3.get("count"):
+                _v3 = "实时抓取" if _r3.get("via") == "capture" else "抓包缓存"
+                if _r3.get("via") == "cache-fallback":
+                    print(f"⚠ 实时抓取失败（{str(_r3.get('capture_error'))[:70]}），退回旧缓存",
+                          flush=True)
+                print(f"用{_v3}：{_r3['count']} 节点，抓于 {_r3['captured_at']}"
+                      f"（{_r3['age_hours']} 小时前）", flush=True)
+                if _nodes_from_bundle(args.airport, _r3, detector):
+                    return
+    except Exception as _e:  # noqa: BLE001
+        print(f"好好云抓包不可用（{str(_e)[:60]}），继续内存扫描", flush=True)
 
     def _find_pid(proc_name):
         try:
