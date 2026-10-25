@@ -26,7 +26,18 @@ huawei: true      # 华为云命中就推（默认开）
 fronting: false   # 大厂域名前置不推（不是华为，噪音）
 run_fail: false   # 整轮采集失败也推
 
+# ── 通道五：复用 DSH-IM 已接入的机器人（微信/企微/飞书都行，推荐）
+#    设置 → IM机器人 → 齿轮 → 复制 Bot ID；再「新建目标」→ 测试 → 保存 → 复制调用参数
+#    把下面两行填上即可，url 留空会自动探测本机在跑的 DSH 端口
+#      - type: dshim
+#        bot_id: bot_9577c8572d454122a4ef7fb4d8420a91
+#        target_id: airmon-alerts
+
 channels:
+  # 优先用 DSH-IM 里那个机器人：填上 bot_id / target_id 后把 type 改成 dshim
+  - type: dshim
+    bot_id: ""
+    target_id: "airmon-alerts"
   - type: wecom
     url: ""
   - type: serverchan

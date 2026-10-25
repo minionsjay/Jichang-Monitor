@@ -8,6 +8,9 @@ Web 协议登录实现（itchat/wechaty 之类）违反用户协议、随时封�
 2. serverchan Server酱（微信扫码绑定，个人免费额度每天 5 条）
 3. pushplus   PushPlus（微信扫码，免费额度更宽）
 4. webhook    自定义（Bark / 飞书 / 钉钉 / n8n 都行，POST JSON）
+5. dshim      复用你已经接进 DSH-IM 的机器人（微信/企微/飞书…），走它的主动投递接口
+              POST /api/dsh-im/delivery/messages {"botId","targetId","text","format"}
+              配置：type: dshim / bot_id: bot_xxx / target_id: airmon-alerts
 
 配置在项目根 notify.yaml（已在 .gitignore，含 token 绝不入库）：
 参考 notify.example.yaml。
@@ -50,9 +53,14 @@ def load() -> dict:
             continue
         if t in ("serverchan", "pushplus") and not (u or tok):
             continue
+        if t == "dshim" and not (str(c.get("bot_id") or "").strip() and
+                                 str(c.get("target_id") or "").strip()):
+            continue
         if t in ("wecom", "webhook") and not u:
             continue
         chans.append({"type": t, "url": u, "token": tok,
+                      "bot_id": str(c.get("bot_id") or "").strip(),
+                      "target_id": str(c.get("target_id") or "").strip(),
                       "name": str(c.get("name") or t)})
     return {
         "enabled": bool(cfg.get("enabled", True)) and bool(chans),
@@ -89,6 +97,38 @@ def _post(url: str, payload: dict) -> tuple[bool, str]:
         return False, "%s: %s" % (type(e).__name__, e)
 
 
+_DSH_PORTS = (13080, 3080, 61405, 19387, 5678)
+_dsh_cache: dict = {}
+
+
+def _dshim_url() -> str:
+    """自动找在跑的 DSH Web 端口（逐个探 /api/dsh-im/delivery/messages）。"""
+    if _dsh_cache.get("url"):
+        return _dsh_cache["url"]
+    import socket
+    for port in _DSH_PORTS:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.35):
+                _dsh_cache["url"] = "http://127.0.0.1:%d/api/dsh-im/delivery/messages" % port
+                return _dsh_cache["url"]
+        except Exception:
+            continue
+    return "http://127.0.0.1:13080/api/dsh-im/delivery/messages"
+
+
+def _to_plain(md: str) -> str:
+    """markdown → 纯文本（微信/QQ 这类不渲染 md 的渠道）。"""
+    import re as _re
+    t = md.replace("\r\n", "\n")
+    t = _re.sub(r"^#{1,6}\s*", "", t, flags=_re.M)          # 标题
+    t = _re.sub(r"\*\*([^*]+)\*\*", r"\1", t)              # 粗体
+    t = _re.sub(r"`([^`]+)`", r"\1", t)                     # 行内代码
+    t = _re.sub(r"^\s*[-*]\s+", "· ", t, flags=_re.M)       # 列表
+    t = _re.sub(r"^>\s?", "", t, flags=_re.M)               # 引用
+    t = _re.sub(r"\n{3,}", "\n\n", t)
+    return t.strip()
+
+
 def _trim(md: str) -> str:
     b = md.encode("utf-8")
     if len(b) <= MAX_BYTES:
@@ -110,6 +150,12 @@ def _send_one(ch: dict, title: str, md: str) -> dict:
         ok, info = _post(url, {"token": ch["token"] or ch["url"],
                                "title": title[:100], "content": md,
                                "template": "markdown"})
+    elif t == "dshim":
+        # DSH-IM 主动投递：复用用户已接入的微信/企微/飞书等机器人。
+        # 微信渠道不渲染 markdown，这里转纯文本，免得满屏 ** 和 #
+        url = ch["url"] or _dshim_url()
+        ok, info = _post(url, {"botId": ch.get("bot_id"), "targetId": ch.get("target_id"),
+                               "text": _to_plain(md), "format": "plain"})
     else:  # webhook 自定义
         ok, info = _post(ch["url"], {"title": title, "text": md, "md": md})
     return {"channel": ch.get("name") or t, "ok": ok, "info": info}
