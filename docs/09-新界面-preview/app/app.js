@@ -73,7 +73,8 @@
   function dot(cls) { return '<i class="dot ' + cls + '"></i>'; }
 
   /* ------------------------------------------------------------ 状态 */
-  var S = { view: "ov", q: "", al: "all", lib: "all", kn: "all", nd: null, ndProto: "all", density: "m", drawn: {} };
+  var S = { view: "ov", q: "", al: "all", lib: "all", kn: "all", nd: null, ndProto: "all", density: "m", group: "", drawn: {} };
+  try { var _g0 = localStorage.getItem("airmon.group"); if (_g0 === "channel") S.group = "channel"; } catch (e) {}
 
   var T = D.totals || {};
   var APTS = D.airports || [];
@@ -114,48 +115,21 @@
   }
 
   /* ------------------------------------------------------------ 总览 */
-  function renderOverview(force) {
-    var v = $("#v-ov");
-    if (S.drawn.ov && !force) { v.style.display = "block"; return; }
-    S.drawn.ov = 1;
+  /* 获取通道分组：把不能用订阅链接拿的机场归到一起 */
+  var CHANNELS = [
+    { k: "订阅直连", d: "订阅链接直接拉取，可导出配置" },
+    { k: "订阅失效", d: "订阅链接失效（403/404/过期），节点是历史或走别的入口" },
+    { k: "本地抓包", d: "客户端把配置交给内核时截下来（hhy / 青云梯）" },
+    { k: "本地解包", d: "解本地加密配置（DOVE）" },
+    { k: "客户端内存", d: "读客户端进程内存，需要管理员" },
+    { k: "仅客户端待打通", d: "只能用客户端，目前还没打通" },
+    { k: "已停用", d: "套餐过期或主动下线，不再采集" },
+    { k: "无数据", d: "没有任何可用快照" }
+  ];
+  var ST_ORDER = { A: 0, B: 1, C: 2, D: 3 };
 
-    var kpis = [
-      { lb: "监控机场", vl: T.airports, ft: "47 个 data 目录", cls: "" },
-      { lb: "本轮可用", vl: T.ok, ft: "订阅通达", cls: "ok" },
-      { lb: "异常", vl: T.b, ft: "订阅失效或采集卡住", cls: "b" },
-      { lb: "仅客户端", vl: T.c, ft: "订阅不通、客户端可用", cls: "c" },
-      { lb: "断流", vl: T.d, ft: "无新节点落地", cls: "d" },
-      { lb: "可用节点", vl: T.nodes, ft: "可导出 " + num(T.exported) + (T.frag ? " · 碎片 " + num(T.frag) : ""), cls: "t" }
-    ];
-
-    var h = '<div class="kpis">';
-    kpis.forEach(function (k, i) {
-      h += '<div class="kpi ' + k.cls + '">' +
-        '<div class="lb">' + esc(k.lb) + "</div>" +
-        '<div class="vl" data-cnt="' + i + '">0</div>' +
-        '<div class="ft">' + esc(k.ft) + "</div></div>";
-    });
-    h += "</div>";
-
-    /* 矩阵 */
-    h += '<div class="sec"><div class="sec-h"><h2>机场矩阵</h2>' +
-      '<span class="n">' + num(APTS.length) + " 家 · 按状态排序</span>" +
-      '<span class="sp"></span>' +
-      '<div class="row small dim" style="gap:12px">' +
-      '<span class="row" style="gap:5px">' + dot("ok") + "可用 " + T.ok + "</span>" +
-      '<span class="row" style="gap:5px">' + dot("b") + "异常 " + T.b + "</span>" +
-      '<span class="row" style="gap:5px">' + dot("c") + "仅客户端 " + T.c + "</span>" +
-      '<span class="row" style="gap:5px">' + dot("d") + "断流 " + T.d + "</span>" +
-      '<span class="row" style="gap:5px"><i class="cl inline">客</i>只能用客户端获取</span>' +
-      "</div>" +
-      '<div class="dseg" role="group" aria-label="卡片尺寸">' +
-      ["s", "m", "l"].map(function (k) {
-        var lbl = { s: "小", m: "中", l: "大" }[k];
-        return '<button class="dseg-b' + (S.density === k ? " on" : "") + '" data-d="' + k + '">' + lbl + "</button>";
-      }).join("") +
-      "</div></div>";
-    h += '<div class="sec-b"><div class="matrix" id="mx" data-d="' + S.density + '">';
-    SORTED.forEach(function (a) {
+  function cellHtml(a) {
+      var h = "";
       var cls = stCls(a.state);
       var clOnly = a.type === "client" && !a.has_sub;
       var expired = a.days != null && a.days < 0;
@@ -185,8 +159,78 @@
           '<span class="ex' + (a.exported ? "" : (expired ? " bad" : " dim")) + '">' + exTxt + "</span>" +
         "</span>" +
         "</button>";
+    return h;
+  }
+
+  function buildChannelGroups() {
+    var out = "";
+    CHANNELS.forEach(function (c) {
+      var list = SORTED.filter(function (a) { return (a.channel || "无数据") === c.k; });
+      if (!list.length) return;
+      list.sort(function (x, y) {
+        var d = (ST_ORDER[x.state] == null ? 9 : ST_ORDER[x.state]) - (ST_ORDER[y.state] == null ? 9 : ST_ORDER[y.state]);
+        return d || (y.nodes || 0) - (x.nodes || 0);
+      });
+      out += '<div class="mxgroup"><div class="mxg-h"><b>' + esc(c.k) + "</b>" +
+        '<span class="n">' + num(list.length) + " 家</span>" +
+        '<span class="mxg-d">' + esc(c.d) + "</span></div>" +
+        '<div class="matrix" data-d="' + S.density + '">' + list.map(cellHtml).join("") + "</div></div>";
     });
-    h += "</div></div></div>";
+    return out || '<div class="empty">没有机场</div>';
+  }
+
+  function renderOverview(force) {
+    var v = $("#v-ov");
+    if (S.drawn.ov && !force) { v.style.display = "block"; return; }
+    S.drawn.ov = 1;
+
+    var kpis = [
+      { lb: "监控机场", vl: T.airports, ft: "47 个 data 目录", cls: "" },
+      { lb: "本轮可用", vl: T.ok, ft: "订阅通达", cls: "ok" },
+      { lb: "异常", vl: T.b, ft: "订阅失效或采集卡住", cls: "b" },
+      { lb: "仅客户端", vl: T.c, ft: "订阅不通、客户端可用", cls: "c" },
+      { lb: "断流", vl: T.d, ft: "无新节点落地", cls: "d" },
+      { lb: "可用节点", vl: T.nodes, ft: "可导出 " + num(T.exported) + (T.frag ? " · 碎片 " + num(T.frag) : ""), cls: "t" }
+    ];
+
+    var h = '<div class="kpis">';
+    kpis.forEach(function (k, i) {
+      h += '<div class="kpi ' + k.cls + '">' +
+        '<div class="lb">' + esc(k.lb) + "</div>" +
+        '<div class="vl" data-cnt="' + i + '">0</div>' +
+        '<div class="ft">' + esc(k.ft) + "</div></div>";
+    });
+    h += "</div>";
+
+    /* 矩阵 */
+    h += '<div class="sec"><div class="sec-h"><h2>机场矩阵</h2>' +
+      '<span class="n">' + num(APTS.length) + " 家 · " + (S.group === "channel" ? "按获取通道分组" : "按状态排序") + "</span>" +
+      '<span class="sp"></span>' +
+      '<div class="row small dim" style="gap:12px">' +
+      '<span class="row" style="gap:5px">' + dot("ok") + "可用 " + T.ok + "</span>" +
+      '<span class="row" style="gap:5px">' + dot("b") + "异常 " + T.b + "</span>" +
+      '<span class="row" style="gap:5px">' + dot("c") + "仅客户端 " + T.c + "</span>" +
+      '<span class="row" style="gap:5px">' + dot("d") + "断流 " + T.d + "</span>" +
+      '<span class="row" style="gap:5px"><i class="cl inline">客</i>只能用客户端获取</span>' +
+      "</div>" +
+      '<div class="dseg dseg-g" role="group" aria-label="分组方式">' +
+      [["", "按状态"], ["channel", "按通道"]].map(function (kv) {
+        return '<button class="dseg-b' + ((S.group || "") === kv[0] ? " on" : "") + '" data-g="' + kv[0] + '">' + kv[1] + "</button>";
+      }).join("") +
+      "</div>" +
+      '<div class="dseg" role="group" aria-label="卡片尺寸">' +
+      ["s", "m", "l"].map(function (k) {
+        var lbl = { s: "小", m: "中", l: "大" }[k];
+        return '<button class="dseg-b' + (S.density === k ? " on" : "") + '" data-d="' + k + '">' + lbl + "</button>";
+      }).join("") +
+      "</div></div>";
+    h += '<div class="sec-b">';
+    if (S.group === "channel") {
+      h += buildChannelGroups();
+    } else {
+      h += '<div class="matrix" id="mx" data-d="' + S.density + '">' + SORTED.map(cellHtml).join("") + "</div>";
+    }
+    h += "</div></div>";
 
     /* 构成 */
     h += '<div class="grid2 mt14">' + barBlock("协议构成", D.protos || [], protoColor, "节点") +
@@ -198,6 +242,13 @@
     });
     $$(".dseg-b", v).forEach(function (b) {
       b.addEventListener("click", function () { S.density = b.getAttribute("data-d"); renderOverview(true); });
+    });
+    $$(".dseg-g .dseg-b", v).forEach(function (b) {
+      b.addEventListener("click", function () {
+        S.group = b.getAttribute("data-g");
+        try { localStorage.setItem("airmon.group", S.group || ""); } catch (e) {}
+        renderOverview(true);
+      });
     });
     countOnce("ov-airports", $('[data-cnt="0"]', v), T.airports);
     countOnce("ov-ok", $('[data-cnt="1"]', v), T.ok);

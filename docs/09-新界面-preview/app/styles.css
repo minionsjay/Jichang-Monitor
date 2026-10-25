@@ -1231,3 +1231,12 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
 .tag.old{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;font-size:10px;
   line-height:1.5;letter-spacing:.02em;background:color-mix(in srgb,var(--line) 70%,transparent);
   color:var(--dim);border:1px solid var(--line);vertical-align:1px}
+
+/* 按获取通道分组的标题 */
+.mxgroup + .mxgroup { margin-top: 14px; }
+.mxg-h { display: flex; align-items: baseline; gap: 9px; margin: 0 0 7px; padding-bottom: 5px;
+  border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.mxg-h b { font-size: 13px; font-weight: 620; color: var(--ink); letter-spacing: .01em; }
+.mxg-h .n { font-size: 11.5px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.mxg-d { font-size: 11.5px; color: var(--dim2); }
+.mxgroup .matrix { margin-bottom: 2px; }

@@ -437,6 +437,37 @@ def parse_run_log(path, want=60):
     return out
 
 
+def _channel_of(slug, reg, cred, via, sub_url, probe, nodes, state):
+    """获取通道分类：总览「按通道分组」用，把不能用订阅链接拿的归到一起。
+
+    判定顺序（前者优先）：
+      已停用 → 本地抓包 → 本地解包 → 客户端内存 → 订阅直连 → 订阅失效 → 仅客户端待打通 → 无数据
+    「订阅直连」以**实际有没有拿到节点**为准，探针失败但节点照有的（走别的入口/偶发 SSL 抖动）
+    不算失效，否则会把 A 类机场错归进失效组。
+    """
+    reg = reg or {}
+    cred = cred or {}
+    probe = probe or {}
+    if reg.get("enabled") is False or cred.get("enabled") is False:
+        return "已停用"
+    v = via or ""
+    if "抓包" in v:
+        return "本地抓包"
+    if "解包" in v:
+        return "本地解包"
+    if "内存" in v:
+        return "客户端内存"
+    is_client = (reg.get("type") == "client") or bool(cred.get("core_process"))
+    # 有节点就算拉通（哪怕节点类型导不出配置，如 socks/http 中转）
+    if nodes > 0 and state in ("A", "B"):
+        return "订阅直连"
+    if sub_url and not is_client:
+        return "订阅失效"
+    if is_client:
+        return "仅客户端待打通"
+    return "订阅失效" if sub_url else "无数据"
+
+
 def _hw_now(led):
     """当前华为命中数 = 台账里 A（真在华为云）+ B（经华为 CDN）。
 
@@ -526,6 +557,11 @@ def main():
     global _client_src
     _client_src = load_client_sources()
     sub_closed = load_sub_closed()
+    try:
+        _sp = jload(DATA / "sub_probe.json", None) or {}
+        sub_probe = (_sp.get("airports") or {}) if isinstance(_sp, dict) else {}
+    except Exception:
+        sub_probe = {}
     sub_auth = load_sub_auth()
     airports = []
     for slug in slugs:
@@ -720,6 +756,8 @@ def main():
             "client_status": c.get("status"),
             "type": r.get("type") or ("client" if c else "sub"),
             "has_sub": bool(cred_sub.get(slug)),
+            "channel": _channel_of(slug, r, c, _via_of(slug, ix), cred_sub.get(slug),
+                                   sub_probe.get(slug) or {}, nodes, state),
             "doms_all": (dom_all.get(slug) or {}).get("domains") or [],
             "doms_n": (dom_all.get(slug) or {}).get("n") or 0,
             "doms_alive": (dom_all.get(slug) or {}).get("alive") or 0,
