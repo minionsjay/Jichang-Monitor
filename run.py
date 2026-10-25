@@ -1657,6 +1657,18 @@ def cmd_all(args):
                 print("[状态表] 本机没有 openpyxl，本轮跳过")
     except Exception as _e:
         print(f"[状态表生成失败，忽略] {_e}")
+    # 5.14/5 微信日报（一天一条；夜间轮发当天，超 28 小时没发过则补发）
+    try:
+        _h14(step="5.14 微信日报")
+        _r14 = subprocess.run([sys.executable, "-X", "utf8",
+                               os.path.join(_root, "tools", "daily_digest.py")],
+                              cwd=_root, capture_output=True, timeout=180)
+        _o14 = (_r14.stdout or b"").decode("utf-8", "replace").strip()
+        if _o14:
+            print("[5.14] " + _o14.replace("\n", " | ")[:300])
+    except Exception as _e14:  # noqa: BLE001
+        print("[5.14] 微信日报失败（忽略）：%s: %s" % (type(_e14).__name__, _e14))
+
     # 5.13/5 每日同步（日报 + 节点清单 → Git；含凭据的配置默认不推）
     try:
         import time as _t13
