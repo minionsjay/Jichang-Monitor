@@ -33,7 +33,7 @@ from airmon.collect import (collect_direct, collect_profile, collect_login,
                             collect_from_url, collect_page, collect_node_pages,
                             collect_client, collect_server_fetch)
 from airmon.config import load_airports, get_airport, load_credentials, seed_domains
-from airmon.detect import Detector
+from airmon.detect import Detector, count_huawei, HW_DIMS
 from airmon.login import LoginError, detect_panel, discover_panel
 from airmon.recon import recon_airport, load_seeds, to_host, _dig
 from airmon import report as report_mod
@@ -46,6 +46,7 @@ def cmd_scan_existing(args):
     if not findings:
         print("未命中任何华为签名。")
         return
+    findings = [f for f in findings if f.dimension in HW_DIMS]
     print(f"华为关联命中 {len(findings)} 条：\n")
     for f in findings:
         print("  " + f.line())
@@ -113,7 +114,7 @@ def cmd_collect(args):
               f"客户端锁定型请用 ingest-profile。", file=sys.stderr)
     snap = collect_direct(airport, Detector())
     path = store.save(snap)
-    print(f"采集完成：{len(snap.nodes)} 节点，{len(snap.findings)} 华为命中 → {path}")
+    print(f"采集完成：{len(snap.nodes)} 节点，{count_huawei(snap.findings)} 华为命中 → {path}")
     changes = store.diff_latest(args.airport)
     emit(args.airport, snap.findings, changes)
 
@@ -121,7 +122,7 @@ def cmd_ingest_profile(args):
     airport = get_airport(args.airport)
     snap = collect_profile(airport, args.file, Detector(), index_path=args.index)
     path = store.save(snap)
-    print(f"摄入完成：{len(snap.nodes)} 节点，{len(snap.findings)} 华为命中 → {path}")
+    print(f"摄入完成：{len(snap.nodes)} 节点，{count_huawei(snap.findings)} 华为命中 → {path}")
     changes = store.diff_latest(args.airport)
     emit(args.airport, snap.findings, changes)
 
@@ -345,6 +346,28 @@ def _nodes_from_bundle(slug: str, r: dict, detector: Detector):
     return True
 
 
+def _guess_client_exe(install_dir, client_cfg):
+    """package 名拼出的 exe 不存在时，按内核名前缀在安装目录里找主程序。
+
+    典型场景：letsvpn 的主程序叫 LetsPRO.exe，而 package 缺省时会去拼
+    Letsvpn.exe；这里按 core_process（LetsPRO）前缀兜底，避开安装器类 exe。
+    """
+    try:
+        names = os.listdir(install_dir)
+    except OSError:
+        return ""
+    skip = ("uninst", "update", "ndp", "tapinstall", "letsgoogle", "vc_redist", "setup")
+    cands = [f for f in names
+             if f.lower().endswith(".exe") and not f.lower().startswith(skip)]
+    if not cands:
+        return ""
+    pref = str(client_cfg.get("core_process") or "").strip().lower()
+    if pref:
+        for f in cands:
+            if f.lower().startswith(pref[:6]):
+                return os.path.join(install_dir, f)
+    return ""
+
 def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     """自动启动客户端 → 等待 → scan-memory → keep_alive控制关闭。
 
@@ -358,7 +381,7 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     # 优先级 0：离线解包（DOVE 的 DOVE.tauri.dat）
     try:
         from airmon import dovex as _dovex
-        if _dovex.available(client_cfg):
+        if _dovex.available(client_cfg, slug):
             print(f"    [{slug}] 先试离线解包 DOVE.tauri.dat（不用启动客户端）...", flush=True)
             _r = _dovex.extract(slug, client_cfg)
             if _r.get("ok") and _r.get("count"):
@@ -445,6 +468,8 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
         if not os.path.exists(exe_path):
             exe_path = os.path.join(install_dir, exe_name[0].upper() + exe_name[1:])
         if not os.path.exists(exe_path):
+            exe_path = _guess_client_exe(install_dir, client_cfg) or exe_path
+        if not os.path.exists(exe_path):
             return
         print(f"    [{slug}] 启动客户端: {exe_path}", flush=True)
         _sp.Popen([exe_path], cwd=install_dir)
@@ -495,7 +520,7 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
     if best_snap is not None:
         _merge_client_nodes(slug, best_snap)
         store.save(best_snap)
-        print(f"    [{slug}] ✓ scan-memory 最终: {len(best_snap.nodes)}节点, {len(best_snap.findings)}华为", flush=True)
+        print(f"    [{slug}] ✓ scan-memory 最终: {len(best_snap.nodes)}节点, {count_huawei(best_snap.findings)}华为", flush=True)
     else:
         print(f"    [{slug}] scan-memory: 0节点（客户端可能未连接代理）", flush=True)
 
@@ -563,7 +588,7 @@ def _finish(slug: str, snap, kind: str):
     _clear_closed(slug)
     path = store.save(snap)
     print(f"[成功] {slug} ({kind}): {len(snap.nodes)} 节点, "
-          f"{len(snap.findings)} 华为命中")
+          f"{count_huawei(snap.findings)} 华为命中")
     if not snap.nodes:
         print(f"    ⚠ 0 节点：订阅链接可能失效/token 错误/被反爬挡了，请核对")
     if VERBOSE and snap.nodes:
@@ -873,7 +898,7 @@ def cmd_watch(args):
                 snap = collect_profile(airport, args.file, detector, index_path=args.index)
                 store.save(snap)
                 print(f"[watch] {time.strftime('%H:%M:%S')} 检测到更新 → "
-                      f"{len(snap.nodes)} 节点, {len(snap.findings)} 华为命中")
+                      f"{len(snap.nodes)} 节点, {count_huawei(snap.findings)} 华为命中")
                 emit(args.airport, snap.findings, store.diff_latest(args.airport))
             except Exception as e:
                 print(f"[watch] 摄入出错: {e}")
@@ -1004,7 +1029,7 @@ def cmd_scan_memory(args):
             _cfg = (get_airport(args.airport) or {}).get("client") or {}
         except Exception:
             _cfg = {}
-        if _dovex.available(_cfg):
+        if _dovex.available(_cfg, args.airport):
             print("先试离线解包 DOVE.tauri.dat（不用启动客户端）...", flush=True)
             _r = _dovex.extract(args.airport, _cfg)
             if _r.get("ok") and _r.get("count"):
@@ -1101,6 +1126,8 @@ def cmd_scan_memory(args):
             exe_path = os.path.join(install_dir, exe_name)
             if not os.path.exists(exe_path):
                 exe_path = os.path.join(install_dir, exe_name[0].upper() + exe_name[1:])
+            if not os.path.exists(exe_path):
+                exe_path = _guess_client_exe(install_dir, {"core_process": core_process}) or exe_path
 
             if os.path.exists(exe_path):
                 print(f"启动客户端: {exe_path}")
@@ -1483,6 +1510,7 @@ def cmd_all(args):
     # 汇总：节点数+华为命中
     tot = aps = 0
     hw_findings = []
+    fronting_n = 0
     for d in glob.glob(os.path.join(store.DATA_DIR, "*/")):
         slug = os.path.basename(d.rstrip("/").rstrip("\\"))
         snaps = sorted(glob.glob(os.path.join(d, "*.json")))
@@ -1493,7 +1521,12 @@ def cmd_all(args):
         if n:
             aps += 1; tot += n
         for f in s.get("findings", []):
-            hw_findings.append((slug, f))
+            dim = f.get("dimension", "") if isinstance(f, dict) else getattr(f, "dimension", "")
+            if dim == "fronting":
+                fronting_n += 1
+                continue
+            if dim in HW_DIMS:
+                hw_findings.append((slug, f))
 
     print(f"\n===== 完成：{aps} 个机场，共 {tot} 个节点 =====")
     if hw_findings:
@@ -1505,6 +1538,8 @@ def cmd_all(args):
                 print(f"  [{slug}] {f.dimension}={f.rule} | {f.evidence} | {f.context}")
     else:
         print("\n华为关联命中：0 条")
+    if fronting_n:
+        print(f"（另有 {fronting_n} 条「借大厂域名做前置」，不算华为云，单列不计数）")
 
     # 5.4/5 套餐数据刷新（离线收割新快照的 subscription-userinfo；数据>7天旧才在线补拉。best-effort）
     try:

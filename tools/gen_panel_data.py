@@ -438,16 +438,17 @@ def parse_run_log(path, want=60):
 
 
 def _hw_now(led):
-    """当前华为命中数 = 台账里 A/B/C 三类之和。
+    """当前华为命中数 = 台账里 A（真在华为云）+ B（经华为 CDN）。
 
-    旧的 data/huawei_findings.json 是 generic-csv 样例造出来的（那条 152.69.227.30
-    实为 Oracle），不再用于计数。
+    C 类（借大厂域名做前置）不算华为云——那是 deepseek/百度 自己的服务器，
+    计进「华为命中」会把数字虚抬（旧 data/huawei_findings.json 那条 152.69.227.30
+    实为 Oracle，同理作废）。
     """
     if not led:
         return 0
     bt = ((led.get("current") or {}).get("by_type")) or {}
     try:
-        return sum(int(bt.get(k) or 0) for k in ("A", "B", "C"))
+        return sum(int(bt.get(k) or 0) for k in ("A", "B"))
     except Exception:
         return 0
 

@@ -16,15 +16,22 @@ def emit(airport: str, findings: list[Finding], changes: dict | None = None):
     判空严格化（P0 修复）：findings 为空且 changes 无实际增删时**不写任何块**。
     此前 diff_latest 恒返回 dict，这里 `not changes` 永假，
     导致 alerts.log 里 83.9% 都是只有头行的空块。"""
+    from .detect import HW_DIMS
+
+    hw = [f for f in findings if f.dimension in HW_DIMS]
+    fr = [f for f in findings if f.dimension == "fronting"]
     has_changes = bool(changes and (changes.get("added") or changes.get("removed")))
-    if not findings and not has_changes:
+    if not hw and not fr and not has_changes:
         return
     os.makedirs(DATA_DIR, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     lines = [f"===== {ts} | {airport} ====="]
-    if findings:
-        lines.append(f"华为关联命中 {len(findings)} 条：")
-        lines += ["  " + f.line() for f in findings]
+    if hw:
+        lines.append(f"华为关联命中 {len(hw)} 条：")
+        lines += ["  " + f.line() for f in hw]
+    if fr:
+        lines.append(f"大厂域前置 {len(fr)} 条（不算华为云，单列）：")
+        lines += ["  " + f.line() for f in fr]
     if has_changes:
         if changes.get("added"):
             lines.append(f"新增节点 {len(changes['added'])} 个")

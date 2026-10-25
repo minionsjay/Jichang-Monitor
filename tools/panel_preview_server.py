@@ -467,7 +467,7 @@ def _no_admin_needed(slug: str) -> bool:
         from airmon import qingyunti as _qyt
         cli = (_cfg.get_airport(slug) or {}).get("client") or {}
         # DOVE：解密落盘包；青云梯/好好云：本地拦配置（都不碰进程内存）
-        return (bool(_dx.available(cli)) or bool(_qyt.available(slug, cli))
+        return (bool(_dx.available(cli, slug)) or bool(_qyt.available(slug, cli))
                 or bool(_hhy.available(slug, cli)))
     except Exception:                                        # noqa: BLE001
         return False

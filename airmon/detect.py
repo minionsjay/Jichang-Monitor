@@ -136,6 +136,32 @@ def is_sane_host(h: str) -> bool:
     return _is_clean_domain(s)
 
 
+
+# ---- 华为相关维度的统一口径 ----
+# fronting（借大厂域名做前置）不算「机场在华为云」，必须单独统计，
+# 否则 www.baidu.com / chat.deepseek.com 这类目标会把华为命中数虚抬。
+HW_DIMS = ("rdap_name", "asn", "cidr", "domain", "huawei_cdn_relay")
+
+
+def count_huawei(findings) -> int:
+    """只数真正指向华为云的 findings。"""
+    return sum(1 for f in (findings or []) if getattr(f, "dimension", "") in HW_DIMS)
+
+
+def split_findings(findings):
+    """→ (华为相关, 大厂域前置, 其它)"""
+    hw, fr, other = [], [], []
+    for f in (findings or []):
+        d = getattr(f, "dimension", "")
+        if d in HW_DIMS:
+            hw.append(f)
+        elif d == "fronting":
+            fr.append(f)
+        else:
+            other.append(f)
+    return hw, fr, other
+
+
 class Detector:
     def __init__(self, sig_path: str | None = None):
         with open(sig_path or DEFAULT_SIG, encoding="utf-8") as f:

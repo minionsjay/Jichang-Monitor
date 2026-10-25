@@ -130,11 +130,18 @@ def to_clash_proxies(yaml_text: str) -> tuple[list[dict], list[dict]]:
     return proxies, groups
 
 
-def available(client_cfg: dict | None = None) -> bool:
-    """该机场是否走 DOVE 离线解包：包存在且能解。"""
+def available(client_cfg: dict | None = None, slug: str = "") -> bool:
+    """该机场是否走 DOVE 离线解包。
+
+    **必须证明这台机场就是 DOVE**（slug / package / core_process 任一含 dove），
+    不能只因为「本机存在 DOVE.tauri.dat」就把别家机场也当成 DOVE ——
+    否则 quqiuquan(QQT)、letsvpn(快连) 会拿到 DOVE 的节点，数据张冠李戴。
+    """
     cfg = client_cfg or {}
     pkg = (cfg.get("package") or "").strip().lower()
-    if pkg and pkg != "dove":
+    core = (cfg.get("core_process") or "").strip().lower()
+    s = (slug or "").strip().lower()
+    if not ("dove" in pkg or "dove" in core or s in ("dovex", "dove")):
         return False
     p = dat_path(cfg.get("install_dir") or "", cfg.get("data_dir") or "")
     return bool(p) and os.path.exists(p)
