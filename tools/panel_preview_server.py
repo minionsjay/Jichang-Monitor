@@ -26,6 +26,7 @@ import json
 import re
 import os
 import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -612,6 +613,7 @@ def job_status(slug: str) -> dict:
 
 # ---------------------------------------------------------------- 订阅地址写回
 CRED = ROOT / "credentials.yaml"
+REG = ROOT / "airports.yaml"
 BACKUP_DIR = DATA / "backup"
 SUB_URL_MAX = 2048
 _SLUG_RE = re.compile(r"^[a-z0-9._-]{2,40}$")
@@ -704,6 +706,90 @@ def file_view(slug: str, kind: str) -> dict:
     except Exception as e:  # noqa: BLE001
         return {"ok": False, "error": "%s: %s" % (type(e).__name__, e)}
     return {"ok": True, "slug": slug, "kind": kind, "title": title, "text": text}
+
+
+def _all_slugs() -> set:
+    """已注册的 slug（airports.yaml + credentials.yaml + data/ 目录）。"""
+    out = set()
+    for f, key in ((REG, "airports"), (CRED, "accounts")):
+        try:
+            import yaml as _y
+            d = _y.safe_load(io.open(f, encoding="utf-8").read()) or {}
+        except Exception:  # noqa: BLE001
+            continue
+        if key == "airports":
+            for it in (d.get("airports") or []):
+                if isinstance(it, dict) and it.get("name"):
+                    out.add(str(it["name"]).strip())
+        else:
+            for k in (d.get("accounts") or {}):
+                out.add(str(k).strip())
+    return out
+
+
+def add_airport(p: dict) -> dict:
+    """注册新机场：校验 → 备份 → 调 run.py add-airport → 回读校验。
+
+    只读回显日志一律打码；绝不把密码写进日志。
+    """
+    slug = str(p.get("slug") or "").strip().lower()
+    display = str(p.get("display") or "").strip() or slug
+    panel = str(p.get("panel") or "").strip()
+    sub = str(p.get("sub_url") or "").strip()
+    email = str(p.get("email") or "").strip()
+    password = str(p.get("password") or p.get("pw") or "")
+
+    if not _SLUG_RE.match(slug):
+        return {"ok": False, "error": "标识只允许小写字母/数字/中划线，2–32 位"}
+    if slug in _all_slugs():
+        return {"ok": False, "error": "「%s」已经在监控列表里了" % slug}
+    if not sub and not panel:
+        return {"ok": False, "error": "订阅链接和面板地址至少填一个"}
+    for label, u in (("订阅链接", sub), ("面板地址", panel)):
+        if u and not u.lower().startswith(("http://", "https://")):
+            return {"ok": False, "error": "%s 必须以 http:// 或 https:// 开头" % label}
+        if u and re.search(r"\s", u):
+            return {"ok": False, "error": "%s 里有空格" % label}
+
+    # 备份
+    backup = []
+    for f in (REG, CRED):
+        if f.exists():
+            dst = BACKUP_DIR / ("%s-%s-%03d%s" % (f.stem, datetime.datetime.now().strftime("%Y%m%d-%H%M%S"), datetime.datetime.now().microsecond // 1000, f.suffix))
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(str(f), str(dst))
+            backup.append(dst.name)
+
+    argv = [sys.executable, "-X", "utf8", str(ROOT / "run.py"), "add-airport",
+            "--name", slug, "--display", display]
+    if sub:
+        argv += ["--url", sub, "--sub-url", sub]
+    if panel:
+        argv += ["--panel", panel]
+    if email:
+        argv += ["--email", email]
+    if password:
+        argv += ["--password", password]
+    ptype = str(p.get("type") or "auto").strip()
+    if ptype:
+        argv += ["--type", ptype]
+
+    try:
+        r = subprocess.run(argv, cwd=str(ROOT), capture_output=True, timeout=180,
+                           env=dict(os.environ, PYTHONIOENCODING="utf-8"))
+    except Exception as e:  # noqa: BLE001
+        return {"ok": False, "error": "调用 add-airport 失败：%s: %s" % (type(e).__name__, e)}
+
+    out = (r.stdout or b"").decode("utf-8", "replace") + (r.stderr or b"").decode("utf-8", "replace")
+    out = re.sub(r"https?://(?!127\.0\.0\.1|localhost|\[::1\])\S+", "[链接已隐]", out)[-2500:]
+
+    # 回读校验：两个 yaml 里都要出现
+    got = _all_slugs()
+    if slug not in got:
+        return {"ok": False, "error": "写入后没在配置里找到 %s" % slug, "log": out}
+
+    return {"ok": True, "slug": slug, "display": display, "backup": backup,
+            "has_sub": bool(sub), "log": out}
 
 
 def save_sub_url(slug: str, url: str) -> dict:
@@ -846,6 +932,20 @@ class Handler(SimpleHTTPRequestHandler):
         if parts[:2] == ["api", "file"] and len(parts) == 3:
             kind = (q.get("kind", ["raw"])[0] or "raw").lower()
             self._json(file_view(parts[2], kind))
+            return True
+
+        if parts[:2] == ["api", "airports"] and len(parts) == 3 and parts[2] == "add" and self.command == "POST":
+            length = int(self.headers.get("Content-Length") or 0)
+            if length <= 0 or length > 16384:
+                self._json({"ok": False, "error": "请求体为空或过大"}, 400)
+                return True
+            try:
+                payload = json.loads(self.rfile.read(length).decode("utf-8", "replace"))
+            except Exception:
+                self._json({"ok": False, "error": "请求体不是合法 JSON"}, 400)
+                return True
+            res = add_airport(payload if isinstance(payload, dict) else {})
+            self._json(res, 200 if res.get("ok") else 400)
             return True
 
         if parts[:2] == ["api", "sub"] and self.command == "POST":

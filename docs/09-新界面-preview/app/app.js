@@ -683,7 +683,9 @@ function renderLibrary() {
       '<button class="chip' + (S.lib === "sub" ? " on" : "") + '" data-lib="sub">订阅型</button>' +
       '<button class="chip' + (S.lib === "client" ? " on" : "") + '" data-lib="client">客户端型</button>' +
       '<button class="chip' + (S.lib === "bad" ? " on" : "") + '" data-lib="bad">异常</button>' +
-      "</div></div>";
+      "</div>" +
+      '<button class="btn xs primary" id="addAirport" title="买了新机场或注册了免费机场后，把它加进来">+ 添加机场</button>' +
+      "</div>";
 
     h += '<div class="sec-b"><div class="cards">';
     list.forEach(function (a) {
@@ -752,6 +754,9 @@ function renderLibrary() {
     $$("#libChips .chip", v).forEach(function (b) {
       b.addEventListener("click", function () { S.lib = b.getAttribute("data-lib"); renderLibrary(); });
     });
+
+    var ab = $("#addAirport");
+    if (ab) ab.addEventListener("click", function (e) { e.stopPropagation(); openAddAirport(); });
 
     if ($("#siteBody")) {
       fillSiteBody();
@@ -1099,6 +1104,101 @@ function renderLibrary() {
     $("#mdlT").textContent = title || "";
     $("#mdlB").textContent = text || "";
     $("#mdl").classList.add("on");
+  }
+
+  function openModalHtml(title, html) {
+    $("#mdlT").textContent = title || "";
+    $("#mdlB").innerHTML = html || "";
+    $("#mdl").classList.add("on");
+  }
+
+  /* ── 添加监控机场 ───────────────────────────────────────── */
+  function _fRow(id, label, ph, req, val) {
+    return '<label class="fr"><span>' + label + (req ? ' <i class="req">*</i>' : "") + "</span>" +
+      '<input id="' + id + '" type="text" placeholder="' + (ph || "") + '" value="' + esc(val || "") + '"' +
+      (req ? ' required' : "") + "></label>";
+  }
+
+  function openAddAirport() {
+    var html = '<form id="addForm" class="addf" autocomplete="off">' +
+      '<p class="fhint">买了一个机场，或注册了免费机场？把面板地址或订阅链接填进来，下一轮定时任务就会自动带上它。' +
+      "填写后会先校验、再备份 <code>airports.yaml</code> / <code>credentials.yaml</code>，然后写入。</p>" +
+      _fRow("fSlug", "标识（英文小写，2–32 位）", "例如 glados2 或 myairport", true) +
+      _fRow("fDisp", "显示名（中文名，可不填）", "例如 快柠檬") +
+      _fRow("fPanel", "面板地址", "https://example.com/#/login") +
+      _fRow("fSub", "订阅链接", "https://…/api/v1/client/subscribe?key=…") +
+      _fRow("fMail", "登录邮箱（可不填）", "填写注册用的邮箱") +
+      _fRow("fPass", "登录密码（可不填）", "仅在自动登录/刷新订阅时用") +
+      '<label class="fr"><span>类型</span><select id="fType">' +
+        '<option value="auto">自动判断（推荐）</option>' +
+        '<option value="direct">订阅直连</option>' +
+        '<option value="client">客户端型（要开客户端）</option>' +
+      "</select></label>" +
+      '<label class="fchk"><input id="fGo" type="checkbox" checked> 添加后立即获取一次节点</label>' +
+      '<div class="fmsg" id="fMsg"></div>' +
+      '<div class="fact"><button type="submit" class="btn primary" id="fOk">添加并保存</button>' +
+      '<button type="button" class="btn" id="fCancel">取消</button></div>' +
+      "</form>";
+    openModalHtml("添加监控机场", html);
+    var f = $("#addForm");
+    if (f) f.addEventListener("submit", function (e) { e.preventDefault(); submitAddAirport(); });
+    var c = $("#fCancel");
+    if (c) c.addEventListener("click", closeModal);
+  }
+
+  function _fMsg(html, cls) {
+    var m = $("#fMsg");
+    if (m) { m.className = "fmsg " + (cls || ""); m.innerHTML = html; }
+  }
+
+  function submitAddAirport() {
+    var body = {
+      slug: ($("#fSlug") || {}).value || "",
+      display: ($("#fDisp") || {}).value || "",
+      panel: ($("#fPanel") || {}).value || "",
+      sub_url: ($("#fSub") || {}).value || "",
+      email: ($("#fMail") || {}).value || "",
+      pw: ($("#fPass") || {}).value || "",
+      type: ($("#fType") || {}).value || "auto"
+    };
+    var go = $("#fGo") && $("#fGo").checked;
+    var ok = $("#fOk");
+    if (ok) { ok.disabled = true; ok.textContent = "写入中…"; }
+    _fMsg("正在校验并写入配置文件…", "");
+    fetch("api/airports/add", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+    }).then(function (r) { return r.json(); }).then(function (d) {
+      if (!d.ok) {
+        _fMsg('<b style="color:var(--red)">没写成功：</b>' + esc(d.error || "未知错误"), "bad");
+        if (ok) { ok.disabled = false; ok.textContent = "添加并保存"; }
+        return;
+      }
+      _fMsg('<b style="color:var(--green)">已加入监控：</b>' + esc(d.display || d.slug) +
+        "（" + esc(d.slug) + "）" + (d.has_sub ? "" : " · 没有订阅链接，将走面板登录或客户端") +
+        (go ? " · 正在获取节点…" : " · 下一轮定时任务会带上它"), "ok");
+      if (!go) {
+        setTimeout(function () { closeModal(); reloadData(); }, 1200);
+        return;
+      }
+      fetch("api/fetch/" + encodeURIComponent(d.slug), { method: "POST" })
+        .then(function (r) { return r.json(); })
+        .then(function () {
+          var n = 0;
+          var t = setInterval(function () {
+            n += 1;
+            reloadData();
+            if (n >= 10) {
+              clearInterval(t);
+              closeModal();
+              toast("「" + (d.display || d.slug) + "」已添加，节点获取完成，看卡片状态");
+            }
+          }, 5000);
+        })
+        .catch(function () { closeModal(); reloadData(); });
+    }).catch(function (e) {
+      _fMsg('<b style="color:var(--red)">请求失败：</b>' + esc(String(e)), "bad");
+      if (ok) { ok.disabled = false; ok.textContent = "添加并保存"; }
+    });
   }
 
   function closeModal() {
