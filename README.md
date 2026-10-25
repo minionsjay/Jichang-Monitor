@@ -82,6 +82,31 @@ python3 run.py diff --airport <slug>
 - [~] 阶段 3：类型 B `watch` 落盘自动摄入已做（`run.py watch`）；容器常驻客户端 + 本地内核 API 待部署（需常驻主机）
 - [ ] 阶段 4：探活（订阅层/节点层）+ 聚合自用订阅 + TG 告警
 
+## 客户端型机场：万达云用内核 YAML 解析入口 dump（免提权）
+
+万达云（`wandacloud` / `wdy`，同一客户端服务两个机场）以前只能提权读
+`wandacloudCore.exe` 内存，而 `airmon/memsan.py` 只认 `"server":"` 开头的完整 JSON，
+万达云的节点对象是 `{"alpn":…,"server":…,"type":…}`（server 在中间），
+所以历来只捞到 IP:端口碎片、协议全 `unknown`、可导出 0。
+
+内核无论怎么拿到配置，最终都要交给 Go 的 YAML 解析器
+（`gopkg.in/yaml.v3.unmarshal`）。在那个入口 dump 入参即可拿到完整明文：
+
+```bash
+cd "客户端逆向/wandacloud/工具"
+python wandacloud_get_nodes.py --seconds 45      # 约 45-60 秒
+```
+
+产出写到 `客户端逆向/wandacloud/节点/`：`wandacloud-config.yaml`（完整配置）、
+`wandacloud-nodes.yaml`（只含 proxies）、`wandacloud-nodes.txt`、`summary.json`。
+
+代价：脚本先用 `taskkill` 清残留（单实例锁会让新实例秒退），跑完客户端会被关掉，
+`client.keep_alive` 保不住。
+
+面板点「获取节点」自动走这条路（`airmon/wandacloud.py`）：`run.py` 的 `scan-memory`
+里优先级 0.6，抓失败退回缓存并告警，免提权、不弹 UAC，`获取方式` 显示「本地抓取」。
+实测 **81 个 anytls 节点**，全部可导出。
+
 ## 隐私
 
 `profiles.yaml` / 采集快照含账号邮箱、token、注册 IP、节点密码。
