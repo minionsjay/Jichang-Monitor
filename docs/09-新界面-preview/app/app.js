@@ -1003,7 +1003,11 @@
     var kv = [
       ["状态", dot(stCls(a.state)) + " " + stName(a.state)],
       ["可用节点", num(a.nodes) + (a.frag ? " 条（另有 " + num(a.frag) + " 条无协议碎片）" : " 条") + " · 可导出 " + num(a.exported)],
-      ["获取方式", esc(a.via || "—")],
+      ["获取方式", esc(a.via || "—") + (a.client_age_h != null
+        ? (a.client_age_h >= 6
+            ? ' <span class="tag old" title="抓取回来已经过去很久，每个节点的 servername(SNI) 每轮订阅都会重新随机 —— 超过 6 小时的很可能连不通">缓存 ' + a.client_age_h + ' 小时前</span>'
+            : ' <span class="xsmall dim">' + a.client_age_h + ' 小时前抓取</span>')
+        : "")],
       ["套餐到期", esc(a.expire || "—") + (a.days != null ? "（" + esc(daysText(a.days)) + "）" : "")],
       ["流量", a.unlimited ? "不限量" : (a.total_gb != null ? num(used) + " / " + num(a.total_gb) + " GB（" + (a.used_pct || 0) + "%）" : "—")],
       ["最近成功", '<span id="apLastOk">' + esc(relTime(a.last_ok)) + "</span>"],

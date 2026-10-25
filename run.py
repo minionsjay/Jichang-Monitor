@@ -382,6 +382,10 @@ def _do_scan_memory(slug: str, client_cfg: dict, detector: Detector):
             _r2 = _qyt.prepare(slug, client_cfg)
             if _r2.get("ok") and _r2.get("count"):
                 _via = "实时抓取" if _r2.get("via") == "capture" else "抓包缓存"
+                if _r2.get("via") == "cache-fallback":
+                    print(f"    [{slug}] ⚠ 实时抓取失败（{str(_r2.get('capture_error'))[:70]}），"
+                          f"退回旧缓存 —— 这些节点的 SNI 可能已过期，需要点一次「获取节点」重抓",
+                          flush=True)
                 print(f"    [{slug}] 用{_via}：{_r2['count']} 节点，抓于 "
                       f"{_r2['captured_at']}（{_r2['age_hours']} 小时前）"
                       + ("，已超 %d 小时建议重抓" % _qyt.STALE_HOURS if _r2.get("stale") else ""),
@@ -1002,6 +1006,9 @@ def cmd_scan_memory(args):
             _r2 = _qyt.prepare(args.airport, _cfg)
             if _r2.get("ok") and _r2.get("count"):
                 _via = "实时抓取" if _r2.get("via") == "capture" else "抓包缓存"
+                if _r2.get("via") == "cache-fallback":
+                    print(f"⚠ 实时抓取失败（{str(_r2.get('capture_error'))[:70]}），"
+                          f"退回旧缓存 —— 这些节点的 SNI 可能已过期", flush=True)
                 print(f"用{_via}：{_r2['count']} 节点，抓于 {_r2['captured_at']}"
                       f"（{_r2['age_hours']} 小时前）"
                       + ("，已超 %d 小时建议重抓" % _qyt.STALE_HOURS if _r2.get("stale") else ""),

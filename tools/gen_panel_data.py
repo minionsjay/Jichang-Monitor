@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+import calendar
 import time
 from collections import Counter, OrderedDict
 from datetime import datetime, timezone
@@ -204,9 +205,14 @@ def _via_of(slug: str, ix: dict) -> str:
     return "快照" if ix else "无数据"
 
 
+_src_at = {}          # slug -> 抓包结果距今小时数
+
+
 def load_client_sources():
     """data/client_nodes/<slug>.json 里的 source（判断这套节点是怎么来的）。"""
     out = {}
+    global _src_at
+    _src_at = {}
     d = os.path.join(ROOT, "data", "client_nodes")
     if not os.path.isdir(d):
         return out
@@ -218,6 +224,15 @@ def load_client_sources():
         except Exception:
             continue
         out[fn[:-5]] = str((j or {}).get("source") or "")
+        try:
+            _at = str((j or {}).get("extracted_at") or "")
+            if _at:
+                _st = time.strptime(_at[:19].replace("T", " "), "%Y-%m-%d %H:%M:%S")
+                # extracted_at 带 Z 就是 UTC，必须用 timegm，mktime 当本地时间会虚高 8 小时
+                _t = calendar.timegm(_st) if _at.rstrip().endswith("Z") else time.mktime(_st)
+                _src_at[fn[:-5]] = round((time.time() - _t) / 3600.0, 1)
+        except Exception:
+            pass
     return out
 
 
@@ -665,6 +680,7 @@ def main():
             "frag": _frag_ix,        # 无协议碎片（内存扫描只拿到域名+端口）
             "protos": ix.get("protos") or {},
             "via": _via_of(slug, ix),
+            "client_age_h": _src_at.get(slug),
             "days": days,
             "expire": q.get("expire_date"),
             "total_gb": q.get("total_gb"),
