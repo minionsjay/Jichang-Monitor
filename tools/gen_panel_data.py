@@ -202,6 +202,10 @@ def _via_of(slug: str, ix: dict) -> str:
         return "本地配置解包"        # DOVE：解密落盘的 MHBNDL 包
     if "qyt" in low or "capture" in low or "hhy-rpc" in low or "rpc" in low:
         return "本地抓包"            # 青云梯/好好云：Frida 截本地 IPC 配置
+    if "velo_api" in low:
+        return "API 登录"            # 账号登机场 API 换订阅（velochron）
+    if low.startswith("win_client"):
+        return "客户端内存"          # 常驻客户端内存扫描（lingdian）
     if _MEM_HINT.search(src) or (ix or {}).get("node_source") == "client_nodes":
         return "客户端内存"
     return "快照" if ix else "无数据"
@@ -235,7 +239,53 @@ def load_client_sources():
                 _src_at[fn[:-5]] = round((time.time() - _t) / 3600.0, 1)
         except Exception:
             pass
+
+    # client_nodes 只有「客户端类」机场才有；订阅/API 类机场的来源记在快照的
+    # source 字段里（如 velo_api:login+getSubscribe、win_client）。只读文件头 600 字节，
+    # 不解析整份快照。
+    for slug in _all_slugs_with_snapshots():
+        if slug in out:
+            continue
+        src = _snapshot_source(slug)
+        if src:
+            out[slug] = src
     return out
+
+
+def _all_slugs_with_snapshots() -> list:
+    out = []
+    root = os.path.join(ROOT, "data")
+    try:
+        for fn in os.listdir(root):
+            d = os.path.join(root, fn)
+            if os.path.isdir(d) and (fn not in _NON_AIRPORT_DIRS):
+                out.append(fn)
+    except OSError:
+        pass
+    return out
+
+
+_NON_AIRPORT_DIRS = {"_trash", "_archive", "client_nodes", "subraw", "backup",
+                     "exports", "quota", "raw", "logs", "sites"}
+
+
+def _snapshot_source(slug: str) -> str:
+    """读最新快照文件头的 "source"（store.save 把它写在顶层前几个键）。"""
+    try:
+        files = [f for f in os.listdir(os.path.join(ROOT, "data", slug)) if f.endswith(".json")]
+    except OSError:
+        return ""
+    if not files:
+        return ""
+    files.sort()
+    path = os.path.join(ROOT, "data", slug, files[-1])
+    try:
+        with io.open(path, encoding="utf-8", errors="replace") as f:
+            head = f.read(600)
+    except OSError:
+        return ""
+    m = _re.search(r'"source"\s*:\s*"([^"]{0,120})"', head)
+    return m.group(1) if m else ""
 
 
 def load_subraw_index():
@@ -467,6 +517,8 @@ def _channel_of(slug, reg, cred, via, sub_url, probe, nodes, state):
     if "内存" in v:
         return "客户端内存"
     is_client = (reg.get("type") == "client") or bool(cred.get("core_process"))
+    if "API" in v:
+        return "API 直连" if nodes > 0 else "订阅失效"
     # 有节点就算拉通（哪怕节点类型导不出配置，如 socks/http 中转）
     if nodes > 0 and state in ("A", "B"):
         return "订阅直连"
