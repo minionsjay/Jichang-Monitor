@@ -79,7 +79,9 @@ def _post(url: str, payload: dict) -> tuple[bool, str]:
     headers = {"Content-Type": "application/json; charset=utf-8",
                "User-Agent": "airmon-notify/1.0"}
     # 国内 IM 端点通常直连就行；代理可用时也允许走（企业微信必须直连）
-    proxies = None if "qq.com" in url else proxy_dict()
+    # 本机地址绝对不能走代理：127.0.0.1:13080 这类会变成"代理去访问代理自己"→ 502
+    _local = any(h in url for h in ("127.0.0.1", "localhost", "[::1]"))
+    proxies = None if (_local or "qq.com" in url) else proxy_dict()
     try:
         r = requests.post(url, data=body, headers=headers,
                           timeout=TIMEOUT, proxies=proxies)
