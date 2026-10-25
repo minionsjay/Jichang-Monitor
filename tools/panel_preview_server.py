@@ -446,9 +446,9 @@ def _via_label(slug):
     except Exception:                                    # noqa: BLE001
         return ""
     src = str(d.get("source") or "")
-    if src.startswith("bundle:"):
+    if "bundle" in src:                                  # dove-bundle: / bundle:
         return "本地配置解包"
-    if src.startswith("qyt-capture"):
+    if "capture" in src:                                 # qyt-capture:
         return "本地抓包"
     return "客户端内存" if src else ""
 
