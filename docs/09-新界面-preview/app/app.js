@@ -1273,11 +1273,23 @@ var API = { ok: false, reason: "" };
           esc(d.panel_host || d.panel) + "</a>"
         : '<span class="dim">未登记</span>';
 
+      var pr = d.sub_probe || {};
+      var prTag = "";
+      if (d.sub_present && pr.at) {
+        var st = pr.status, note = pr.note || "";
+        var good = pr.ok;
+        prTag = good
+          ? ' <span class="pill ok" title="' + esc(pr.ua || "") + ' 实测 ' + esc(pr.at) + '">订阅可用 ' + num(pr.bytes) + "B</span>"
+          : ' <span class="pill r" title="实测 ' + esc(pr.at) + '（' + esc(pr.via || "-") + '）">' +
+            esc(st ? "HTTP " + st : (note || "不可用")) + "</span>";
+      }
+      var localNote = (d.via === "本地抓包" || d.via === "本地配置解包")
+        ? ' <span class="xsmall dim">节点实际来自「' + esc(d.via) + '」，与这条链接无关</span>' : "";
       var sub = d.sub_present
-        ? '<span class="mono" id="apSubVal">' + esc(d.sub_masked) + "</span>" +
+        ? '<span class="mono" id="apSubVal">' + esc(d.sub_masked) + "</span>" + prTag +
           ' <button class="btn mini" id="apSubShow">显示</button>' +
           ' <button class="btn mini" id="apSubCopy">复制</button>' +
-          ' <button class="btn mini" id="apSubEdit">修改</button>'
+          ' <button class="btn mini" id="apSubEdit">修改</button>' + localNote
         : '<span class="dim">无订阅地址（客户端型，靠 core 扫描）</span>' +
           ' <button class="btn mini" id="apSubEdit">填写</button>';
 

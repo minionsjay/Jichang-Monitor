@@ -176,6 +176,9 @@ def airport_detail(slug: str, reveal: bool = False) -> dict:
         "sub_full": sub_url if reveal else None,
         "sub_host": urlparse(sub_url).netloc if sub_url else "",
         "sub_present": bool(sub_url),
+        # 这条订阅地址现在到底能不能拉（实测记录，见 tools/sub_probe.py）
+        "sub_probe": (_load_json(DATA / "sub_probe.json", {}) or {}).get("airports", {}).get(slug) or {},
+        "via": _via_label(slug),
         # 状态/节点数与卡片同源（gen_panel_data 产出的 panel_state.json），
         # 不再用 sub_health.json 里上一次诊断的旧值 —— 否则抽屉会说「A · 快照 153」
         # 而卡片说「62」，两处对不上。
@@ -434,6 +437,20 @@ def _run_fetch_elevated(slug: str, job: dict, cmd: list[str]) -> None:
         job["exit"] = 0 if ok else 1
     if ok:
         _regen_panel_data(job)
+
+
+def _via_label(slug):
+    """节点实际从哪来的：本地配置解包 / 本地抓包 / 客户端内存 / ''。"""
+    try:
+        d = _load_json(DATA / "client_nodes" / (slug + ".json"), {}) or {}
+    except Exception:                                    # noqa: BLE001
+        return ""
+    src = str(d.get("source") or "")
+    if src.startswith("bundle:"):
+        return "本地配置解包"
+    if src.startswith("qyt-capture"):
+        return "本地抓包"
+    return "客户端内存" if src else ""
 
 
 def _no_admin_needed(slug: str) -> bool:
