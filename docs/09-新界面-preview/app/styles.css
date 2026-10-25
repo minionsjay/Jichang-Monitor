@@ -1218,3 +1218,8 @@ h2 .en2 { font-size: 12.5px; margin-left: 8px; }
   font-size: 10px;
 }
 .xxsmall { font-size: 10.5px; }
+
+/* 旧口径灰标：不算结论，只是历史记录 */
+.tag.old{display:inline-block;margin-left:4px;padding:1px 5px;border-radius:3px;font-size:10px;
+  line-height:1.5;letter-spacing:.02em;background:color-mix(in srgb,var(--line) 70%,transparent);
+  color:var(--dim);border:1px solid var(--line);vertical-align:1px}

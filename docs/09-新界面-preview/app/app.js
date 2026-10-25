@@ -294,6 +294,11 @@
   }
 
   /* ------------------------------------------------------------ 告警 */
+  /* 2026-10-25 之前产生的告警，是旧引擎（detect.py 重写前）的判定：
+     domain 维度不做域名合法性校验，IP 命中不剔除大厂域前置与内存碎片节点。
+     给它们打灰标，避免被当成现口径的结论。 */
+  var OLD_ENGINE_TS = "2026-10-25T00:00:00Z";
+
   function renderAlerts() {
     var v = $("#v-al");
     var q = S.q.toLowerCase();
@@ -325,12 +330,15 @@
     list.forEach(function (x) {
       h += '<tr><td style="width:120px" class="mono xsmall dim nowrap">' + esc(shortTime(x.ts)) + "</td>" +
         '<td style="width:130px" class="nm" title="' + esc(x.slug) + '">' + esc(nmBySlug(x.slug)) + "</td>" +
-        '<td style="width:74px">' + pill("pill " + (KIND_CLS[x.kind] || ""), KIND_NAME[x.kind] || x.kind) + "</td>" +
+        '<td style="width:112px">' + pill("pill " + (KIND_CLS[x.kind] || ""), KIND_NAME[x.kind] || x.kind) +
+          (x.kind === "hw" && String(x.ts) < OLD_ENGINE_TS
+            ? ' <span class="tag old" title="2026-10-25 之前旧引擎判定：domain 维度未校验域名合法性，IP 命中未剔除大厂域前置与内存碎片节点">旧口径</span>'
+            : "") + "</td>" +
         '<td class="xsmall">' + esc(x.lines.join(" · ").slice(0, 180)) + "</td></tr>";
     });
     h += "</tbody></table></div></div></div>";
 
-    h += '<div class="mt14 hint">陈旧 = 快照超过 6 小时未更新；波动 = 本轮相对上一份快照的大幅增删；华为 = 命中云厂商特征。空块已在生成阶段丢弃。</div>';
+    h += '<div class="mt14 hint">陈旧 = 快照超过 6 小时未更新；波动 = 本轮相对上一份快照的大幅增删；华为 = 命中云厂商特征；带<b>旧口径</b>灰标的是 2026-10-25 引擎重写之前的记录（当时 domain 维度不校验域名合法性、IP 命中不剔除大厂域前置与碎片节点），不代表现在仍命中。空块已在生成阶段丢弃。</div>';
     v.innerHTML = h;
 
     $$("#alChips .chip", v).forEach(function (b) {
